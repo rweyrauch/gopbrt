@@ -13,6 +13,15 @@ type Shape interface {
     Pdf(pshape *Point) float64
     SampleAt(p *Point, u1, u2 float64) (*Point, *Normal)
     Pdf2(p *Point, wi *Vector) float64	// TODO: create better name for this function
+    ObjectToWorld() *Transform
+    WorldToObject() *Transform
     ReverseOrientation() bool
     TransformSwapsHandedness() bool
+    ShapeId() uint32
+}
+
+type ShapeData struct {
+    ObjectToWorld, WorldToObject *Transform
+    ReverseOrientation, TransformSwapsHandedness bool
+    shapeId uint32
 }
