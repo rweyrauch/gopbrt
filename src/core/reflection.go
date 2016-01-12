@@ -93,8 +93,8 @@ type Fresnel interface {
 type FresnelConductor struct {
     k, eta Spectrum
 }
-type FresnelDielectric {
-    eta_t, eta_i S float64
+type FresnelDielectric struct {
+    eta_t, eta_i float64
 }
 type FresnelNoOp struct {
 }
@@ -125,33 +125,33 @@ func (bsdf *BSDF) WorldToLocal(v *Vector) *Vector {
 func (bsdf *BSDF) LocalToWorld(v *Vector) *Vector {
     
 }
-func (bsdf *BSDF) f(woW, wiW *Vector, flags BxDFType) Spectrum {
+func (bsdf *BSDF) f(woW, wiW *Vector, flags BxDFType) *Spectrum {
     
 }
-func (bsdf *BSDF) rho(rng *RNG, flags BxDFType, sqrtSamples int) Spectrum {
+func (bsdf *BSDF) rho(rng *RNG, flags BxDFType, sqrtSamples int) *Spectrum {
     
 }
-func (bsdf *BSDF) rho2(wo *Vector, rng *RNG, flags BxDFType, sqrtSamples int) Spectrum {
+func (bsdf *BSDF) rho2(wo *Vector, rng *RNG, flags BxDFType, sqrtSamples int) *Spectrum {
     
 }
 
 type SpecularReflection struct { // BxDF
-    R Spectrum
+    R *Spectrum
     fresnel Fresnel
 }
 
 type SpecularTransmission struct { // BxDF
-    T Spectrum
+    T *Spectrum
     etai, etat float64
     fresnel *FresnelDielectric
 }
 
 type Lambertian struct { // BxDF
-    R Spectrum
+    R *Spectrum
 }
 
 type OrenNayar struct { // BxDF
-    R Spectrum
+    R *Spectrum
     A, B float64
 }
 
@@ -162,7 +162,7 @@ type MicrofacetDistribution interface {
 }
 
 type Microfacet struct { // BxDF
-    R Spectrum
+    R *Spectrum
     distribution MicrofacetDistribution
     fresnel Fresnel
 }
@@ -176,7 +176,7 @@ type Anisotropic struct { // MicrofacetDistribution
 }
 
 type FresnelBlend struct { // BxDF
-    Rd, Rs Spectrum
+    Rd, Rs *Spectrum
     distribution MicrofacetDistribution
 }
 
@@ -188,9 +188,9 @@ type RegularHalfangleBRDF struct { // BxDF
 
 type BSSRDF struct {
     e float64
-    sig_a, sigp_s Spectrum	
+    sig_a, sigp_s *Spectrum	
 }
-func CreateBSSRDF(sa, sps Spectrum, et float64) *BSSRDF {
+func CreateBSSRDF(sa, sps *Spectrum, et float64) *BSSRDF {
     return &BSSRDF{et, sa, sps}
 }
 
@@ -199,16 +199,38 @@ type IrregIsotropicBRDFSample struct {
     v Spectrum  
 }
 
-func FrDiel(cosi, cost float64, etai, etat Spectrum) Spectrum {
+func FrDiel(cosi, cost float64, etai, etat *Spectrum) *Spectrum {
+    var Rparl Spectrum = ((etat * cosi) - (etai * cost)) /
+                     ((etat * cosi) + (etai * cost))
+    var Rperp Spectrum = ((etai * cosi) - (etat * cost)) /
+                     ((etai * cosi) + (etat * cost))
+    return (Rparl*Rparl + Rperp*Rperp) / 2.0
     
 }
 
-func FrCond(cosi float64, n, k Spectrum) Spectrum {
-    
+func FrCond(cosi float64, eta, k *Spectrum) *Spectrum {
+	tmp := eta.Mult(eta).Add(k.Mult(k)).Scale(cosi*cosi) // (eta*eta + k*k) * cosi*cosi
+	etaScaled := eta.Scale(2.0 * cosi)
+	oneSpec := CreateRGBSpectrum(1.0)
+    cosSpec := CreateRGBSpectrum(cosi*cosi)
+	
+	//Rparl2 = (tmp - (2.0 * eta * cosi) + 1) / (tmp + (2.0 * eta * cosi) + 1)
+    Rparl2 := tmp.Sub(etaScaled).Add(oneSpec).Divide(tmp.Add(etaScaled).Add(oneSpec)) 
+    tmp_f := eta.Mult(eta).Add(k.Mult(k)) //eta*eta + k*k;
+    //Rperp2 = (tmp_f - (2.0 * eta * cosi) + cosi*cosi) / (tmp_f + (2.0 * eta * cosi) + cosi*cosi)
+    Rperp2 := tmp_f.Sub(etaScaled).Add(cosSpec).Divide(tmp_f.Add(etaScaled).Add(cosSpec))
+    return Rparl2.Add(Rperp2).Scale(0.5) 
 }
 
 func BRDFRemap(wo, wi *Vector) *Point {
-    
+    cosi, coso := CosTheta(wi), CosTheta(wo)
+    sini, sino := SinTheta(wi), SinTheta(wo)
+    phii, phio := SphericalPhi(wi), SphericalPhi(wo)
+    dphi := phii - phio
+    if dphi < 0.0 { dphi += 2.0 * math.Pi }
+    if dphi > 2.0 * math.Pi { dphi -= 2.0 * math.Pi }
+    if dphi > math.Pi { dphi = 2.0 * math.Pi - dphi }
+    return &Point{sini * sino, dphi / math.Pi, cosi * coso}    
 }
 
 func Fdr(eta float64) float64 {

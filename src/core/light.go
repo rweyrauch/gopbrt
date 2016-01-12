@@ -57,7 +57,7 @@ func CreateLightSampleOffsets(count int, sample *Sample) *LightSampleOffsets {
 	return &LightSampleOffsets{count, sample.Add1D(count), sample.Add2D(count)}
 }
 
-func CreateLightSample(sample *Sample, offsets *LightSampleOffsets, num uint32) *LightSample {
+func CreateLightSample(sample *Sample, offsets *LightSampleOffsets, n int) *LightSample {
 	return &LightSample{[2]float64{sample.twoD[offsets.posOffset][2*n], sample.twoD[offsets.posOffset][2*n+1]}, sample.oneD[offsets.componentOffset][n]}
 }
 

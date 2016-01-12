@@ -7,7 +7,7 @@ type Camera interface {
 type CameraCore struct {
     CameraToWorld *AnimatedTransform
     ShutterOpen, ShutterClose float64
-    Film *Film
+    Film Film
 }
 
 func GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {

@@ -1,8 +1,8 @@
 package pbrt
 
 type Scene struct {
-    aggregate *Primitive
-    lights []*Light
-    volumeRegion *VolumeRegion
+    aggregate Primitive
+    lights []Light
+    volumeRegion VolumeRegion
     bound BBox 
 }

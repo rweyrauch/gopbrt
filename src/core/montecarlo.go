@@ -270,7 +270,16 @@ func RadicalInverse(n, base int) float64 {
     return val
 }
 
-func GeneratePermutation(uint32_t *buf, uint32_t b, RNG &rng) {
+func Shuffle(samp []uint32, count, dims uint32, rng *RNG) {
+    for i := 0; i < count; i++ {
+        other := i + (rng.RandomUInt() % (count - i))
+        for j := 0; j < dims; j++ {
+            samp[dims*i + j], samp[dims*other + j] = samp[dims*other + j], samp[dims*i + j]
+        }
+    }
+}
+
+func GeneratePermutation(buf []uint32, b uint32, rng *RNG) {
     for i := 0; i < b; i++ {
         buf[i] = i
     }
@@ -412,7 +421,7 @@ func UniformSampleDisk(u1, u2 float64) (x, y float64) {
 }
 
 
-func ConcentricSampleDisk(float u1, float u2) (dx, dy float64) {
+func ConcentricSampleDisk(u1, u2 float64) (dx, dy float64) {
     var r, theta float64
     // Map uniform random numbers to $[-1,1]^2$
     sx := 2 * u1 - 1
@@ -481,36 +490,15 @@ func CreateDistribution2D(dfunc []float64, nu, nv int) *Distribution2D {
     
     for v := 0; v < nv; v++ {
         // Compute conditional sampling distribution for $\tilde{v}$
-        d.pConditionalV = append(d.pConditionalV, CreateDistribution1D(&func[v*nu], nu))
+        d.pConditionalV = append(d.pConditionalV, CreateDistribution1D(dfunc[v*nu:], nu))
     }
     // Compute marginal sampling distribution $p[\tilde{v}]$
-    vector<float> marginalFunc;
-    marginalFunc.reserve(nv);
-    for (int v = 0; v < nv; ++v)
-        marginalFunc.push_back(pConditionalV[v]->funcInt);
-    pMarginal = new Distribution1D(&marginalFunc[0], nv);
+    marginalFunc := make([]float64, nv, nv)
+    for v := 0; v < nv; v++ {
+        marginalFunc[v] = d.pConditionalV[v].dfuncInt
+	}        
+    d.pMarginal = CreateDistribution1D(marginalFunc, nv)
 }
-
-
-PermutedHalton::PermutedHalton(uint32_t d, RNG &rng) {
-    dims = d;
-    // Determine bases $b_i$ and their sum
-    b = new uint32_t[dims];
-    uint32_t sumBases = 0;
-    for (uint32_t i = 0; i < dims; ++i) {
-        b[i] = primes[i];
-        sumBases += b[i];
-    }
-
-    // Compute permutation tables for each base
-    permute = new uint32_t[sumBases];
-    uint32_t *p = permute;
-    for (uint32_t i = 0; i < dims; ++i) {
-        GeneratePermutation(p, b[i], rng);
-        p += b[i];
-    }
-}
-
 
 func UniformConePdf(cosThetaMax float64) float64 {
     return 1.0 / (2.0 * math.Pi * (1.0 - cosThetaMax))
@@ -525,7 +513,7 @@ func UniformSampleCone(u1, u2, costhetamax float64) *Vector {
 }
 
 
-func UniformSampleCone(u1, u2, costhetamax float64, x, y, z *Vector) *Vector {
+func UniformSampleConeVector(u1, u2, costhetamax float64, x, y, z *Vector) *Vector {
     costheta := Lerp(u1, costhetamax, 1.0)
     sintheta := math.Sqrt(1.0 - costheta*costheta)
     phi := u2 * 2.0 * math.Pi
@@ -549,7 +537,7 @@ func SampleHG(w *Vector, g, u1, u2 float64) *Vector {
 }
 
 
-func HGPdf(w *Vector &w, wp *Vector, g float64) float64 {
+func HGPdf(w, wp *Vector, g float64) float64 {
     return PhaseHG(w, wp, g)
 }
 

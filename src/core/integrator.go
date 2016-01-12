@@ -1,5 +1,19 @@
 package pbrt
 
+func Min(x, y int) int {
+    if x < y {
+        return x
+    }
+    return y
+}
+
+func Max(x, y int) int {
+    if x > y {
+        return x
+    }
+    return y
+}
+
 type Integrator interface {
     Preprocess(scene *Scene, camera *Camera, enderer *Renderer)
     RequestSamples(sampler *Sampler, sample *Sample, scene *Scene)
@@ -17,30 +31,30 @@ func UniformSampleAllLights(scene *Scene, renderer *Renderer,
     lightSampleOffsets []LightSampleOffsets,
     bsdfSampleOffsets []BSDFSampleOffsets) *Spectrum {
     	
-    L := CreateSpectrum(0.0)
-    for light, i := range scene.lights {
+    L := CreateSpectrum1(0.0)
+    for i, light := range scene.lights {
         nSamples := 1
         if lightSampleOffsets != nil {
-        	nSample = lightSampleOffsets[i].nSamples
+        	nSamples = lightSampleOffsets[i].nSamples
         }
         // Estimate direct lighting from _light_ samples
-        Ld := CreateSpectrum(0.0)
+        Ld := CreateSpectrum1(0.0)
         for j := 0; j < nSamples; j++ {
             // Find light and BSDF sample values for direct lighting estimate
-            var lightSample LightSample
-            var bsdfSample BSDFSample
+            var lightSample *LightSample
+            var bsdfSample *BSDFSample
             if lightSampleOffsets != nil && bsdfSampleOffsets != nil {
-                lightSample = LightSample(sample, lightSampleOffsets[i], j)
-                bsdfSample = BSDFSample(sample, bsdfSampleOffsets[i], j)
+                lightSample = CreateLightSample(sample, &lightSampleOffsets[i], j)
+                bsdfSample = CreateBSDFSample(sample, &bsdfSampleOffsets[i], j)
             } else {
-                lightSample = LightSample(rng)
-                bsdfSample = BSDFSample(rng)
+                lightSample = CreateLightSampleRandom(rng)
+                bsdfSample = CreateRandomBSDFSample(rng)
             }
-            Ld += EstimateDirect(scene, renderer, arena, light, p, n, wo,
+            Ld = Ld.Add(EstimateDirect(scene, renderer, arena, light, p, n, wo,
                 rayEpsilon, time, bsdf, rng, lightSample, bsdfSample,
-                BxDFType(BSDF_ALL & ~BSDF_SPECULAR))
+                BxDFType(BSDF_ALL ^ BSDF_SPECULAR)))
         }
-        L += Ld / nSamples
+        L = L.Add(Ld.InvScale(1.0/ float64(nSamples)))
     }
     return L
 }
@@ -48,44 +62,43 @@ func UniformSampleOneLight(scene *Scene, renderer *Renderer,
     arena *MemoryArena, p *Point, n *Normal, wo *Vector,
     rayEpsilon, time float64, bsdf *BSDF,
     sample *Sample, rng *RNG, lightNumOffset int,
-    lightSampleOffsets *LightSampleOffset,
-    bsdfSampleOffsets *BSDFSampleOffset) *Spectrum {
+    lightSampleOffsets *LightSampleOffsets,
+    bsdfSampleOffsets *BSDFSampleOffsets) *Spectrum {
     	
     // Randomly choose a single light to sample, _light_
     nLights := len(scene.lights)
-    if nLights == 0 { return CreateSpectrum(0.0) }
+    if nLights == 0 { return CreateSpectrum1(0.0) }
     var lightNum int
     if lightNumOffset != -1 {
         lightNum = Floor2Int(sample.oneD[lightNumOffset][0] * nLights)
     } else {
-        lightNum = Floor2Int(rng.RandomFloat() * nLights)
+        lightNum = Floor2Int(rng.RandomFloat() * float64(nLights))
     }
-    lightNum = min(lightNum, nLights-1)
+    lightNum = Min(lightNum, nLights-1)
     light := scene.lights[lightNum]
 
     // Initialize light and bsdf samples for single light sample
-    var lightSample LightSample
-    var bsdfSample BSDFSample
-    if lightSampleOffset != nil && bsdfSampleOffset != nil {
-        lightSample = LightSample(sample, *lightSampleOffset, 0)
-        bsdfSample = BSDFSample(sample, *bsdfSampleOffset, 0)
+    var lightSample *LightSample
+    var bsdfSample *BSDFSample
+    if lightSampleOffsets != nil && bsdfSampleOffsets != nil {
+        lightSample = CreateLightSample(sample, lightSampleOffsets, 0)
+        bsdfSample = CreateBSDFSample(sample, bsdfSampleOffsets, 0)
     } else {
-        lightSample = LightSample(rng)
-        bsdfSample = BSDFSample(rng)
+        lightSample = CreateLightSampleRandom(rng)
+        bsdfSample = CreateRandomBSDFSample(rng)
     }
-    return float64(nLights) *
-        EstimateDirect(scene, renderer, arena, light, p, n, wo,
+    return EstimateDirect(scene, renderer, arena, light, p, n, wo,
                        rayEpsilon, time, bsdf, rng, lightSample,
-                       bsdfSample, BxDFType(BSDF_ALL & ~BSDF_SPECULAR))
+                       bsdfSample, BxDFType(BSDF_ALL ^ BSDF_SPECULAR)).Scale(float64(nLights))
 }
     
 func EstimateDirect(scene *Scene, renderer *Renderer,
-    arena *MemoryArena, light *Light, p *Point,
+    arena *MemoryArena, light Light, p *Point,
     n *Normal, wo *Vector, rayEpsilon, time float64, bsdf *BSDF,
     rng *RNG, lightSample *LightSample, bsdfSample *BSDFSample,
     flags BxDFType) *Spectrum {
     	
-    Ld := CreateSpectrum(0.0)
+    Ld := CreateSpectrum1(0.0)
     // Sample light source with multiple importance sampling
     var wi Vector
     var lightPdf, bsdfPdf float64
@@ -95,7 +108,7 @@ func EstimateDirect(scene *Scene, renderer *Renderer,
         f := bsdf.f(wo, wi, flags)
         if !f.IsBlack() && visibility.Unoccluded(scene) {
             // Add light's contribution to reflected radiance
-            Li *= visibility.Transmittance(scene, renderer, NULL, rng, arena)
+            Li = Li.Mult(visibility.Transmittance(scene, renderer, nil, rng, arena))
             if light.IsDeltaLight() {
                 Ld += f * Li * (AbsDot(wi, n) / lightPdf)
             } else {
@@ -121,7 +134,7 @@ func EstimateDirect(scene *Scene, renderer *Renderer,
             }
             // Add light contribution from BSDF sampling
             var lightIsect Intersection
-            Li := CreateSpectrum(0.0)
+            Li := CreateSpectrum1(0.0)
             ray := CreateRayDifferential(p, wi, rayEpsilon, INFINITY, time)
             if scene.Intersect(ray, &lightIsect) {
                 if lightIsect.primitive.GetAreaLight() == light {
@@ -149,7 +162,7 @@ func SpecularReflect(ray *RayDifferential, bsdf *BSDF, rng *RNG,
     p := bsdf.dgShading.p
     n := bsdf.dgShading.nn
     f := bsdf.Sample_f(wo, &wi, BSDFSample(rng), &pdf, BxDFType(BSDF_REFLECTION | BSDF_SPECULAR))
-    L := CreateSpectrum(0.0)
+    L := CreateSpectrum1(0.0)
     if pdf > 0.0 && !f.IsBlack() && AbsDot(wi, n) != 0.0 {
         // Compute ray differential _rd_ for specular reflection
         rd := RayDifferential(p, wi, ray, isect.rayEpsilon)
@@ -186,7 +199,7 @@ func SpecularTransmit(ray *RayDifferential, bsdf* BSDF, rng *RNG,
     p := bsdf.dgShading.p
     n := bsdf.dgShading.nn
     f := bsdf.Sample_f(wo, &wi, BSDFSample(rng), &pdf, BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR))
-    L := CreateSpectrum(0.0)
+    L := CreateSpectrum1(0.0)
     if pdf > 0.0 && !f.IsBlack() && AbsDot(wi, n) != 0.0 {
         // Compute ray differential _rd_ for specular transmission
         rd := RayDifferential(p, wi, ray, isect.rayEpsilon)
