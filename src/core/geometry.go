@@ -42,22 +42,6 @@ const (
     INFINITY = math.MaxFloat64
 )
 
-func Clamp(f, fmin, fmax float64) float64 {
-    if f < fmin {
-        return fmin
-    } else if f > fmax {
-        return fmax
-    }
-    return f
-}
-
-func Lerp(t, v1, v2 float64) float64 {
-    return (1.0 - t) * v1 + t * v2
-}
-
-func Floor2Int(v float64) int {
-	return int(math.Floor(v))
-}
 
 func (v *Vector) Negate() *Vector {
     return &Vector{-v.x, -v.y, -v.z}

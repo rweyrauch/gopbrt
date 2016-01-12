@@ -310,10 +310,6 @@ func ScaleTransform(x, y, z float64) *Transform {
     return &Transform{ m, minv }
 }
 
-func Radians(angle float64) float64 {
-    return (angle * math.Pi) / 180.0
-}
-
 func RotateXTransform(angle float64) *Transform {
     sin_t := math.Sin(Radians(angle))
     cos_t := math.Cos(Radians(angle))
