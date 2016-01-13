@@ -2,7 +2,6 @@
 package pbrt
 
 import (
-	"strings"
 	"fmt"	
 )
 
@@ -18,7 +17,7 @@ func init() {
 
 type pbrtParameter struct {
 	name string
-	values pbrtPointer
+	values Object
 }
 
 func splitParamList(paramlist []pbrtParameter) (*ParamSet, bool) {
@@ -28,8 +27,8 @@ func splitParamList(paramlist []pbrtParameter) (*ParamSet, bool) {
 	}
 	
 	pset := new(ParamSet)
-	pset.tokens := make([]string, 0, len(paramlist))
-	pset.params := make([]pbrtPointer, 0, len(paramlist))
+	pset.tokens = make([]string, 0, len(paramlist))
+	pset.params = make([]Object, 0, len(paramlist))
 	
 	for _, p := range paramlist {
 		pset.tokens = append(pset.tokens, p.name)
@@ -53,7 +52,7 @@ func splitParamList(paramlist []pbrtParameter) (*ParamSet, bool) {
 	numbers []float64
 	tokens []string
 	param pbrtParameter
-	objects []pbrtPointer
+	objects []Object
 }
 
 %token <id> STRING IDENTIFIER
@@ -87,7 +86,7 @@ array
 	: string_array
 	{
 		// convert array of stings to array of interfaces
-		objects := make([]pbrtPointer, len($1), len($1))
+		objects := make([]Object, len($1), len($1))
 		for i,v := range $1 {
 			objects[i] = v
 		}
@@ -96,7 +95,7 @@ array
 	| number_array
 	{
 		// convert array of floats to array of interfaces
-		objects := make([]pbrtPointer, len($1), len($1))
+		objects := make([]Object, len($1), len($1))
 		for i,v := range $1 {
 			objects[i] = v
 		}
@@ -125,12 +124,12 @@ single_element_string_array
 string_list
 	: string_list STRING
 	{
-		$$ = append($1, string($2))
+		$$ = append($1, $2)
 	}
 	| STRING
 	{
 		$$ = make([]string, 1, 16)
-		$$[0] = string($1)
+		$$[0] = $1
 	}
 	;
 
@@ -155,7 +154,7 @@ single_element_number_array
 number_list
 	: number_list NUMBER
 	{
-		$$ = append($1, float64($2))
+		$$ = append($1, $2)
 	}
 	| NUMBER
 	{
@@ -179,7 +178,7 @@ param_list
 param_list_entry
 	: STRING array
 	{
-		$$ = pbrtParameter{string($1), $2}
+		$$ = pbrtParameter{$1, $2}
 	}
 	;
 
@@ -239,9 +238,9 @@ pbrt_stmt
 		if len(values) == 16 {		
 			var matrix Matrix4x4
 			i := 0
-			for r := range matrix {
-				for c := range matrix[r] {
-					matrix[r][c] = values[i]
+			for r := range matrix.m {
+				for c := range matrix.m[r] {
+					matrix.m[r][c] = values[i]
 					i++
 				}
 			}		
@@ -399,9 +398,9 @@ pbrt_stmt
 		if len(values) == 16 {		
 			var matrix Matrix4x4
 			i := 0
-			for r := range matrix {
-				for c := range matrix[r] {
-					matrix[r][c] = values[i]
+			for r := range matrix.m {
+				for c := range matrix.m[r] {
+					matrix.m[r][c] = values[i]
 					i++
 				}
 			}		

@@ -1,5 +1,9 @@
 package pbrt
 
+import (
+	"fmt"
+)
+
 var (
 	options *Options
 )
@@ -138,30 +142,32 @@ var (
 )
 
 // API Function Declarations
-func PbrtInit(opt *Options)                                                     {}
-func PbrtCleanup()                                                              {}
-func PbrtIdentity()                                                             {}
-func PbrtTranslate(dx, dy, dz float64)                                          {}
-func PbrtRotate(angle, ax, ay, az float64)                                      {}
-func PbrtScale(sx, sy, sz float64)                                              {}
-func PbrtLookAt(ex, ey, ez, lx, ly, lz, ux, uy, uz float64)                     {}
-func PbrtConcatTransform(transform [16]float64)                                 {}
-func PbrtTransform(transform [16]float64)                                       {}
-func PbrtCoordinateSystem(name string)                                          {}
-func PbrtCoordSysTransform(name string)                                         {}
-func PbrtActiveTransformAll()                                                   {}
-func PbrtActiveTransformEndTime()                                               {}
-func PbrtActiveTransformStartTime()                                             {}
-func PbrtTransformTimes(start, end float64)                                     {}
-func PbrtPixelFilter(name string, params *ParamSet)                             {}
-func PbrtFilm(filmtype string, params *ParamSet)                                {}
-func PbrtSampler(name string, params *ParamSet)                                 {}
-func PbrtAccelerator(name string, params *ParamSet)                             {}
-func PbrtSurfaceIntegrator(name string, params *ParamSet)                       {}
-func PbrtVolumeIntegrator(name string, params *ParamSet)                        {}
-func PbrtRenderer(name string, params *ParamSet)                                {}
-func PbrtCamera(camtype string, cameraParams *ParamSet)                         {}
-func PbrtWorldBegin()                                                           {}
+func PbrtInit(opt *Options)                                 {}
+func PbrtCleanup()                                          {}
+func PbrtIdentity()                                         {}
+func PbrtTranslate(dx, dy, dz float64)                      {}
+func PbrtRotate(angle, ax, ay, az float64)                  {}
+func PbrtScale(sx, sy, sz float64)                          {}
+func PbrtLookAt(ex, ey, ez, lx, ly, lz, ux, uy, uz float64) {}
+func PbrtConcatTransform(transform Matrix4x4)               {}
+func PbrtTransform(transform Matrix4x4)                     {}
+func PbrtCoordinateSystem(name string)                      {}
+func PbrtCoordSysTransform(name string)                     {}
+func PbrtActiveTransformAll()                               {}
+func PbrtActiveTransformEndTime()                           {}
+func PbrtActiveTransformStartTime()                         {}
+func PbrtTransformTimes(start, end float64)                 {}
+func PbrtPixelFilter(name string, params *ParamSet)         {}
+func PbrtFilm(filmtype string, params *ParamSet)            {}
+func PbrtSampler(name string, params *ParamSet)             {}
+func PbrtAccelerator(name string, params *ParamSet)         {}
+func PbrtSurfaceIntegrator(name string, params *ParamSet)   {}
+func PbrtVolumeIntegrator(name string, params *ParamSet)    {}
+func PbrtRenderer(name string, params *ParamSet)            {}
+func PbrtCamera(camtype string, cameraParams *ParamSet)     {}
+func PbrtWorldBegin() {
+	fmt.Printf("WorldBegin...")
+}
 func PbrtAttributeBegin()                                                       {}
 func PbrtAttributeEnd()                                                         {}
 func PbrtTransformBegin()                                                       {}
@@ -178,4 +184,6 @@ func PbrtVolume(name string, params *ParamSet)                                  
 func PbrtObjectBegin(name string)                                               {}
 func PbrtObjectEnd()                                                            {}
 func PbrtObjectInstance(name string)                                            {}
-func PbrtWorldEnd()                                                             {}
+func PbrtWorldEnd() {
+	fmt.Printf("WorldEnd\n")
+}
