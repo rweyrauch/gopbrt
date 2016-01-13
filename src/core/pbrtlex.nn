@@ -58,7 +58,7 @@
 
 //
 
-package api
+package pbrt
 
 import (	
 	"fmt"

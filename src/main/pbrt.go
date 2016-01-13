@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/rweyrauch/gopbrt/src/core"
-	"github.com/rweyrauch/gopbrt/src/api"
 )
 
 func main() {
@@ -33,19 +32,19 @@ func main() {
 		fmt.Printf("See the file LICENSE.txt for the conditions of the license.\n")
 	}
 
-	api.PbrtInit(&options)
+	pbrt.PbrtInit(&options)
 	// Process scene description
 	//PBRT_STARTED_PARSING();
 	if len(filenames) == 0 {
 		// Parse scene from standard input
-		api.ParseFile("-")
+		pbrt.ParseFile("-")
 	} else {
 		// Parse scene from input files
 		for _, f := range filenames {
-			if !api.ParseFile(f) {
+			if !pbrt.ParseFile(f) {
 				fmt.Printf("Couldn't open scene file \"%s\"", f)
 			}
 		}
 	}
-	api.PbrtCleanup()
+	pbrt.PbrtCleanup()
 }

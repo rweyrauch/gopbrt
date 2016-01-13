@@ -5,7 +5,7 @@ type Shape interface {
 	WorldBound() *BBox
 	CanIntersect() bool
 	Refine() (refined []*Shape)
-	Intersect(ray *Ray) (bool, tHit, rayEpsilon float64, dg *DifferentialGeometry)
+	Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry)
 	IntersectP(ray *Ray) bool
 	GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry
 	Area() float64

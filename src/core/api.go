@@ -1,14 +1,12 @@
-package api
+package pbrt
 
 import (
 	"fmt"
 	"strings"
-    "github.com/rweyrauch/gopbrt/src/shapes"
-    "github.com/rweyrauch/gopbrt/src/core"
 )
 
 var (
-	options *pbrt.Options
+	options *Options
 )
 
 const (
@@ -19,22 +17,22 @@ const (
 )
 
 type TransformSet struct {
-	t [MAX_TRANSFORMS]pbrt.Transform
+	t [MAX_TRANSFORMS]Transform
 }
 
-func (ts *TransformSet) get(i int) pbrt.Transform {
+func (ts *TransformSet) get(i int) Transform {
 	return ts.t[i]
 }
 func inverseTransformSet(ts TransformSet) TransformSet {
 	var t2 TransformSet
 	for i := 0; i < MAX_TRANSFORMS; i++ {
-		t2.t[i] = *pbrt.InverseTransform(&ts.t[i])
+		t2.t[i] = *InverseTransform(&ts.t[i])
 	}
 	return t2
 }
 func (ts *TransformSet) isAnimated() bool {
 	for i := 0; i < MAX_TRANSFORMS-1; i++ {
-		if pbrt.NotEqualTransform(&ts.t[i], &ts.t[i+1]) {
+		if NotEqualTransform(&ts.t[i], &ts.t[i+1]) {
 			return true
 		}
 	}
@@ -42,14 +40,14 @@ func (ts *TransformSet) isAnimated() bool {
 }
 
 type TransformPair struct {
-	first, second *pbrt.Transform
+	first, second *Transform
 }
 type TransformCache struct {
-	cache map[pbrt.Transform]TransformPair
-	arena pbrt.MemoryArena
+	cache map[Transform]TransformPair
+	arena MemoryArena
 }
 
-func (tc *TransformCache) lookup(t pbrt.Transform) (tCache, tInvCache *pbrt.Transform) {
+func (tc *TransformCache) lookup(t Transform) (tCache, tInvCache *Transform) {
 	tpair := tc.cache[t]
 	// TODO: handle case of adding a missing transform to cache
 	return tpair.first, tpair.second
@@ -62,25 +60,25 @@ type RenderOptions struct {
 	// RenderOptions Public Data
 	transformStartTime, transformEndTime      float64
 	FilterName                                string
-	FilterParams                              pbrt.ParamSet
+	FilterParams                              *ParamSet
 	FilmName                                  string
-	FilmParams                                pbrt.ParamSet
+	FilmParams                                *ParamSet
 	SamplerName                               string
-	SamplerParams                             pbrt.ParamSet
+	SamplerParams                             *ParamSet
 	AcceleratorName                           string
-	AcceleratorParams                         pbrt.ParamSet
+	AcceleratorParams                         *ParamSet
 	RendererName                              string
 	SurfIntegratorName, VolIntegratorName     string
-	RendererParams                            pbrt.ParamSet
-	SurfIntegratorParams, VolIntegratorParams pbrt.ParamSet
+	RendererParams                            *ParamSet
+	SurfIntegratorParams, VolIntegratorParams *ParamSet
 	CameraName                                string
-	CameraParams                              pbrt.ParamSet
-	CameraToWorld                             TransformSet
-	lights                                    []pbrt.Light
-	primitives                                []pbrt.Primitive
-	volumeRegions                             []pbrt.VolumeRegion
-	instances                                 map[string]pbrt.Primitive
-	currentInstance                           []pbrt.Primitive
+	CameraParams                              *ParamSet
+	CameraToWorld                             *TransformSet
+	lights                                    []Light
+	primitives                                []Primitive
+	volumeRegions                             []VolumeRegion
+	instances                                 map[string]Primitive
+	currentInstance                           []Primitive
 }
 
 func CreateRenderOptions() *RenderOptions {
@@ -101,13 +99,13 @@ func CreateRenderOptions() *RenderOptions {
 
 type GraphicsState struct {
 	// Graphics State
-	floatTextures        map[string]pbrt.TextureFloat
-	spectrumTextures     map[string]pbrt.TextureSpectrum
-	materialParams       pbrt.ParamSet
+	floatTextures        map[string]TextureFloat
+	spectrumTextures     map[string]TextureSpectrum
+	materialParams       *ParamSet
 	material             string
-	namedMaterials       map[string]pbrt.Material
+	namedMaterials       map[string]Material
 	currentNamedMaterial string
-	areaLightParams      pbrt.ParamSet
+	areaLightParams      *ParamSet
 	areaLight            string
 	reverseOrientation   bool
 }
@@ -129,38 +127,38 @@ var (
 	activeTransformBits       int = ALL_TRANSFORMS_BITS
 	namedCoordinateSystems    map[string]TransformSet
 	renderOptions             *RenderOptions
-	graphicsState             GraphicsState
-	pushedGraphicsStates      []GraphicsState
+	graphicsState             *GraphicsState
+	pushedGraphicsStates      []*GraphicsState
 	pushedTransforms          []TransformSet
 	pushedActiveTransformBits []uint32
 	transformCache            TransformCache
 )
 
 // Object Creation Function Definitions
-func MakeShape(name string, object2world, world2object *pbrt.Transform,
-        reverseOrientation bool, paramSet *pbrt.ParamSet) pbrt.Shape {
-    var s pbrt.Shape = nil
+func MakeShape(name string, object2world, world2object *Transform,
+        reverseOrientation bool, paramSet *ParamSet) Shape {
+    var s Shape = nil
 
     if strings.Compare(name, "sphere") == 0 {
-        s = shapes.CreateSphereShape(object2world, world2object, reverseOrientation, paramSet)
+        s = CreateSphereShape(object2world, world2object, reverseOrientation, paramSet)
     } else if strings.Compare(name, "cylinder") == 0 {
-        s = shapes.CreateCylinderShape(object2world, world2object, reverseOrientation, paramSet)
+        s = CreateCylinderShape(object2world, world2object, reverseOrientation, paramSet)
     } else if strings.Compare(name, "disk") == 0 {
-        s = shapes.CreateDiskShape(object2world, world2object, reverseOrientation, paramSet)
+        s = CreateDiskShape(object2world, world2object, reverseOrientation, paramSet)
     } else if strings.Compare(name, "cone") == 0 {
-        s = shapes.CreateConeShape(object2world, world2object, reverseOrientation, paramSet)
+        s = CreateConeShape(object2world, world2object, reverseOrientation, paramSet)
     } else if strings.Compare(name, "paraboloid") == 0 {
-        s = shapes.CreateParaboloidShape(object2world, world2object, reverseOrientation, paramSet)
+        s = CreateParaboloidShape(object2world, world2object, reverseOrientation, paramSet)
     } else if strings.Compare(name, "hyperboloid") == 0 {
-        s = shapes.CreateHyperboloidShape(object2world, world2object, reverseOrientation, paramSet)
+        s = CreateHyperboloidShape(object2world, world2object, reverseOrientation, paramSet)
     } else if strings.Compare(name, "trianglemesh") == 0 {
-        s = shapes.CreateTriangleMeshShape(object2world, world2object, reverseOrientation, paramSet, graphicsState.floatTextures)
+        s = CreateTriangleMeshShape(object2world, world2object, reverseOrientation, paramSet, graphicsState.floatTextures)
     } else if strings.Compare(name, "heightfield") == 0 {
-        s = shapes.CreateHeightfieldShape(object2world, world2object, reverseOrientation, paramSet)
+        s = CreateHeightfieldShape(object2world, world2object, reverseOrientation, paramSet)
     } else if strings.Compare(name, "loopsubdiv") == 0 {
-        s = shapes.CreateLoopSubdivShape(object2world, world2object, reverseOrientation, paramSet)
+        s = CreateLoopSubdivShape(object2world, world2object, reverseOrientation, paramSet)
     } else if strings.Compare(name, "nurbs") == 0 {
-        s = shapes.CreateNURBSShape(object2world, world2object, reverseOrientation, paramSet)
+        s = CreateNURBSShape(object2world, world2object, reverseOrientation, paramSet)
     } else {
         fmt.Printf("Shape \"%s\" unknown.", name)
     }
@@ -168,7 +166,7 @@ func MakeShape(name string, object2world, world2object *pbrt.Transform,
 }
 
 // API Function Declarations
-func PbrtInit(opt *pbrt.Options) {
+func PbrtInit(opt *Options) {
     options = opt
     // API Initialization
     if currentApiState != STATE_UNINITIALIZED {
@@ -197,8 +195,8 @@ func PbrtTranslate(dx, dy, dz float64)                      {}
 func PbrtRotate(angle, ax, ay, az float64)                  {}
 func PbrtScale(sx, sy, sz float64)                          {}
 func PbrtLookAt(ex, ey, ez, lx, ly, lz, ux, uy, uz float64) {}
-func PbrtConcatTransform(transform pbrt.Matrix4x4)               {}
-func PbrtTransform(transform pbrt.Matrix4x4)                     {}
+func PbrtConcatTransform(transform Matrix4x4)               {}
+func PbrtTransform(transform Matrix4x4)                     {}
 func PbrtCoordinateSystem(name string)                      {}
 func PbrtCoordSysTransform(name string)                     {}
 func PbrtActiveTransformAll()                               {}
@@ -210,22 +208,22 @@ func PbrtTransformTimes(start, end float64) {
     renderOptions.transformEndTime = end
 }
 
-func PbrtPixelFilter(name string, params *pbrt.ParamSet) {
+func PbrtPixelFilter(name string, params *ParamSet) {
     renderOptions.FilterName = name
     renderOptions.FilterParams = params	
 }
 
-func PbrtFilm(filmtype string, params *pbrt.ParamSet) {
+func PbrtFilm(filmtype string, params *ParamSet) {
     renderOptions.FilmParams = params
     renderOptions.FilmName = filmtype
 }
 
-func PbrtSampler(name string, params *pbrt.ParamSet)             {}
-func PbrtAccelerator(name string, params *pbrt.ParamSet)         {}
-func PbrtSurfaceIntegrator(name string, params *pbrt.ParamSet)   {}
-func PbrtVolumeIntegrator(name string, params *pbrt.ParamSet)    {}
-func PbrtRenderer(name string, params *pbrt.ParamSet)            {}
-func PbrtCamera(camtype string, cameraParams *pbrt.ParamSet)     {}
+func PbrtSampler(name string, params *ParamSet)             {}
+func PbrtAccelerator(name string, params *ParamSet)         {}
+func PbrtSurfaceIntegrator(name string, params *ParamSet)   {}
+func PbrtVolumeIntegrator(name string, params *ParamSet)    {}
+func PbrtRenderer(name string, params *ParamSet)            {}
+func PbrtCamera(camtype string, cameraParams *ParamSet)     {}
 func PbrtWorldBegin() {
 	fmt.Printf("WorldBegin...")
 }
@@ -233,15 +231,15 @@ func PbrtAttributeBegin()                                                       
 func PbrtAttributeEnd()                                                         {}
 func PbrtTransformBegin()                                                       {}
 func PbrtTransformEnd()                                                         {}
-func PbrtTexture(name string, textype string, texname string, params *pbrt.ParamSet) {}
-func PbrtMaterial(name string, params *pbrt.ParamSet)                                {}
-func PbrtMakeNamedMaterial(name string, params *pbrt.ParamSet)                       {}
+func PbrtTexture(name string, textype string, texname string, params *ParamSet) {}
+func PbrtMaterial(name string, params *ParamSet)                                {}
+func PbrtMakeNamedMaterial(name string, params *ParamSet)                       {}
 func PbrtNamedMaterial(name string)                                             {}
-func PbrtLightSource(name string, params *pbrt.ParamSet)                             {}
-func PbrtAreaLightSource(name string, params *pbrt.ParamSet)                         {}
-func PbrtShape(name string, params *pbrt.ParamSet)                                   {}
+func PbrtLightSource(name string, params *ParamSet)                             {}
+func PbrtAreaLightSource(name string, params *ParamSet)                         {}
+func PbrtShape(name string, params *ParamSet)                                   {}
 func PbrtReverseOrientation()                                                   {}
-func PbrtVolume(name string, params *pbrt.ParamSet)                                  {}
+func PbrtVolume(name string, params *ParamSet)                                  {}
 func PbrtObjectBegin(name string)                                               {}
 func PbrtObjectEnd()                                                            {}
 func PbrtObjectInstance(name string)                                            {}

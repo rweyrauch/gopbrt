@@ -251,8 +251,8 @@ func Fdr(eta float64) float64 {
 }
 
 // BSDF Inline Functions
-func CosTheta(w *Vector) float64    { return w.Z }
-func AbsCosTheta(w *Vector) float64 { return math.Abs(w.Z) }
+func CosTheta(w *Vector) float64    { return w.z }
+func AbsCosTheta(w *Vector) float64 { return math.Abs(w.z) }
 func SinTheta2(w *Vector) float64 {
 	return math.Max(0.0, 1.0-CosTheta(w)*CosTheta(w))
 }
@@ -265,7 +265,7 @@ func CosPhi(w *Vector) float64 {
 	if sintheta == 0.0 {
 		return 1.0
 	}
-	return Clamp(w.X/sintheta, -1.0, 1.0)
+	return Clamp(w.x/sintheta, -1.0, 1.0)
 }
 
 func SinPhi(w *Vector) float64 {
@@ -273,9 +273,9 @@ func SinPhi(w *Vector) float64 {
 	if sintheta == 0.0 {
 		return 0.0
 	}
-	return Clamp(w.Y/sintheta, -1.0, 1.0)
+	return Clamp(w.y/sintheta, -1.0, 1.0)
 }
 
 func SameHemisphere(w, wp *Vector) bool {
-	return w.Z*wp.Z > 0.0
+	return w.z*wp.z > 0.0
 }

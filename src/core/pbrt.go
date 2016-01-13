@@ -13,8 +13,8 @@ const (
 type Object interface{}
 
 type ParamSet struct {
-	Tokens []string
-	Params []Object
+	tokens []string
+	params []Object
 }
 
 // TODO: replace these stubs

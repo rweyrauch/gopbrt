@@ -1,9 +1,8 @@
 %{
-package api
+package pbrt
 
 import (
 	"fmt"	
-    "github.com/rweyrauch/gopbrt/src/core"
 )
 
 /*
@@ -18,25 +17,25 @@ func init() {
 
 type pbrtParameter struct {
 	name string
-	values pbrt.Object
+	values Object
 }
 
-func splitParamList(paramlist []pbrtParameter) (*pbrt.ParamSet, bool) {
+func splitParamList(paramlist []pbrtParameter) (*ParamSet, bool) {
 	// an empty list is valid
 	if paramlist == nil {
 		return nil, true
 	}
 	
-	pset := new(pbrt.ParamSet)
-	pset.Tokens = make([]string, 0, len(paramlist))
-	pset.Tarams = make([]pbrt.Object, 0, len(paramlist))
+	pset := new(ParamSet)
+	pset.tokens = make([]string, 0, len(paramlist))
+	pset.params = make([]Object, 0, len(paramlist))
 	
 	for _, p := range paramlist {
-		pset.Tokens = append(pset.Tokens, p.name)
-		pset.Params = append(pset.Params, p.values)		
+		pset.tokens = append(pset.tokens, p.name)
+		pset.params = append(pset.params, p.values)		
 	}
 	ok := false
-	if len(pset.Tokens) == len(pset.Params) {
+	if len(pset.tokens) == len(pset.params) {
 		ok = true
 	} else {
 		fmt.Errorf("Token and param lists do not have the same length. %d vs. %d\n.", len(pset.tokens), len(pset.params))
@@ -53,7 +52,7 @@ func splitParamList(paramlist []pbrtParameter) (*pbrt.ParamSet, bool) {
 	numbers []float64
 	tokens []string
 	param pbrtParameter
-	objects []pbrt.Object
+	objects []Object
 }
 
 %token <id> STRING IDENTIFIER
@@ -87,7 +86,7 @@ array
 	: string_array
 	{
 		// convert array of stings to array of interfaces
-		objects := make([]pbrt.Object, len($1), len($1))
+		objects := make([]Object, len($1), len($1))
 		for i,v := range $1 {
 			objects[i] = v
 		}
@@ -96,7 +95,7 @@ array
 	| number_array
 	{
 		// convert array of floats to array of interfaces
-		objects := make([]pbrt.Object, len($1), len($1))
+		objects := make([]Object, len($1), len($1))
 		for i,v := range $1 {
 			objects[i] = v
 		}
@@ -237,7 +236,7 @@ pbrt_stmt
 	{
 		values := $2
 		if len(values) == 16 {		
-			var matrix pbrt.Matrix4x4
+			var matrix Matrix4x4
 			i := 0
 			for r := range matrix.m {
 				for c := range matrix.m[r] {
@@ -397,7 +396,7 @@ pbrt_stmt
 	{
 		values := $2
 		if len(values) == 16 {		
-			var matrix pbrt.Matrix4x4
+			var matrix Matrix4x4
 			i := 0
 			for r := range matrix.m {
 				for c := range matrix.m[r] {
