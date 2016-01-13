@@ -97,7 +97,3 @@ func Ceil2Int(val float64) int {
 func NumSystemCores() int {
 	return 1
 }
-
-func ParseFile(filename string) bool {
-	return false
-}

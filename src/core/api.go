@@ -5,8 +5,6 @@ var (
 )
 
 // TODO: replace these stubs
-type ParamSet struct {
-}
 type TextureFloat struct {
 }
 type TextureSpectrum struct {

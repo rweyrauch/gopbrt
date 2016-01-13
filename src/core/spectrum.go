@@ -48,6 +48,9 @@ func CreateSpectrum1(v float64) *Spectrum {
 func CreateSpectrum(v [3]float64) *Spectrum {
 	return &Spectrum{[3]float64{v[0], v[1], v[2]}}
 }
+func CreateSpectrumRGB(r, g, b float64) *Spectrum {
+	return &Spectrum{[3]float64{r, g, b}}
+}
 func (rgb *Spectrum) Add(s2 *Spectrum) *Spectrum {
 	return &Spectrum{[3]float64{rgb.c[0] + s2.c[0], rgb.c[1] + s2.c[1], rgb.c[2] + s2.c[2]}}
 }
