@@ -2,6 +2,7 @@ package pbrt
 
 import (
 	"fmt"
+	"strings"
 )
 
 var (
@@ -141,9 +142,62 @@ var (
 	transformCache            TransformCache
 )
 
+// Object Creation Function Definitions
+func MakeShape(name string, object2world, world2object *Transform,
+        reverseOrientation bool, paramSet *ParamSet) Shape {
+    var s Shape = nil
+
+    if strings.Compare(name, "sphere") == 0 {
+        s = CreateSphereShape(object2world, world2object, reverseOrientation, paramSet)
+    } else if strings.Compare(name, "cylinder") == 0 {
+        s = CreateCylinderShape(object2world, world2object, reverseOrientation, paramSet)
+    } else if strings.Compare(name, "disk") == 0 {
+        s = CreateDiskShape(object2world, world2object, reverseOrientation, paramSet)
+    } else if strings.Compare(name, "cone") == 0 {
+        s = CreateConeShape(object2world, world2object, reverseOrientation, paramSet)
+    } else if strings.Compare(name, "paraboloid") == 0 {
+        s = CreateParaboloidShape(object2world, world2object, reverseOrientation, paramSet)
+    } else if strings.Compare(name, "hyperboloid") == 0 {
+        s = CreateHyperboloidShape(object2world, world2object, reverseOrientation, paramSet)
+    } else if strings.Compare(name, "trianglemesh") == 0 {
+        s = CreateTriangleMeshShape(object2world, world2object, reverseOrientation, paramSet, &graphicsState.floatTextures)
+    } else if strings.Compare(name, "heightfield") == 0 {
+        s = CreateHeightfieldShape(object2world, world2object, reverseOrientation, paramSet)
+    } else if strings.Compare(name, "loopsubdiv") == 0 {
+        s = CreateLoopSubdivShape(object2world, world2object, reverseOrientation, paramSet)
+    } else if strings.Compare(name, "nurbs") == 0 {
+        s = CreateNURBSShape(object2world, world2object, reverseOrientation, paramSet)
+    } else {
+        fmt.Printf("Shape \"%s\" unknown.", name)
+    }
+    return s
+}
+
 // API Function Declarations
-func PbrtInit(opt *Options)                                 {}
-func PbrtCleanup()                                          {}
+func PbrtInit(opt *Options) {
+    options = opt
+    // API Initialization
+    if currentApiState != STATE_UNINITIALIZED {
+        fmt.Printf("PbrtInit() has already been called.\n")
+    }
+    currentApiState = STATE_OPTIONS_BLOCK
+    renderOptions = CreateRenderOptions()
+    graphicsState = CreateGraphicsState()
+    //SampledSpectrum::Init()	
+}
+
+func PbrtCleanup()                                          {
+    //ProbesCleanup()
+    // API Cleanup
+    if currentApiState == STATE_UNINITIALIZED {
+        fmt.Printf("pbrtCleanup() called without pbrtInit().\n")
+    } else if currentApiState == STATE_WORLD_BLOCK {
+        fmt.Printf("pbrtCleanup() called while inside world block.\n")
+    }    
+    currentApiState = STATE_UNINITIALIZED
+    renderOptions = nil
+}
+
 func PbrtIdentity()                                         {}
 func PbrtTranslate(dx, dy, dz float64)                      {}
 func PbrtRotate(angle, ax, ay, az float64)                  {}
@@ -156,9 +210,22 @@ func PbrtCoordSysTransform(name string)                     {}
 func PbrtActiveTransformAll()                               {}
 func PbrtActiveTransformEndTime()                           {}
 func PbrtActiveTransformStartTime()                         {}
-func PbrtTransformTimes(start, end float64)                 {}
-func PbrtPixelFilter(name string, params *ParamSet)         {}
-func PbrtFilm(filmtype string, params *ParamSet)            {}
+
+func PbrtTransformTimes(start, end float64) {
+	renderOptions.transformStartTime = start
+    renderOptions.transformEndTime = end
+}
+
+func PbrtPixelFilter(name string, params *ParamSet) {
+    renderOptions.FilterName = name
+    renderOptions.FilterParams = params	
+}
+
+func PbrtFilm(filmtype string, params *ParamSet) {
+    renderOptions.FilmParams = params
+    renderOptions.FilmName = filmtype
+}
+
 func PbrtSampler(name string, params *ParamSet)             {}
 func PbrtAccelerator(name string, params *ParamSet)         {}
 func PbrtSurfaceIntegrator(name string, params *ParamSet)   {}
