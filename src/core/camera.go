@@ -1,14 +1,15 @@
 package pbrt
 
 type Camera interface {
-    GenerateRay(sample *CameraSample) (ray *Ray, weight float64)
+	GenerateRay(sample *CameraSample) (ray *Ray, weight float64)
 }
 
 type CameraCore struct {
-    CameraToWorld *AnimatedTransform
-    ShutterOpen, ShutterClose float64
-    Film Film
+	CameraToWorld             *AnimatedTransform
+	ShutterOpen, ShutterClose float64
+	Film                      Film
 }
+
 /*
 func GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {
     rd, wt := GenerateRay(sample)
@@ -32,22 +33,22 @@ func GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight
 }
 */
 type ProjectiveCamera struct {
-    CameraCore
-    CameraToScreen, RasterToCamera *Transform
-    ScreenToRaster, RasterToScreen *Transform
-    LensRadius, FocalDistance float64
+	CameraCore
+	CameraToScreen, RasterToCamera *Transform
+	ScreenToRaster, RasterToScreen *Transform
+	LensRadius, FocalDistance      float64
 }
 
 func CreateProjectiveCamera(cam2world *AnimatedTransform, proj *Transform, screenWindow [4]float64, sopen, sclose, lensr, focald float64, film Film) *ProjectiveCamera {
 
-    camera := &ProjectiveCamera{ CameraCore{cam2world, sopen, sclose, film}, proj, nil, nil, nil, lensr, focald }
+	camera := &ProjectiveCamera{CameraCore{cam2world, sopen, sclose, film}, proj, nil, nil, nil, lensr, focald}
 
-    // Compute projective camera screen transformations
-    camera.ScreenToRaster = ScaleTransform(float64(film.XResolution()), float64(film.YResolution()), 1.0).MultTransform(
-        ScaleTransform(1.0 / (screenWindow[1] - screenWindow[0]), 1.0 / (screenWindow[2] - screenWindow[3]), 1.0)).MultTransform(
-        TranslateTransform(&Vector{-screenWindow[0], -screenWindow[3], 0.0}))
-    camera.RasterToScreen = InverseTransform(camera.ScreenToRaster)
-    camera.RasterToCamera = InverseTransform(camera.CameraToScreen).MultTransform(camera.RasterToScreen)
+	// Compute projective camera screen transformations
+	camera.ScreenToRaster = ScaleTransform(float64(film.XResolution()), float64(film.YResolution()), 1.0).MultTransform(
+		ScaleTransform(1.0/(screenWindow[1]-screenWindow[0]), 1.0/(screenWindow[2]-screenWindow[3]), 1.0)).MultTransform(
+		TranslateTransform(&Vector{-screenWindow[0], -screenWindow[3], 0.0}))
+	camera.RasterToScreen = InverseTransform(camera.ScreenToRaster)
+	camera.RasterToCamera = InverseTransform(camera.CameraToScreen).MultTransform(camera.RasterToScreen)
 
-    return camera
+	return camera
 }
