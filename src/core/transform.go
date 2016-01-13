@@ -6,24 +6,24 @@ import (
 )
 
 type Matrix4x4 struct {
-	m [4][4]float64
+	M [4][4]float64
 }
 
 func CreateIdentityMatrix4x4() *Matrix4x4 {
 	mat := new(Matrix4x4)
-	mat.m[0] = [4]float64{1.0, 0.0, 0.0, 0.0}
-	mat.m[1] = [4]float64{0, 1, 0, 0}
-	mat.m[2] = [4]float64{0, 0, 1, 0}
-	mat.m[3] = [4]float64{0, 0, 0, 1}
+	mat.M[0] = [4]float64{1.0, 0.0, 0.0, 0.0}
+	mat.M[1] = [4]float64{0, 1, 0, 0}
+	mat.M[2] = [4]float64{0, 0, 1, 0}
+	mat.M[3] = [4]float64{0, 0, 0, 1}
 	return mat
 }
 
 func CreateMatrix4x4(t00, t01, t02, t03, t10, t11, t12, t13, t20, t21, t22, t23, t30, t31, t32, t33 float64) *Matrix4x4 {
 	mat := new(Matrix4x4)
-	mat.m[0] = [4]float64{t00, t01, t02, t03}
-	mat.m[1] = [4]float64{t10, t11, t12, t13}
-	mat.m[2] = [4]float64{t20, t21, t22, t23}
-	mat.m[3] = [4]float64{t30, t31, t32, t33}
+	mat.M[0] = [4]float64{t00, t01, t02, t03}
+	mat.M[1] = [4]float64{t10, t11, t12, t13}
+	mat.M[2] = [4]float64{t20, t21, t22, t23}
+	mat.M[3] = [4]float64{t30, t31, t32, t33}
 	return mat
 }
 
@@ -31,7 +31,7 @@ func CopyMatrix4x4(m *Matrix4x4) *Matrix4x4 {
 	r := new(Matrix4x4)
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 4; j++ {
-			r.m[i][j] = m.m[i][j]
+			r.M[i][j] = m.M[i][j]
 		}
 	}
 	return r
@@ -40,7 +40,7 @@ func CopyMatrix4x4(m *Matrix4x4) *Matrix4x4 {
 func EqualMatrix4x4(m1, m2 *Matrix4x4) bool {
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 4; j++ {
-			if m1.m[i][j] != m2.m[i][j] {
+			if m1.M[i][j] != m2.M[i][j] {
 				return false
 			}
 		}
@@ -51,7 +51,7 @@ func EqualMatrix4x4(m1, m2 *Matrix4x4) bool {
 func NotEqualMatrix4x4(m1, m2 *Matrix4x4) bool {
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 4; j++ {
-			if m1.m[i][j] != m2.m[i][j] {
+			if m1.M[i][j] != m2.M[i][j] {
 				return true
 			}
 		}
@@ -60,10 +60,10 @@ func NotEqualMatrix4x4(m1, m2 *Matrix4x4) bool {
 }
 
 func TransposeMatrix4x4(m *Matrix4x4) *Matrix4x4 {
-	return CreateMatrix4x4(m.m[0][0], m.m[1][0], m.m[2][0], m.m[3][0],
-		m.m[0][1], m.m[1][1], m.m[2][1], m.m[3][1],
-		m.m[0][2], m.m[1][2], m.m[2][2], m.m[3][2],
-		m.m[0][3], m.m[1][3], m.m[2][3], m.m[3][3])
+	return CreateMatrix4x4(m.M[0][0], m.M[1][0], m.M[2][0], m.M[3][0],
+		m.M[0][1], m.M[1][1], m.M[2][1], m.M[3][1],
+		m.M[0][2], m.M[1][2], m.M[2][2], m.M[3][2],
+		m.M[0][3], m.M[1][3], m.M[2][3], m.M[3][3])
 }
 
 func (m *Matrix4x4) String() string {
@@ -71,7 +71,7 @@ func (m *Matrix4x4) String() string {
 	for i := 0; i < 4; i++ {
 		s = s + "  [ "
 		for j := 0; j < 4; j++ {
-			s = s + fmt.Sprint(s, "%f", m.m[i][j])
+			s = s + fmt.Sprint(s, "%f", m.M[i][j])
 			if j != 3 {
 				s = s + ", "
 			}
@@ -86,10 +86,10 @@ func MulMatrix4x4(m1, m2 *Matrix4x4) *Matrix4x4 {
 	r := new(Matrix4x4)
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 4; j++ {
-			r.m[i][j] = m1.m[i][0]*m2.m[0][j] +
-				m1.m[i][1]*m2.m[1][j] +
-				m1.m[i][2]*m2.m[2][j] +
-				m1.m[i][3]*m2.m[3][j]
+			r.M[i][j] = m1.M[i][0]*m2.M[0][j] +
+				m1.M[i][1]*m2.M[1][j] +
+				m1.M[i][2]*m2.M[2][j] +
+				m1.M[i][3]*m2.M[3][j]
 		}
 	}
 	return r
@@ -107,8 +107,8 @@ func InverseMatrix4x4(m *Matrix4x4) (*Matrix4x4, error) {
 			if ipiv[j] != 1 {
 				for k := 0; k < 4; k++ {
 					if ipiv[k] == 0 {
-						if math.Abs(minv.m[j][k]) >= big {
-							big = math.Abs(minv.m[j][k])
+						if math.Abs(minv.M[j][k]) >= big {
+							big = math.Abs(minv.M[j][k])
 							irow = j
 							icol = k
 						}
@@ -122,28 +122,28 @@ func InverseMatrix4x4(m *Matrix4x4) (*Matrix4x4, error) {
 		// Swap rows _irow_ and _icol_ for pivot
 		if irow != icol {
 			for k := 0; k < 4; k++ {
-				minv.m[irow][k], minv.m[icol][k] = minv.m[icol][k], minv.m[irow][k]
+				minv.M[irow][k], minv.M[icol][k] = minv.M[icol][k], minv.M[irow][k]
 			}
 		}
 		indxr[i] = irow
 		indxc[i] = icol
-		if minv.m[icol][icol] == 0.0 {
+		if minv.M[icol][icol] == 0.0 {
 			return nil, fmt.Errorf("Singular matrix in InverseMatrix4x4")
 		}
 
 		// Set $m[icol][icol]$ to one by scaling row _icol_ appropriately
-		pivinv := 1.0 / minv.m[icol][icol]
-		minv.m[icol][icol] = 1.0
+		pivinv := 1.0 / minv.M[icol][icol]
+		minv.M[icol][icol] = 1.0
 		for j := 0; j < 4; j++ {
-			minv.m[icol][j] *= pivinv
+			minv.M[icol][j] *= pivinv
 		}
 		// Subtract this row from others to zero out their columns
 		for j := 0; j < 4; j++ {
 			if j != icol {
-				save := minv.m[j][icol]
-				minv.m[j][icol] = 0
+				save := minv.M[j][icol]
+				minv.M[j][icol] = 0
 				for k := 0; k < 4; k++ {
-					minv.m[j][k] -= minv.m[icol][k] * save
+					minv.M[j][k] -= minv.M[icol][k] * save
 				}
 			}
 		}
@@ -152,7 +152,7 @@ func InverseMatrix4x4(m *Matrix4x4) (*Matrix4x4, error) {
 	for j := 3; j >= 0; j-- {
 		if indxr[j] != indxc[j] {
 			for k := 0; k < 4; k++ {
-				minv.m[k][indxr[j]], minv.m[k][indxc[j]] = minv.m[k][indxc[j]], minv.m[k][indxr[j]]
+				minv.M[k][indxr[j]], minv.M[k][indxc[j]] = minv.M[k][indxc[j]], minv.M[k][indxr[j]]
 			}
 		}
 	}
@@ -160,14 +160,14 @@ func InverseMatrix4x4(m *Matrix4x4) (*Matrix4x4, error) {
 }
 
 type Transform struct {
-	m, mInv *Matrix4x4
+	M, MInv *Matrix4x4
 }
 
 func CreateTransform(mat *Matrix4x4) (*Transform, error) {
 	t := new(Transform)
-	t.m = mat
+	t.M = mat
 	var err error
-	t.mInv, err = InverseMatrix4x4(mat)
+	t.MInv, err = InverseMatrix4x4(mat)
 	if err != nil {
 		return nil, err
 	}
@@ -179,32 +179,32 @@ func CreateTransformExplicit(mat, minv *Matrix4x4) *Transform {
 }
 
 func (t *Transform) String() string {
-	return t.m.String()
+	return t.M.String()
 }
 
 func InverseTransform(t *Transform) *Transform {
-	return &Transform{t.mInv, t.m}
+	return &Transform{t.MInv, t.M}
 }
 
 func TransposeTransform(t *Transform) *Transform {
-	return &Transform{TransposeMatrix4x4(t.m), TransposeMatrix4x4(t.mInv)}
+	return &Transform{TransposeMatrix4x4(t.M), TransposeMatrix4x4(t.MInv)}
 }
 
 func EqualTransform(t1, t2 *Transform) bool {
-	return EqualMatrix4x4(t1.m, t2.m) && EqualMatrix4x4(t1.mInv, t2.mInv)
+	return EqualMatrix4x4(t1.M, t2.M) && EqualMatrix4x4(t1.MInv, t2.MInv)
 }
 
 func NotEqualTransform(t1, t2 *Transform) bool {
-	return NotEqualMatrix4x4(t1.m, t2.m) || NotEqualMatrix4x4(t1.mInv, t2.mInv)
+	return NotEqualMatrix4x4(t1.M, t2.M) || NotEqualMatrix4x4(t1.MInv, t2.MInv)
 }
 
 func LessTransform(t1, t2 *Transform) bool {
 	for i := 0; i < 4; i++ {
 		for j := 0; j < 4; j++ {
-			if t1.m.m[i][j] < t2.m.m[i][j] {
+			if t1.M.M[i][j] < t2.M.M[i][j] {
 				return true
 			}
-			if t1.m.m[i][j] > t2.m.m[i][j] {
+			if t1.M.M[i][j] > t2.M.M[i][j] {
 				return false
 			}
 		}
@@ -213,14 +213,14 @@ func LessTransform(t1, t2 *Transform) bool {
 }
 
 func IsIdentityTransform(t *Transform) bool {
-	return (t.m.m[0][0] == 1.0 && t.m.m[0][1] == 0.0 &&
-		t.m.m[0][2] == 0.0 && t.m.m[0][3] == 0.0 &&
-		t.m.m[1][0] == 0.0 && t.m.m[1][1] == 1.0 &&
-		t.m.m[1][2] == 0.0 && t.m.m[1][3] == 0.0 &&
-		t.m.m[2][0] == 0.0 && t.m.m[2][1] == 0.0 &&
-		t.m.m[2][2] == 1.0 && t.m.m[2][3] == 0.0 &&
-		t.m.m[3][0] == 0.0 && t.m.m[3][1] == 0.0 &&
-		t.m.m[3][2] == 0.0 && t.m.m[3][3] == 1.0)
+	return (t.M.M[0][0] == 1.0 && t.M.M[0][1] == 0.0 &&
+		t.M.M[0][2] == 0.0 && t.M.M[0][3] == 0.0 &&
+		t.M.M[1][0] == 0.0 && t.M.M[1][1] == 1.0 &&
+		t.M.M[1][2] == 0.0 && t.M.M[1][3] == 0.0 &&
+		t.M.M[2][0] == 0.0 && t.M.M[2][1] == 0.0 &&
+		t.M.M[2][2] == 1.0 && t.M.M[2][3] == 0.0 &&
+		t.M.M[3][0] == 0.0 && t.M.M[3][1] == 0.0 &&
+		t.M.M[3][2] == 0.0 && t.M.M[3][3] == 1.0)
 }
 
 func HasScaleTransform(t *Transform) bool {
@@ -231,11 +231,11 @@ func HasScaleTransform(t *Transform) bool {
 }
 
 func PointTransform(t *Transform, pt *Point) *Point {
-	x, y, z := pt.x, pt.y, pt.z
-	xp := t.m.m[0][0]*x + t.m.m[0][1]*y + t.m.m[0][2]*z + t.m.m[0][3]
-	yp := t.m.m[1][0]*x + t.m.m[1][1]*y + t.m.m[1][2]*z + t.m.m[1][3]
-	zp := t.m.m[2][0]*x + t.m.m[2][1]*y + t.m.m[2][2]*z + t.m.m[2][3]
-	wp := t.m.m[3][0]*x + t.m.m[3][1]*y + t.m.m[3][2]*z + t.m.m[3][3]
+	x, y, z := pt.X, pt.Y, pt.Z
+	xp := t.M.M[0][0]*x + t.M.M[0][1]*y + t.M.M[0][2]*z + t.M.M[0][3]
+	yp := t.M.M[1][0]*x + t.M.M[1][1]*y + t.M.M[1][2]*z + t.M.M[1][3]
+	zp := t.M.M[2][0]*x + t.M.M[2][1]*y + t.M.M[2][2]*z + t.M.M[2][3]
+	wp := t.M.M[3][0]*x + t.M.M[3][1]*y + t.M.M[3][2]*z + t.M.M[3][3]
 
 	if wp == 1.0 {
 		return &Point{xp, yp, zp}
@@ -245,17 +245,17 @@ func PointTransform(t *Transform, pt *Point) *Point {
 }
 
 func VectorTransform(t *Transform, v *Vector) *Vector {
-	x, y, z := v.x, v.y, v.z
-	return &Vector{t.m.m[0][0]*x + t.m.m[0][1]*y + t.m.m[0][2]*z,
-		t.m.m[1][0]*x + t.m.m[1][1]*y + t.m.m[1][2]*z,
-		t.m.m[2][0]*x + t.m.m[2][1]*y + t.m.m[2][2]*z}
+	x, y, z := v.X, v.Y, v.Z
+	return &Vector{t.M.M[0][0]*x + t.M.M[0][1]*y + t.M.M[0][2]*z,
+		t.M.M[1][0]*x + t.M.M[1][1]*y + t.M.M[1][2]*z,
+		t.M.M[2][0]*x + t.M.M[2][1]*y + t.M.M[2][2]*z}
 }
 
 func NormalTransform(t *Transform, n *Normal) *Normal {
-	x, y, z := n.x, n.y, n.z
-	return &Normal{t.mInv.m[0][0]*x + t.mInv.m[1][0]*y + t.mInv.m[2][0]*z,
-		t.mInv.m[0][1]*x + t.mInv.m[1][1]*y + t.mInv.m[2][1]*z,
-		t.mInv.m[0][2]*x + t.mInv.m[1][2]*y + t.mInv.m[2][2]*z}
+	x, y, z := n.X, n.Y, n.Z
+	return &Normal{t.MInv.M[0][0]*x + t.MInv.M[1][0]*y + t.MInv.M[2][0]*z,
+		t.MInv.M[0][1]*x + t.MInv.M[1][1]*y + t.MInv.M[2][1]*z,
+		t.MInv.M[0][2]*x + t.MInv.M[1][2]*y + t.MInv.M[2][2]*z}
 }
 
 func RayTransform(t *Transform, r *Ray) *Ray {
@@ -274,32 +274,32 @@ func BBoxTransform(t *Transform, b *BBox) *BBox {
 }
 
 func (t1 *Transform) MultTransform(t2 *Transform) *Transform {
-	m1 := MulMatrix4x4(t1.m, t2.m)
-	m2 := MulMatrix4x4(t2.mInv, t1.mInv)
+	m1 := MulMatrix4x4(t1.M, t2.M)
+	m2 := MulMatrix4x4(t2.MInv, t1.MInv)
 	return &Transform{m1, m2}
 }
 
 func SwapsHandednessTransform(t *Transform) bool {
-	det := ((t.m.m[0][0] *
-		(t.m.m[1][1]*t.m.m[2][2] -
-			t.m.m[1][2]*t.m.m[2][1])) -
-		(t.m.m[0][1] *
-			(t.m.m[1][0]*t.m.m[2][2] -
-				t.m.m[1][2]*t.m.m[2][0])) +
-		(t.m.m[0][2] *
-			(t.m.m[1][0]*t.m.m[2][1] -
-				t.m.m[1][1]*t.m.m[2][0])))
+	det := ((t.M.M[0][0] *
+		(t.M.M[1][1]*t.M.M[2][2] -
+			t.M.M[1][2]*t.M.M[2][1])) -
+		(t.M.M[0][1] *
+			(t.M.M[1][0]*t.M.M[2][2] -
+				t.M.M[1][2]*t.M.M[2][0])) +
+		(t.M.M[0][2] *
+			(t.M.M[1][0]*t.M.M[2][1] -
+				t.M.M[1][1]*t.M.M[2][0])))
 	return det < 0.0
 }
 
 func TranslateTransform(delta *Vector) *Transform {
-	m := CreateMatrix4x4(1, 0, 0, delta.x,
-		0, 1, 0, delta.y,
-		0, 0, 1, delta.z,
+	m := CreateMatrix4x4(1, 0, 0, delta.X,
+		0, 1, 0, delta.Y,
+		0, 0, 1, delta.Z,
 		0, 0, 0, 1)
-	minv := CreateMatrix4x4(1, 0, 0, -delta.x,
-		0, 1, 0, -delta.y,
-		0, 0, 1, -delta.z,
+	minv := CreateMatrix4x4(1, 0, 0, -delta.X,
+		0, 1, 0, -delta.Y,
+		0, 0, 1, -delta.Z,
 		0, 0, 0, 1)
 	return &Transform{m, minv}
 }
@@ -351,9 +351,9 @@ func RotateTransform(angle float64, axis *Vector) *Transform {
 	s := math.Sin(Radians(angle))
 	c := math.Cos(Radians(angle))
 
-	mat := CreateMatrix4x4((a.x*a.x + (1.0-a.x*a.x)*c), (a.x*a.y*(1.0-c) - a.z*s), (a.x*a.z*(1.0-c) + a.y*s), 0,
-		(a.x*a.y*(1.0-c) + a.z*s), (a.y*a.y + (1.0-a.y*a.y)*c), (a.y*a.z*(1.0-c) - a.x*s), 0,
-		(a.x*a.z*(1.0-c) - a.y*s), (a.y*a.z*(1.0-c) + a.x*s), (a.z*a.z + (1.0-a.z*a.z)*c), 0,
+	mat := CreateMatrix4x4((a.X*a.X + (1.0-a.X*a.X)*c), (a.X*a.Y*(1.0-c) - a.Z*s), (a.X*a.Z*(1.0-c) + a.Y*s), 0,
+		(a.X*a.Y*(1.0-c) + a.Z*s), (a.Y*a.Y + (1.0-a.Y*a.Y)*c), (a.Y*a.Z*(1.0-c) - a.X*s), 0,
+		(a.X*a.Z*(1.0-c) - a.Y*s), (a.Y*a.Z*(1.0-c) + a.X*s), (a.Z*a.Z + (1.0-a.Z*a.Z)*c), 0,
 		0, 0, 0, 1)
 
 	return &Transform{mat, TransposeMatrix4x4(mat)}
@@ -363,30 +363,30 @@ func LookAtTransform(pos, look *Point, up *Vector) (*Transform, error) {
 	// Initialize first three columns of viewing matrix
 	dir := NormalizeVector(look.Sub(pos))
 	if CrossVector(NormalizeVector(up), dir).Length() == 0 {
-		return nil, fmt.Errorf("\"up\" vector (%f, %f, %f) and viewing direction (%f, %f, %f) passed to LookAt are pointing in the same direction.  Using the identity transformation.", up.x, up.y, up.z, dir.x, dir.y, dir.z)
+		return nil, fmt.Errorf("\"up\" vector (%f, %f, %f) and viewing direction (%f, %f, %f) passed to LookAt are pointing in the same direction.  Using the identity transformation.", up.X, up.Y, up.Z, dir.X, dir.Y, dir.Z)
 	}
 
 	camToWorld := new(Matrix4x4)
 	// Initialize fourth column of viewing matrix
-	camToWorld.m[0][3] = pos.x
-	camToWorld.m[1][3] = pos.y
-	camToWorld.m[2][3] = pos.z
-	camToWorld.m[3][3] = 1
+	camToWorld.M[0][3] = pos.X
+	camToWorld.M[1][3] = pos.Y
+	camToWorld.M[2][3] = pos.Z
+	camToWorld.M[3][3] = 1
 
 	left := NormalizeVector(CrossVector(NormalizeVector(up), dir))
 	newUp := CrossVector(dir, left)
-	camToWorld.m[0][0] = left.x
-	camToWorld.m[1][0] = left.y
-	camToWorld.m[2][0] = left.z
-	camToWorld.m[3][0] = 0.0
-	camToWorld.m[0][1] = newUp.x
-	camToWorld.m[1][1] = newUp.y
-	camToWorld.m[2][1] = newUp.z
-	camToWorld.m[3][1] = 0.0
-	camToWorld.m[0][2] = dir.x
-	camToWorld.m[1][2] = dir.y
-	camToWorld.m[2][2] = dir.z
-	camToWorld.m[3][2] = 0.0
+	camToWorld.M[0][0] = left.X
+	camToWorld.M[1][0] = left.Y
+	camToWorld.M[2][0] = left.Z
+	camToWorld.M[3][0] = 0.0
+	camToWorld.M[0][1] = newUp.X
+	camToWorld.M[1][1] = newUp.Y
+	camToWorld.M[2][1] = newUp.Z
+	camToWorld.M[3][1] = 0.0
+	camToWorld.M[0][2] = dir.X
+	camToWorld.M[1][2] = dir.Y
+	camToWorld.M[2][2] = dir.Z
+	camToWorld.M[3][2] = 0.0
 	worldToCam, err := InverseMatrix4x4(camToWorld)
 	if err != nil {
 		return nil, fmt.Errorf("CameraToWorld matrix is not invertable.")
@@ -427,8 +427,8 @@ func CreateAnimatedTransform(trans1 *Transform, time1 float64, trans2 *Transform
 	t.endTime = time2
 	t.endTransform = trans2
 	t.actuallyAnimated = NotEqualTransform(trans1, trans2)
-	t.t[0], t.r[0], t.s[0] = DecomposeMatrix4x4(t.startTransform.m)
-	t.t[1], t.r[1], t.s[1] = DecomposeMatrix4x4(t.endTransform.m)
+	t.t[0], t.r[0], t.s[0] = DecomposeMatrix4x4(t.startTransform.M)
+	t.t[1], t.r[1], t.s[1] = DecomposeMatrix4x4(t.endTransform.M)
 
 	return t
 }
@@ -436,15 +436,15 @@ func CreateAnimatedTransform(trans1 *Transform, time1 float64, trans2 *Transform
 func DecomposeMatrix4x4(m *Matrix4x4) (*Vector, *Quaternion, *Matrix4x4) {
 
 	// Extract translation _T_ from transformation matrix
-	T := &Vector{m.m[0][3], m.m[1][3], m.m[2][3]}
+	T := &Vector{m.M[0][3], m.M[1][3], m.M[2][3]}
 
 	// Compute new transformation matrix _M_ without translation
 	M := CopyMatrix4x4(m)
 	for i := 0; i < 3; i++ {
-		M.m[i][3] = 0.0
-		M.m[3][i] = 0.0
+		M.M[i][3] = 0.0
+		M.M[3][i] = 0.0
 	}
-	M.m[3][3] = 1.0
+	M.M[3][3] = 1.0
 
 	// Extract rotation _R_ from transformation matrix
 	norm := 1.0
@@ -456,15 +456,15 @@ func DecomposeMatrix4x4(m *Matrix4x4) (*Vector, *Quaternion, *Matrix4x4) {
 		Rit, _ := InverseMatrix4x4(TransposeMatrix4x4(R))
 		for i := 0; i < 4; i++ {
 			for j := 0; j < 4; j++ {
-				Rnext.m[i][j] = 0.5 * (R.m[i][j] + Rit.m[i][j])
+				Rnext.M[i][j] = 0.5 * (R.M[i][j] + Rit.M[i][j])
 			}
 		}
 		// Compute norm of difference between _R_ and _Rnext_
 		norm = 0.0
 		for i := 0; i < 3; i++ {
-			n := math.Abs(R.m[i][0]-Rnext.m[i][0]) +
-				math.Abs(R.m[i][1]-Rnext.m[i][1]) +
-				math.Abs(R.m[i][2]-Rnext.m[i][2])
+			n := math.Abs(R.M[i][0]-Rnext.M[i][0]) +
+				math.Abs(R.M[i][1]-Rnext.M[i][1]) +
+				math.Abs(R.M[i][2]-Rnext.M[i][2])
 			norm = math.Max(norm, n)
 		}
 		R = Rnext
@@ -499,7 +499,7 @@ func (t *AnimatedTransform) Interpolate(time float64) *Transform {
 	scale := new(Matrix4x4)
 	for i := 0; i < 3; i++ {
 		for j := 0; j < 3; j++ {
-			scale.m[i][j] = Lerp(dt, t.s[0].m[i][j], t.s[1].m[i][j])
+			scale.M[i][j] = Lerp(dt, t.s[0].M[i][j], t.s[1].M[i][j])
 		}
 	}
 	// Compute interpolated matrix as product of interpolated components

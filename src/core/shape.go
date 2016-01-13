@@ -21,7 +21,7 @@ type Shape interface {
 }
 
 type ShapeData struct {
-	ObjectToWorld, WorldToObject                 *Transform
-	ReverseOrientation, TransformSwapsHandedness bool
+	objectToWorld, worldToObject                 *Transform
+	reverseOrientation, transformSwapsHandedness bool
 	shapeId                                      uint32
 }

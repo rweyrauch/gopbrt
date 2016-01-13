@@ -5,80 +5,80 @@ import (
 )
 
 type Quaternion struct {
-	v Vector
-	w float64
+	V Vector
+	W float64
 }
 
 func (q1 *Quaternion) Add(q2 *Quaternion) *Quaternion {
-	return &Quaternion{*q1.v.Add(&q2.v), q1.w + q2.w}
+	return &Quaternion{*q1.V.Add(&q2.V), q1.W + q2.W}
 }
 
 func (q1 *Quaternion) Sub(q2 *Quaternion) *Quaternion {
-	return &Quaternion{*q1.v.Sub(&q2.v), q1.w - q2.w}
+	return &Quaternion{*q1.V.Sub(&q2.V), q1.W - q2.W}
 }
 
 func (q1 *Quaternion) Scale(s float64) *Quaternion {
-	return &Quaternion{*q1.v.Scale(s), q1.w * s}
+	return &Quaternion{*q1.V.Scale(s), q1.W * s}
 }
 func (q1 *Quaternion) InvScale(invs float64) *Quaternion {
 	s := 1.0 / invs
-	return &Quaternion{*q1.v.Scale(s), q1.w * s}
+	return &Quaternion{*q1.V.Scale(s), q1.W * s}
 }
 func (q1 *Quaternion) ToTransform() *Transform {
-	xx, yy, zz := q1.v.x*q1.v.x, q1.v.y*q1.v.y, q1.v.z*q1.v.z
-	xy, xz, yz := q1.v.x*q1.v.y, q1.v.x*q1.v.z, q1.v.y*q1.v.z
-	wx, wy, wz := q1.v.x*q1.w, q1.v.y*q1.w, q1.v.z*q1.w
+	xx, yy, zz := q1.V.X*q1.V.X, q1.V.Y*q1.V.Y, q1.V.Z*q1.V.Z
+	xy, xz, yz := q1.V.X*q1.V.Y, q1.V.X*q1.V.Z, q1.V.Y*q1.V.Z
+	wx, wy, wz := q1.V.X*q1.W, q1.V.Y*q1.W, q1.V.Z*q1.W
 
 	m := new(Matrix4x4)
-	m.m[0][0] = 1.0 - 2.0*(yy+zz)
-	m.m[0][1] = 2.0 * (xy + wz)
-	m.m[0][2] = 2.0 * (xz - wy)
-	m.m[1][0] = 2.0 * (xy - wz)
-	m.m[1][1] = 1.0 - 2.0*(xx+zz)
-	m.m[1][2] = 2.0 * (yz + wx)
-	m.m[2][0] = 2.0 * (xz + wy)
-	m.m[2][1] = 2.0 * (yz - wx)
-	m.m[2][2] = 1.0 - 2.0*(xx+yy)
+	m.M[0][0] = 1.0 - 2.0*(yy+zz)
+	m.M[0][1] = 2.0 * (xy + wz)
+	m.M[0][2] = 2.0 * (xz - wy)
+	m.M[1][0] = 2.0 * (xy - wz)
+	m.M[1][1] = 1.0 - 2.0*(xx+zz)
+	m.M[1][2] = 2.0 * (yz + wx)
+	m.M[2][0] = 2.0 * (xz + wy)
+	m.M[2][1] = 2.0 * (yz - wx)
+	m.M[2][2] = 1.0 - 2.0*(xx+yy)
 
 	// Transpose since we are left-handed.  Ugh.
 	return CreateTransformExplicit(TransposeMatrix4x4(m), m)
 }
 func CreateQuaternionFromMatrix4x4(m *Matrix4x4) *Quaternion {
 	q := new(Quaternion)
-	trace := m.m[0][0] + m.m[1][1] + m.m[2][2]
+	trace := m.M[0][0] + m.M[1][1] + m.M[2][2]
 	if trace > 0.0 {
 		// Compute w from matrix trace, then xyz
 		// 4w^2 = m[0][0] + m[1][1] + m[2][2] + m[3][3] (but m[3][3] == 1)
 		s := math.Sqrt(trace + 1.0)
-		q.w = s / 2.0
+		q.W = s / 2.0
 		s = 0.5 / s
-		q.v.x = (m.m[2][1] - m.m[1][2]) * s
-		q.v.y = (m.m[0][2] - m.m[2][0]) * s
-		q.v.z = (m.m[1][0] - m.m[0][1]) * s
+		q.V.X = (m.M[2][1] - m.M[1][2]) * s
+		q.V.Y = (m.M[0][2] - m.M[2][0]) * s
+		q.V.Z = (m.M[1][0] - m.M[0][1]) * s
 	} else {
 		// Compute largest of $x$, $y$, or $z$, then remaining components
 		nxt := []int{1, 2, 0}
 		var qq [3]float64
 		i := 0
-		if m.m[1][1] > m.m[0][0] {
+		if m.M[1][1] > m.M[0][0] {
 			i = 1
 		}
-		if m.m[2][2] > m.m[i][i] {
+		if m.M[2][2] > m.M[i][i] {
 			i = 2
 		}
 		j := nxt[i]
 		k := nxt[j]
-		s := math.Sqrt((m.m[i][i] - (m.m[j][j] + m.m[k][k])) + 1.0)
+		s := math.Sqrt((m.M[i][i] - (m.M[j][j] + m.M[k][k])) + 1.0)
 		qq[i] = s * 0.5
 		if s != 0.0 {
 			s = 0.5 / s
 		}
-		q.w = (m.m[k][j] - m.m[j][k]) * s
-		qq[j] = (m.m[j][i] + m.m[i][j]) * s
-		qq[k] = (m.m[k][i] + m.m[i][k]) * s
-		q.v.x = qq[0]
-		q.v.y = qq[1]
-		q.v.z = qq[2]
+		q.W = (m.M[k][j] - m.M[j][k]) * s
+		qq[j] = (m.M[j][i] + m.M[i][j]) * s
+		qq[k] = (m.M[k][i] + m.M[i][k]) * s
+		q.V.X = qq[0]
+		q.V.Y = qq[1]
+		q.V.Z = qq[2]
 	}
 	return q
 }
@@ -95,7 +95,7 @@ func Slerp(t float64, q1, q2 *Quaternion) *Quaternion {
 
 }
 func DotQuaternion(q1, q2 *Quaternion) float64 {
-	return DotVector(&q1.v, &q2.v) + q1.w*q2.w
+	return DotVector(&q1.V, &q2.V) + q1.W*q2.W
 }
 func NormalizeQuaternion(q *Quaternion) *Quaternion {
 	return q.InvScale(math.Sqrt(DotQuaternion(q, q)))

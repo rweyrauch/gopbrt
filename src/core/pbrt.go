@@ -9,6 +9,22 @@ const (
 	PBRT_VERSION   = "2.0.0"
 )
 
+
+type Object interface{}
+
+type ParamSet struct {
+	Tokens []string
+	Params []Object
+}
+
+// TODO: replace these stubs
+type TextureFloat struct {
+}
+type TextureSpectrum struct {
+}
+type Material struct {
+}
+
 type Options struct {
 	NumCores                                int
 	QuickRender, Quiet, Verbose, OpenWindow bool
