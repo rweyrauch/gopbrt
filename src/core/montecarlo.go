@@ -21,27 +21,29 @@ type Distribution2D struct {
 }
 
 type PermutedHalton struct {
-	dims uint32
+	dims int
 	b, permute []uint32	
 }
 
 func (ph *PermutedHalton) Sample(n int, out []float64) {
+/*    
 	p := 0
     for i := 0; i < ph.dims; i++ {
         out[i] = math.Min(float64(PermutedRadicalInverse(n, ph.b[i], ph.permute[p])), OneMinusEpsilon)
         p += ph.b[i]
-    }	
+    }
+*/    	
 }
 
-func CreateDistribution1D(f []float64) {
+func CreateDistribution1D(f []float64) *Distribution1D {
 	nd := new(Distribution1D)
 	n := len(f)
 	nd.dfunc = make([]float64, n, n)
-	num := copy(nd.dfunc, f[0:])
+	_ = copy(nd.dfunc, f[0:])
 	nd.cdf = make([]float64, n+1, n+1)
 	// Compute integral of step function at $x_i$
 	nd.cdf[0] = 0.0
-	for df, i := range nd.dfunc {
+	for i, df := range nd.dfunc {
 		nd.cdf[i+1] = nd.cdf[i] + df / float64(n)
 	}
 
@@ -62,7 +64,7 @@ func CreateDistribution1D(f []float64) {
 
 // See std::upper_bound (return index rather than iterator)
 func upper_bound(cdf []float64, u float64) int {
-	for v, i := range cdf {
+	for i, v := range cdf {
 		if v > u {
 			return i
 		}
@@ -81,7 +83,7 @@ func (d *Distribution1D) SampleContinuous(u float64) (sample float64, pdf float6
     pdf = d.dfunc[offset] / d.dfuncInt
 
     // Return $x\in{}[0,1)$ corresponding to sample
-    sample = (offset + du) / float64(len(d.dfunc))
+    sample = (float64(offset) + du) / float64(len(d.dfunc))
     
     return sample, pdf, offset
 }
@@ -204,11 +206,11 @@ func StratifiedSample1D(samp []float64, n int, rng *RNG, jitter bool) {
     if jitter {
 	    for i := 0; i < n; i++ {
 	        delta := rng.RandomFloat()
-	        samp[i] = math.Min((i + delta) * invTot, OneMinusEpsilon)
+	        samp[i] = math.Min((float64(i) + delta) * invTot, OneMinusEpsilon)
 	    }
     } else {
 	    for i := 0; i < n; i++ {
-	        samp[i] = math.Min((i + 0.5) * invTot, OneMinusEpsilon)
+	        samp[i] = math.Min((float64(i) + 0.5) * invTot, OneMinusEpsilon)
 	    }    	
     }
 }
@@ -222,33 +224,34 @@ func StratifiedSample2D(samp []float64, nx, ny int, rng *RNG, jitter bool) {
 	        for x := 0; x < nx; x++ {
 	            jx := rng.RandomFloat()
 	            jy := rng.RandomFloat()
-	            samp[i] = math.Min((x + jx) * dx, OneMinusEpsilon)
-	            samp[i+1] = math.Min((y + jy) * dy, OneMinusEpsilon)
+	            samp[i] = math.Min((float64(x) + jx) * dx, OneMinusEpsilon)
+	            samp[i+1] = math.Min((float64(y) + jy) * dy, OneMinusEpsilon)
 	            i += 2
 	        }
 	    }
     } else {
 	    for y := 0; y < ny; y++ {
 	        for x := 0; x < nx; x++ {
-	            samp[i] = math.Min((x + 0.5) * dx, OneMinusEpsilon)
-	            samp[i+1] = math.Min((y + 0.5) * dy, OneMinusEpsilon)
+	            samp[i] = math.Min((float64(x) + 0.5) * dx, OneMinusEpsilon)
+	            samp[i+1] = math.Min((float64(y) + 0.5) * dy, OneMinusEpsilon)
 	            i += 2
 	        }
 	    }
     }
 }
 
-func LatinHypercube(samples []float64, nSamples, nDim int, rng *RNG) {
+func LatinHypercube(samples []float64, nSamples, nDim uint32, rng *RNG) {
     // Generate LHS samples along diagonal
     delta := 1.0 / float64(nSamples)
-    for i := 0; i < nSamples; i++ {
-        for j := 0; j < nDim; j++ {
-            samples[nDim * i + j] = math.Min((i + (rng.RandomFloat())) * delta, OneMinusEpsilon)
+    var i, j uint32
+    for i = 0; i < nSamples; i++ {
+        for j = 0; j < nDim; j++ {
+            samples[nDim * i + j] = math.Min((float64(i) + (rng.RandomFloat())) * delta, OneMinusEpsilon)
 		}
     }
     // Permute LHS samples in each dimension
-    for i := 0; i < nDim; i++ {
-        for j := 0; j < nSamples; j++ {
+    for i = 0; i < nDim; i++ {
+        for j = 0; j < nSamples; j++ {
             other := j + (rng.RandomUInt() % (nSamples - j))
             samples[nDim * j + i], samples[nDim * other + i] = samples[nDim * other + i], samples[nDim * j + i] 
         }
@@ -263,7 +266,7 @@ func RadicalInverse(n, base int) float64 {
     for (n > 0) {
         // Compute next digit of radical inverse
         d_i := (n % base)
-        val += d_i * invBi
+        val += float64(d_i * invBi)
         n *= invBase
         invBi *= invBase
     }
@@ -271,30 +274,32 @@ func RadicalInverse(n, base int) float64 {
 }
 
 func Shuffle(samp []uint32, count, dims uint32, rng *RNG) {
-    for i := 0; i < count; i++ {
+    var i, j uint32
+    for i = 0; i < count; i++ {
         other := i + (rng.RandomUInt() % (count - i))
-        for j := 0; j < dims; j++ {
+        for j = 0; j < dims; j++ {
             samp[dims*i + j], samp[dims*other + j] = samp[dims*other + j], samp[dims*i + j]
         }
     }
 }
 
 func GeneratePermutation(buf []uint32, b uint32, rng *RNG) {
-    for i := 0; i < b; i++ {
+    var i uint32
+    for i = 0; i < b; i++ {
         buf[i] = i
     }
     Shuffle(buf, b, 1, rng)
 }
 
 
-func PermutedRadicalInverse(n int, base uint32, p []uint32) float64 {
+func PermutedRadicalInverse(n uint32, base uint32, p []uint32) float64 {
     val := 0.0
     invBase := 1.0 / base
     invBi := invBase
     
     for (n > 0) {
         d_i := p[n % base]
-        val += d_i * invBi
+        val += float64(d_i * invBi)
         n *= invBase
         invBi *= invBase
     }
@@ -466,7 +471,7 @@ func ConcentricSampleDisk(u1, u2 float64) (dx, dy float64) {
 
  func CosineSampleHemisphere(u1, u2 float64) *Vector {
     x, y := ConcentricSampleDisk(u1, u2)
-    z := math.Sqrt(math.Max(0.0, 1.0 - ret.x*ret.x - ret.y*ret.y))
+    z := math.Sqrt(math.Max(0.0, 1.0 - x*x - y*y))
     return &Vector{x, y, z}
 }
 
@@ -486,8 +491,8 @@ func UniformSampleTriangle(u1, u2 float64) (u, v float64) {
 
 func CreateDistribution2D(dfunc []float64, nu, nv int) *Distribution2D {
 	d := new(Distribution2D)
-	d.pConditionalV = make([]Distribution1D, 0, nv)
-    
+	d.pConditionalV = make([]*Distribution1D, 0, nv)
+    /*
     for v := 0; v < nv; v++ {
         // Compute conditional sampling distribution for $\tilde{v}$
         d.pConditionalV = append(d.pConditionalV, CreateDistribution1D(dfunc[v*nu:], nu))
@@ -498,6 +503,8 @@ func CreateDistribution2D(dfunc []float64, nu, nv int) *Distribution2D {
         marginalFunc[v] = d.pConditionalV[v].dfuncInt
 	}        
     d.pMarginal = CreateDistribution1D(marginalFunc, nv)
+    */
+    return d
 }
 
 func UniformConePdf(cosThetaMax float64) float64 {
@@ -517,8 +524,7 @@ func UniformSampleConeVector(u1, u2, costhetamax float64, x, y, z *Vector) *Vect
     costheta := Lerp(u1, costhetamax, 1.0)
     sintheta := math.Sqrt(1.0 - costheta*costheta)
     phi := u2 * 2.0 * math.Pi
-    return math.Cos(phi) * sintheta * x + math.Sin(phi) * sintheta * y +
-        costheta * z;
+    return x.Scale(math.Cos(phi) * sintheta).Add(y.Scale(math.Sin(phi) * sintheta)).Add(z.Scale(costheta))
 }
 
 
@@ -533,12 +539,13 @@ func SampleHG(w *Vector, g, u1, u2 float64) *Vector {
     sintheta := math.Sqrt(math.Max(0.0, 1.0-costheta*costheta))
     phi := 2.0 * math.Pi * u2
     v1, v2 := CoordinateSystem(w)
-    return SphericalDirection(sintheta, costheta, phi, v1, v2, w)
+    return SphericalDirectionVectors(sintheta, costheta, phi, v1, v2, w)
 }
 
 
 func HGPdf(w, wp *Vector, g float64) float64 {
-    return PhaseHG(w, wp, g)
+    //return PhaseHG(w, wp, g)
+    return 0.0
 }
 
 

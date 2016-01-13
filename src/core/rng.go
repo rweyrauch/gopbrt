@@ -8,9 +8,9 @@ type RNG struct {
 	rng *rand.Rand
 }
 
-func CreateRNG(seed int64) {
+func CreateRNG(seed int64) *RNG {
 	rng := new(RNG)
-	rng.rand = rand.New(math.rand.NewSource(seed))
+	rng.rng = rand.New(rand.NewSource(seed))
 	return rng
 }
 

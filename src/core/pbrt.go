@@ -1,14 +1,18 @@
 package pbrt
 
+import (
+    "math"
+)
+
 const (
-	GOPBRT_VERSION "0.0.0"
-	PBRT_VERSION "2.0.0"
+	GOPBRT_VERSION = "0.0.0"
+	PBRT_VERSION = "2.0.0"
 )
 
 type Options struct {
-    nCores int
-    quickRender, quiet, verbose, openWindow bool
-    imageFile string
+    NumCores int
+    QuickRender, Quiet, Verbose, OpenWindow bool
+    ImageFile string
 }
 
 // Global Inline Functions
@@ -63,7 +67,7 @@ func Log2Int(v float64) int {
 }
 
 func IsPowerOf2(v int) bool {
-    return v && !(v & (v - 1))
+    return (v != 0) && ((v & (v - 1)) == 0)
 }
 
 func RoundUpPow2(v uint32) uint32 {
@@ -88,3 +92,10 @@ func Ceil2Int(val float64) int {
     return int(math.Ceil(val))
 }
 
+func NumSystemCores() int {
+    return 1
+}
+
+func ParseFile(filename string) bool {
+    return false
+}

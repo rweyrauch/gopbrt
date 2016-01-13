@@ -31,6 +31,10 @@ func CreateDiffGeometry(p Point, dpdu, dpdv Vector, dndu, dndv Normal, uu, vv fl
 }
 
 func (dg *DifferentialGeometry) ComputeDifferentials(ray *RayDifferential) {
+    dg.dudx, dg.dvdx = 0.0, 0.0
+    dg.dudy, dg.dvdy = 0.0, 0.0
+    dg.dpdx, dg.dpdy = Vector{0,0,0}, Vector{0,0,0}
+    
     if ray.hasDifferentials {
         // Estimate screen space change in $\pt{}$ and $(u,v)$
 
@@ -82,11 +86,7 @@ func (dg *DifferentialGeometry) ComputeDifferentials(ray *RayDifferential) {
             dg.dudy = 0.0 
             dg.dvdy = 0.0
         }
-    } else {
-fail:
-        dg.dudx, dg.dvdx = 0.0, 0.0
-        dg.dudy, dg.dvdy = 0.0, 0.0
-        dg.dpdx, dg.dpdy = Vector{0,0,0}, Vector{0,0,0}
     }
+fail:
 	
 }

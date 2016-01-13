@@ -7,4 +7,6 @@ type Film interface {
     GetPixelExtent() (xstart, xend, ystart, yend int)
     UpdateDisplay(x0, y0, x1, y1 int, splatScale float64)
     WriteImage(splatScale float64)
+    XResolution() int
+    YResolution() int
 }

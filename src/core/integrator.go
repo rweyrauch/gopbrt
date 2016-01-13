@@ -64,7 +64,9 @@ func UniformSampleOneLight(scene *Scene, renderer *Renderer,
     sample *Sample, rng *RNG, lightNumOffset int,
     lightSampleOffsets *LightSampleOffsets,
     bsdfSampleOffsets *BSDFSampleOffsets) *Spectrum {
-    	
+        
+    return CreateSpectrum1(0.0)	
+    /*    
     // Randomly choose a single light to sample, _light_
     nLights := len(scene.lights)
     if nLights == 0 { return CreateSpectrum1(0.0) }
@@ -90,31 +92,29 @@ func UniformSampleOneLight(scene *Scene, renderer *Renderer,
     return EstimateDirect(scene, renderer, arena, light, p, n, wo,
                        rayEpsilon, time, bsdf, rng, lightSample,
                        bsdfSample, BxDFType(BSDF_ALL ^ BSDF_SPECULAR)).Scale(float64(nLights))
+    */                   
 }
     
 func EstimateDirect(scene *Scene, renderer *Renderer,
     arena *MemoryArena, light Light, p *Point,
     n *Normal, wo *Vector, rayEpsilon, time float64, bsdf *BSDF,
     rng *RNG, lightSample *LightSample, bsdfSample *BSDFSample,
-    flags BxDFType) *Spectrum {
-    	
+    flags BxDFType) *Spectrum {    	
     Ld := CreateSpectrum1(0.0)
+/*    
     // Sample light source with multiple importance sampling
-    var wi Vector
-    var lightPdf, bsdfPdf float64
-    var visibility VisibilityTester
-    Li := light.Sample_L(p, rayEpsilon, lightSample, time, &wi, &lightPdf, &visibility)
+    Li, wi, lightPdf, visibility := light.Sample_L(p, rayEpsilon, lightSample, time)
     if lightPdf > 0.0 && !Li.IsBlack() {
         f := bsdf.f(wo, wi, flags)
         if !f.IsBlack() && visibility.Unoccluded(scene) {
             // Add light's contribution to reflected radiance
             Li = Li.Mult(visibility.Transmittance(scene, renderer, nil, rng, arena))
             if light.IsDeltaLight() {
-                Ld += f * Li * (AbsDot(wi, n) / lightPdf)
+                Ld += f * Li * (AbsDotVectorNormal(wi, n) / lightPdf)
             } else {
-                bsdfPdf = bsdf.Pdf(wo, wi, flags)
+                bsdfPdf := bsdf.Pdf(wo, wi, flags)
                 weight := PowerHeuristic(1, lightPdf, 1, bsdfPdf)
-                Ld += f * Li * (AbsDot(wi, n) * weight / lightPdf)
+                Ld += f * Li * (AbsDotVectorNormal(wi, n) * weight / lightPdf)
             }
         }
     }
@@ -149,20 +149,21 @@ func EstimateDirect(scene *Scene, renderer *Renderer,
             }
         }
     }
+*/    
     return Ld
 }
 
 func SpecularReflect(ray *RayDifferential, bsdf *BSDF, rng *RNG,
     isect *Intersection, renderer *Renderer, scene *Scene,
     sample *Sample, arena *MemoryArena) *Spectrum {
-    	
+    L := CreateSpectrum1(0.0)
+/*    	
     wo := -ray.d
     var wi Vector
     var pdf float64
     p := bsdf.dgShading.p
     n := bsdf.dgShading.nn
     f := bsdf.Sample_f(wo, &wi, BSDFSample(rng), &pdf, BxDFType(BSDF_REFLECTION | BSDF_SPECULAR))
-    L := CreateSpectrum1(0.0)
     if pdf > 0.0 && !f.IsBlack() && AbsDot(wi, n) != 0.0 {
         // Compute ray differential _rd_ for specular reflection
         rd := RayDifferential(p, wi, ray, isect.rayEpsilon)
@@ -186,6 +187,7 @@ func SpecularReflect(ray *RayDifferential, bsdf *BSDF, rng *RNG,
         L = f * Li * AbsDot(wi, n) / pdf
         //PBRT_FINISHED_SPECULAR_REFLECTION_RAY(const_cast<RayDifferential *>(&rd))
     }
+*/    
     return L
 }
     
@@ -193,13 +195,14 @@ func SpecularTransmit(ray *RayDifferential, bsdf* BSDF, rng *RNG,
     isect *Intersection, renderer *Renderer, scene *Scene,
     sample *Sample, arena *MemoryArena) *Spectrum {
     	
+    L := CreateSpectrum1(0.0)
+/*    
     wo := -ray.d
     var Vector wi
     var pdf float64
     p := bsdf.dgShading.p
     n := bsdf.dgShading.nn
     f := bsdf.Sample_f(wo, &wi, BSDFSample(rng), &pdf, BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR))
-    L := CreateSpectrum1(0.0)
     if pdf > 0.0 && !f.IsBlack() && AbsDot(wi, n) != 0.0 {
         // Compute ray differential _rd_ for specular transmission
         rd := RayDifferential(p, wi, ray, isect.rayEpsilon)
@@ -231,14 +234,15 @@ func SpecularTransmit(ray *RayDifferential, bsdf* BSDF, rng *RNG,
         L = f * Li * AbsDot(wi, n) / pdf
         //PBRT_FINISHED_SPECULAR_REFRACTION_RAY(const_cast<RayDifferential *>(&rd));
     }
+*/    
     return L
 }
 
 func ComputeLightSamplingCDF(scene *Scene) *Distribution1D {
-    nLights = len(scene.lights)
+    nLights := len(scene.lights)
     lightPower := make([]float64, nLights, nLights)
-    for light, i := range scene.lights {
-        lightPower[i] = light.Power(scene).y()
+    for i, light := range scene.lights {
+        lightPower[i] = light.Power(scene).Y()
     }
     return CreateDistribution1D(lightPower)
 }

@@ -28,15 +28,15 @@ type BSDFSampleOffsets struct {
 }
 
 func CreateBSDFSampleOffsets(count int, sample *Sample) *BSDFSampleOffsets {
-    
+    return nil
 }
 
 func CreateRandomBSDFSample(rng *RNG) *BSDFSample {
-    return &BSDFSample{[2]float64{rng.RandomFloat(), rng.RandomFloat}, rng.RandomFloat()}
+    return &BSDFSample{[2]float64{rng.RandomFloat(), rng.RandomFloat()}, rng.RandomFloat()}
 }
 
 func CreateBSDFSample(sample *Sample, offsets *BSDFSampleOffsets, num int) *BSDFSample {
-    
+    return nil   
 }
 
 type BxDF interface {
@@ -51,19 +51,19 @@ type BRDFToBTDF struct {    // BxDF
     brdf BxDF
 }
 func (b *BRDFToBTDF) F(wo, wi *Vector) *Spectrum {
-    
+    return nil
 }
 func (b *BRDFToBTDF) Sample_f(wo, wi *Vector, u1, u2 float64) (*Spectrum, float64) {
-    
+    return nil, 0.0
 }
 func (b *BRDFToBTDF) Rho(wo, nSamples int, samples []float64) *Spectrum {
-    
+    return nil
 }
 func (b *BRDFToBTDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
-    
+    return nil
 }
 func (b *BRDFToBTDF) Pdf(wi, wo *Vector) float64 {
-    
+    return 0.0
 }   
 
 type ScaledBxDF struct { // BxDF
@@ -71,19 +71,19 @@ type ScaledBxDF struct { // BxDF
     s Spectrum
 }
 func (b *ScaledBxDF) F(wo, wi *Vector) *Spectrum {
-    
+    return nil
 }
 func (b *ScaledBxDF) Sample_f(wo, wi *Vector, u1, u2 float64) (*Spectrum, float64) {
-    
+    return nil, 0.0
 }
 func (b *ScaledBxDF) Rho(wo, nSamples int, samples []float64) *Spectrum {
-    
+    return nil
 }
 func (b *ScaledBxDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
-    
+    return nil
 }
 func (b *ScaledBxDF) Pdf(wi, wo *Vector) float64 {
-    
+    return 0.0
 }   
 
 type Fresnel interface {
@@ -108,7 +108,7 @@ type BSDF struct {
     bxdfs []BxDF
 }
 func CreateBSDF(dg *DifferentialGeometry, ngeom *Normal, eta float64) *BSDF {
-    
+    return nil
 }
 func (bsdf *BSDF) Add(bxdf BxDF) {
     
@@ -117,22 +117,22 @@ func (bsdf *BSDF) NumComponents() int {
     return bsdf.nBxDFs
 }
 func (bdsf *BSDF) NumComponentsMatching(flags BxDFType) int {
-    
+    return 0   
 }
 func (bsdf *BSDF) WorldToLocal(v *Vector) *Vector {
-    
+    return nil
 }
 func (bsdf *BSDF) LocalToWorld(v *Vector) *Vector {
-    
+    return nil
 }
 func (bsdf *BSDF) f(woW, wiW *Vector, flags BxDFType) *Spectrum {
-    
+    return nil
 }
 func (bsdf *BSDF) rho(rng *RNG, flags BxDFType, sqrtSamples int) *Spectrum {
-    
+    return nil
 }
 func (bsdf *BSDF) rho2(wo *Vector, rng *RNG, flags BxDFType, sqrtSamples int) *Spectrum {
-    
+    return nil
 }
 
 type SpecularReflection struct { // BxDF
@@ -200,19 +200,19 @@ type IrregIsotropicBRDFSample struct {
 }
 
 func FrDiel(cosi, cost float64, etai, etat *Spectrum) *Spectrum {
-    var Rparl Spectrum = ((etat * cosi) - (etai * cost)) /
-                     ((etat * cosi) + (etai * cost))
-    var Rperp Spectrum = ((etai * cosi) - (etat * cost)) /
-                     ((etai * cosi) + (etat * cost))
-    return (Rparl*Rparl + Rperp*Rperp) / 2.0
-    
+//    var Rparl Spectrum = ((etat * cosi) - (etai * cost)) /
+//                     ((etat * cosi) + (etai * cost))
+//    var Rperp Spectrum = ((etai * cosi) - (etat * cost)) /
+//                     ((etai * cosi) + (etat * cost))
+//    return (Rparl*Rparl + Rperp*Rperp) / 2.0  
+    return nil
 }
 
 func FrCond(cosi float64, eta, k *Spectrum) *Spectrum {
 	tmp := eta.Mult(eta).Add(k.Mult(k)).Scale(cosi*cosi) // (eta*eta + k*k) * cosi*cosi
 	etaScaled := eta.Scale(2.0 * cosi)
-	oneSpec := CreateRGBSpectrum(1.0)
-    cosSpec := CreateRGBSpectrum(cosi*cosi)
+	oneSpec := CreateSpectrum1(1.0)
+    cosSpec := CreateSpectrum1(cosi*cosi)
 	
 	//Rparl2 = (tmp - (2.0 * eta * cosi) + 1) / (tmp + (2.0 * eta * cosi) + 1)
     Rparl2 := tmp.Sub(etaScaled).Add(oneSpec).Divide(tmp.Add(etaScaled).Add(oneSpec)) 
@@ -243,7 +243,7 @@ func Fdr(eta float64) float64 {
 
 // BSDF Inline Functions
 func CosTheta(w *Vector) float64 { return w.z }
-func AbsCosTheta(w *Vector) { return math.Abs(w.z) }
+func AbsCosTheta(w *Vector) float64 { return math.Abs(w.z) }
 func SinTheta2(w *Vector) float64 {
     return math.Max(0.0, 1.0 - CosTheta(w)*CosTheta(w))
 }

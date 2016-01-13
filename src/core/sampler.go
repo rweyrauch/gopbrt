@@ -44,7 +44,9 @@ type CameraSample struct {
 
 type Sample struct {
 	CameraSample
-	n1D, n2D []uint32
+	n1D, n2D []int
+    oneD [][]float64
+    twoD [][]float64
 }
 
 func CreateSample(sampler *Sampler, surf *SurfaceIntegrator, vol *VolumeIntegrator, scene *Scene) *Sample {
@@ -52,12 +54,12 @@ func CreateSample(sampler *Sampler, surf *SurfaceIntegrator, vol *VolumeIntegrat
 	return nil
 }
 
-func (s *Sample) Add1D(n uint32) int {
+func (s *Sample) Add1D(n int) int {
 	s.n1D = append(s.n1D, n)
 	return len(s.n1D)
 }
 
-func (s *Sample) Add2D(n uint32) int {
+func (s *Sample) Add2D(n int) int {
 	s.n2D = append(s.n2D, n)
 	return len(s.n2D)
 }

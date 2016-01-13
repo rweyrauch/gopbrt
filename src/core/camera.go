@@ -9,7 +9,7 @@ type CameraCore struct {
     ShutterOpen, ShutterClose float64
     Film Film
 }
-
+/*
 func GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {
     rd, wt := GenerateRay(sample)
     // Find ray after shifting one pixel in the $x$ direction
@@ -30,7 +30,7 @@ func GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight
     rd.hasDifferentials = true
     return rd, wt
 }
-
+*/
 type ProjectiveCamera struct {
     CameraCore
     CameraToScreen, RasterToCamera *Transform
@@ -40,14 +40,14 @@ type ProjectiveCamera struct {
 
 func CreateProjectiveCamera(cam2world *AnimatedTransform, proj *Transform, screenWindow [4]float64, sopen, sclose, lensr, focald float64, film Film) *ProjectiveCamera {
 
-    camera := &ProjectiveCamera{ {cam2world, sopen, sclose, film}, proj, nil, nil, nil, lensr, focald }
+    camera := &ProjectiveCamera{ CameraCore{cam2world, sopen, sclose, film}, proj, nil, nil, nil, lensr, focald }
 
     // Compute projective camera screen transformations
-    camera.ScreenToRaster = ScaleTransform(float64(film.xResolution), float64(film.yResolution), 1.0).MultTransform(
+    camera.ScreenToRaster = ScaleTransform(float64(film.XResolution()), float64(film.YResolution()), 1.0).MultTransform(
         ScaleTransform(1.0 / (screenWindow[1] - screenWindow[0]), 1.0 / (screenWindow[2] - screenWindow[3]), 1.0)).MultTransform(
-        TranslateTranform(&Vector{-screenWindow[0], -screenWindow[3], 0.0}))
+        TranslateTransform(&Vector{-screenWindow[0], -screenWindow[3], 0.0}))
     camera.RasterToScreen = InverseTransform(camera.ScreenToRaster)
-    camera.RasterToCamera = InverseTransform(camera.CameraToScreen) * camera.RasterToScreen
+    camera.RasterToCamera = InverseTransform(camera.CameraToScreen).MultTransform(camera.RasterToScreen)
 
     return camera
 }
