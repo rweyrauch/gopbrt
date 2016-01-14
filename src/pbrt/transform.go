@@ -69,16 +69,9 @@ func TransposeMatrix4x4(m *Matrix4x4) *Matrix4x4 {
 func (m *Matrix4x4) String() string {
 	s := "[ "
 	for i := 0; i < 4; i++ {
-		s = s + "  [ "
-		for j := 0; j < 4; j++ {
-			s = s + fmt.Sprint(s, "%f", m.m[i][j])
-			if j != 3 {
-				s = s + ", "
-			}
-		}
-		s = s + " ]\n"
+		s += fmt.Sprintf("[ %f, %f, %f, %f ]\n", m.m[i][0], m.m[i][1], m.m[i][2], m.m[i][3])
 	}
-	s = s + " ] "
+	s += " ] "
 	return s
 }
 
@@ -259,18 +252,27 @@ func NormalTransform(t *Transform, n *Normal) *Normal {
 }
 
 func RayTransform(t *Transform, r *Ray) *Ray {
-	// TODO: implement this
-	return nil
+	return CreateRay(PointTransform(t, &r.origin), VectorTransform(t, &r.dir), r.mint, r.maxt, r.time, r.depth)
 }
 
 func RayDifferentialTransform(t *Transform, r *RayDifferential) *RayDifferential {
-	// TODO: implement this
-	return nil
+	rd := new(RayDifferential)
+	rd.origin = *PointTransform(t, &r.origin)
+	rd.dir = *VectorTransform(t, &r.dir)
+	rd.mint = r.mint
+	rd.maxt = r.maxt
+	rd.time = r.time
+	rd.depth = r.depth
+	rd.hasDifferentials = r.hasDifferentials
+	rd.rxOrigin = *PointTransform(t, &r.rxOrigin)
+	rd.ryOrigin = *PointTransform(t, &r.ryOrigin)
+	rd.rxDirection = *VectorTransform(t, &r.rxDirection)
+	rd.ryDirection = *VectorTransform(t, &r.ryDirection)
+	return rd
 }
 
 func BBoxTransform(t *Transform, b *BBox) *BBox {
-	// TODO: implement this
-	return nil
+	return CreateBBoxFromPoints(PointTransform(t, &b.pMin), PointTransform(t, &b.pMax))
 }
 
 func (t1 *Transform) MultTransform(t2 *Transform) *Transform {
@@ -280,15 +282,9 @@ func (t1 *Transform) MultTransform(t2 *Transform) *Transform {
 }
 
 func SwapsHandednessTransform(t *Transform) bool {
-	det := ((t.m.m[0][0] *
-		(t.m.m[1][1]*t.m.m[2][2] -
-			t.m.m[1][2]*t.m.m[2][1])) -
-		(t.m.m[0][1] *
-			(t.m.m[1][0]*t.m.m[2][2] -
-				t.m.m[1][2]*t.m.m[2][0])) +
-		(t.m.m[0][2] *
-			(t.m.m[1][0]*t.m.m[2][1] -
-				t.m.m[1][1]*t.m.m[2][0])))
+	det := ((t.m.m[0][0] * (t.m.m[1][1]*t.m.m[2][2] - t.m.m[1][2]*t.m.m[2][1])) -
+		(t.m.m[0][1] * (t.m.m[1][0]*t.m.m[2][2] - t.m.m[1][2]*t.m.m[2][0])) +
+		(t.m.m[0][2] * (t.m.m[1][0]*t.m.m[2][1] - t.m.m[1][1]*t.m.m[2][0])))
 	return det < 0.0
 }
 

@@ -19,8 +19,8 @@ type (
 	}
 
 	Ray struct {
-		origin          Point
-		dir          Vector
+		origin     Point
+		dir        Vector
 		mint, maxt float64
 		time       float64
 		depth      int
@@ -43,7 +43,7 @@ const (
 )
 
 func CreateVector(x, y, z float64) *Vector {
-    return &Vector{x, y, z}
+	return &Vector{x, y, z}
 }
 func (v *Vector) Negate() *Vector {
 	return &Vector{-v.x, -v.y, -v.z}
@@ -120,6 +120,10 @@ func CoordinateSystem(v1 *Vector) (v2, v3 *Vector) {
 	v3 = CrossVector(v1, v2)
 	return v2, v3
 }
+func (v *Vector) String() string {
+	return fmt.Sprintf("v[ %f, %f, %f ]", v.x, v.y, v.z)
+}
+
 func SphericalDirection(sintheta, costheta, phi float64) *Vector {
 	return &Vector{sintheta * math.Cos(phi), sintheta * math.Sin(phi), costheta}
 }
@@ -137,6 +141,9 @@ func SphericalPhi(v *Vector) float64 {
 	return p
 }
 
+func CreatePoint(x, y, z float64) *Point {
+	return &Point{x, y, z}
+}
 func (p1 *Point) Add(v2 *Vector) *Point {
 	return &Point{p1.x + v2.x, p1.y + v2.y, p1.z + v2.z}
 }
@@ -172,6 +179,9 @@ func DistancePoint(p1, p2 *Point) float64 {
 }
 func DistanceSquaredPoint(p1, p2 *Point) float64 {
 	return p1.Sub(p2).LengthSquared()
+}
+func (p *Point) String() string {
+	return fmt.Sprintf("p[ %f, %f, %f ]", p.x, p.y, p.z)
 }
 
 func CreateNormalFromVector(v *Vector) *Normal {
@@ -263,6 +273,10 @@ func FaceforwardVectorNormal(v *Vector, n2 *Normal) *Vector {
 	return v
 }
 
+func (n *Normal) String() string {
+	return fmt.Sprintf("n[ %f, %f, %f ]", n.x, n.y, n.z)
+}
+
 func CreateRay(origin *Point, direction *Vector, start, end, t float64, d int) *Ray {
 	return &Ray{*origin, *direction, start, end, t, d}
 }
@@ -271,6 +285,10 @@ func CreateChildRay(origin *Point, direction *Vector, parent *Ray, start, end fl
 }
 func (r *Ray) PointAt(t float64) *Point {
 	return r.origin.Add(r.dir.Scale(t))
+}
+
+func (r *Ray) String() string {
+	return fmt.Sprintf("ray[origin: %v dir: %v start: %f end: %f time: %f", r.origin, r.dir, r.mint, r.maxt, r.time)
 }
 
 func CreateRayDifferential(origin *Point, direction *Vector, start, end, t float64, d int) *RayDifferential {
@@ -395,4 +413,7 @@ func EqualBBox(b1, b2 *BBox) bool {
 }
 func NotEqualBBox(b1, b2 *BBox) bool {
 	return NotEqualPoint(&b1.pMin, &b2.pMin) || NotEqualPoint(&b1.pMax, &b2.pMax)
+}
+func (b *BBox) String() string {
+	return fmt.Sprintf("bbox[ min: %v max: %v ]", b.pMin, b.pMax)
 }

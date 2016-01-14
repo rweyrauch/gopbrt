@@ -1,6 +1,7 @@
 package pbrt
 
 import (
+	"fmt"
 	"math"
 	"strings"
 )
@@ -27,6 +28,10 @@ func CreateSphere(o2w, w2o *Transform, ro bool, rad, z0, z1, pm float64) *Sphere
 	return s
 }
 
+func (s *Sphere) String() string {
+	return fmt.Sprintf("[r: %f zmin: %f zmax: %f phimax: %f obj2world: %v]", s.radius, s.zmin, s.zmax, Degrees(s.phiMax), s.objectToWorld)
+}
+
 func (s *Sphere) ObjectBound() *BBox {
 	return &BBox{Point{-s.radius, -s.radius, s.zmin}, Point{s.radius, s.radius, s.zmax}}
 }
@@ -34,12 +39,15 @@ func (s *Sphere) ObjectBound() *BBox {
 func (s *Sphere) WorldBound() *BBox {
 	return BBoxTransform(s.objectToWorld, s.ObjectBound())
 }
+
 func (*Sphere) CanIntersect() bool {
 	return true
 }
+
 func (*Sphere) Refine() (refined []*Shape) {
 	return nil
 }
+
 func (s *Sphere) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	// Transform _Ray_ to object space
 	ray := RayTransform(s.worldToObject, r)
@@ -52,7 +60,7 @@ func (s *Sphere) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Diff
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
 	var ok bool
-	if ok, t0, t1 = Quadratic(A, B, C); ok {
+	if ok, t0, t1 = Quadratic(A, B, C); !ok {
 		return false, 0.0, 0.0, nil
 	}
 	// Compute intersection distance along ray
@@ -160,7 +168,7 @@ func (s *Sphere) IntersectP(r *Ray) bool {
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
 	var ok bool
-	if ok, t0, t1 = Quadratic(A, B, C); ok {
+	if ok, t0, t1 = Quadratic(A, B, C); !ok {
 		return false
 	}
 	// Compute intersection distance along ray
@@ -210,39 +218,86 @@ func (s *Sphere) IntersectP(r *Ray) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
 func (s *Sphere) GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry {
 	return nil
 }
+
 func (s *Sphere) Area() float64 {
 	return s.phiMax * s.radius * (s.zmax - s.zmin)
 }
+
 func (s *Sphere) Sample(u1, u2 float64) (*Point, *Normal) {
-	return nil, nil
+    p := CreatePoint(0,0,0).Add(UniformSampleSphere(u1, u2).Scale(s.radius))
+    ns := NormalizeNormal(NormalTransform(s.objectToWorld, &Normal{p.x, p.y, p.z}))
+    if s.ReverseOrientation() { ns = ns.Negate() }
+ 	return PointTransform(s.objectToWorld, p), ns
 }
+
 func (s *Sphere) Pdf(pshape *Point) float64 {
-	return 0.0
+	return 1.0 / s.Area()
 }
+
 func (s *Sphere) SampleAt(p *Point, u1, u2 float64) (*Point, *Normal) {
-	return nil, nil
+    // Compute coordinate system for sphere sampling
+    Pcenter := PointTransform(s.objectToWorld, &Point{0,0,0})
+    wc := NormalizeVector(Pcenter.Sub(p))
+    wcX, wcY := CoordinateSystem(wc)
+
+    // Sample uniformly on sphere if $\pt{}$ is inside it
+    if DistanceSquaredPoint(p, Pcenter) - s.radius*s.radius < 1.0e-4 {
+        return s.Sample(u1, u2)
+	}
+    
+    // Sample sphere uniformly inside subtended cone
+    sinThetaMax2 := s.radius*s.radius / DistanceSquaredPoint(p, Pcenter)
+    cosThetaMax := math.Sqrt(math.Max(0.0, 1.0 - sinThetaMax2))
+ 
+    r := CreateRay(p, UniformSampleConeVector(u1, u2, cosThetaMax, wcX, wcY, wc), 1.0e-3, INFINITY, 0.0, 0)
+    var thit float64
+    var ok bool
+    if ok, thit, _, _ = s.Intersect(r); !ok {
+        thit = DotVector(Pcenter.Sub(p), NormalizeVector(&r.dir))
+    }
+    ps := r.PointAt(thit)
+    ns := CreateNormalFromVector(NormalizeVector(ps.Sub(Pcenter)))
+    if s.ReverseOrientation() { ns = ns.Negate() }
+    return ps, ns
 }
+
 func (s *Sphere) Pdf2(p *Point, wi *Vector) float64 {
-	return 0.0
+     Pcenter := PointTransform(s.objectToWorld, &Point{0,0,0})
+    // Return uniform weight if point inside sphere
+    if DistanceSquaredPoint(p, Pcenter) - s.radius*s.radius < 1.0e-4 {
+    	// TODO: figure out how to invoke a method on a 'base class'
+        //return Shape::Pdf(p, wi)
+        return 0.0
+	}
+    // Compute general sphere weight
+    sinThetaMax2 := s.radius*s.radius / DistanceSquaredPoint(p, Pcenter)
+    cosThetaMax := math.Sqrt(math.Max(0.0, 1.0 - sinThetaMax2))
+    return UniformConePdf(cosThetaMax)
 }
+
 func (s *Sphere) ObjectToWorld() *Transform {
 	return s.objectToWorld
 }
+
 func (s *Sphere) WorldToObject() *Transform {
 	return s.worldToObject
 }
+
 func (s *Sphere) ReverseOrientation() bool {
 	return s.reverseOrientation
 }
+
 func (s *Sphere) TransformSwapsHandedness() bool {
-	return s.transformSwapsHandedness
+	return SwapsHandednessTransform(s.objectToWorld)
 }
+
 func (s *Sphere) ShapeId() uint32 {
 	return s.shapeId
 }

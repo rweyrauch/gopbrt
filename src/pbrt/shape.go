@@ -33,3 +33,4 @@ type ShapeData struct {
 	reverseOrientation, transformSwapsHandedness bool
 	shapeId                                      uint32
 }
+
