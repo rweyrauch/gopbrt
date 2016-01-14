@@ -1,11 +1,16 @@
 package pbrt
 
-var (
-    nextShapeId uint32 = 0
+import (
+	"math"
 )
+
+var (
+	nextShapeId uint32 = 0
+)
+
 func GenerateShapeId() uint32 {
-    nextShapeId++
-    return nextShapeId
+	nextShapeId++
+	return nextShapeId
 }
 
 type Shape interface {
@@ -34,3 +39,22 @@ type ShapeData struct {
 	shapeId                                      uint32
 }
 
+func ShapePdf(shape Shape, p *Point, wi *Vector) float64 {
+	// Intersect sample ray with area light geometry
+	ray := CreateRay(p, wi, 1.0e-3, INFINITY, 0.0, 0)
+	ray.depth = -1 // temporary hack to ignore alpha mask
+
+	var thit float64
+	var dgLight *DifferentialGeometry
+	var ok bool
+	if ok, thit, _, dgLight = shape.Intersect(ray); !ok {
+		return 0.0
+	}
+
+	// Convert light sample weight to solid angle measure
+	pdf := DistanceSquaredPoint(p, ray.PointAt(thit)) / (AbsDotNormalVector(dgLight.nn, wi.Negate()) * shape.Area())
+	if math.IsInf(pdf, 0) {
+		pdf = 0.0
+	}
+	return pdf
+}

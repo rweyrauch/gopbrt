@@ -223,7 +223,7 @@ func (s *Sphere) IntersectP(r *Ray) bool {
 }
 
 func (s *Sphere) GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry {
-	return nil
+	return dg
 }
 
 func (s *Sphere) Area() float64 {
@@ -231,10 +231,12 @@ func (s *Sphere) Area() float64 {
 }
 
 func (s *Sphere) Sample(u1, u2 float64) (*Point, *Normal) {
-    p := CreatePoint(0,0,0).Add(UniformSampleSphere(u1, u2).Scale(s.radius))
-    ns := NormalizeNormal(NormalTransform(s.objectToWorld, &Normal{p.x, p.y, p.z}))
-    if s.ReverseOrientation() { ns = ns.Negate() }
- 	return PointTransform(s.objectToWorld, p), ns
+	p := CreatePoint(0, 0, 0).Add(UniformSampleSphere(u1, u2).Scale(s.radius))
+	ns := NormalizeNormal(NormalTransform(s.objectToWorld, &Normal{p.x, p.y, p.z}))
+	if s.ReverseOrientation() {
+		ns = ns.Negate()
+	}
+	return PointTransform(s.objectToWorld, p), ns
 }
 
 func (s *Sphere) Pdf(pshape *Point) float64 {
@@ -242,44 +244,44 @@ func (s *Sphere) Pdf(pshape *Point) float64 {
 }
 
 func (s *Sphere) SampleAt(p *Point, u1, u2 float64) (*Point, *Normal) {
-    // Compute coordinate system for sphere sampling
-    Pcenter := PointTransform(s.objectToWorld, &Point{0,0,0})
-    wc := NormalizeVector(Pcenter.Sub(p))
-    wcX, wcY := CoordinateSystem(wc)
+	// Compute coordinate system for sphere sampling
+	Pcenter := PointTransform(s.objectToWorld, &Point{0, 0, 0})
+	wc := NormalizeVector(Pcenter.Sub(p))
+	wcX, wcY := CoordinateSystem(wc)
 
-    // Sample uniformly on sphere if $\pt{}$ is inside it
-    if DistanceSquaredPoint(p, Pcenter) - s.radius*s.radius < 1.0e-4 {
-        return s.Sample(u1, u2)
+	// Sample uniformly on sphere if $\pt{}$ is inside it
+	if DistanceSquaredPoint(p, Pcenter)-s.radius*s.radius < 1.0e-4 {
+		return s.Sample(u1, u2)
 	}
-    
-    // Sample sphere uniformly inside subtended cone
-    sinThetaMax2 := s.radius*s.radius / DistanceSquaredPoint(p, Pcenter)
-    cosThetaMax := math.Sqrt(math.Max(0.0, 1.0 - sinThetaMax2))
- 
-    r := CreateRay(p, UniformSampleConeVector(u1, u2, cosThetaMax, wcX, wcY, wc), 1.0e-3, INFINITY, 0.0, 0)
-    var thit float64
-    var ok bool
-    if ok, thit, _, _ = s.Intersect(r); !ok {
-        thit = DotVector(Pcenter.Sub(p), NormalizeVector(&r.dir))
-    }
-    ps := r.PointAt(thit)
-    ns := CreateNormalFromVector(NormalizeVector(ps.Sub(Pcenter)))
-    if s.ReverseOrientation() { ns = ns.Negate() }
-    return ps, ns
+
+	// Sample sphere uniformly inside subtended cone
+	sinThetaMax2 := s.radius * s.radius / DistanceSquaredPoint(p, Pcenter)
+	cosThetaMax := math.Sqrt(math.Max(0.0, 1.0-sinThetaMax2))
+
+	r := CreateRay(p, UniformSampleConeVector(u1, u2, cosThetaMax, wcX, wcY, wc), 1.0e-3, INFINITY, 0.0, 0)
+	var thit float64
+	var ok bool
+	if ok, thit, _, _ = s.Intersect(r); !ok {
+		thit = DotVector(Pcenter.Sub(p), NormalizeVector(&r.dir))
+	}
+	ps := r.PointAt(thit)
+	ns := CreateNormalFromVector(NormalizeVector(ps.Sub(Pcenter)))
+	if s.ReverseOrientation() {
+		ns = ns.Negate()
+	}
+	return ps, ns
 }
 
 func (s *Sphere) Pdf2(p *Point, wi *Vector) float64 {
-     Pcenter := PointTransform(s.objectToWorld, &Point{0,0,0})
-    // Return uniform weight if point inside sphere
-    if DistanceSquaredPoint(p, Pcenter) - s.radius*s.radius < 1.0e-4 {
-    	// TODO: figure out how to invoke a method on a 'base class'
-        //return Shape::Pdf(p, wi)
-        return 0.0
+	Pcenter := PointTransform(s.objectToWorld, &Point{0, 0, 0})
+	// Return uniform weight if point inside sphere
+	if DistanceSquaredPoint(p, Pcenter)-s.radius*s.radius < 1.0e-4 {
+		return ShapePdf(s, p, wi)
 	}
-    // Compute general sphere weight
-    sinThetaMax2 := s.radius*s.radius / DistanceSquaredPoint(p, Pcenter)
-    cosThetaMax := math.Sqrt(math.Max(0.0, 1.0 - sinThetaMax2))
-    return UniformConePdf(cosThetaMax)
+	// Compute general sphere weight
+	sinThetaMax2 := s.radius * s.radius / DistanceSquaredPoint(p, Pcenter)
+	cosThetaMax := math.Sqrt(math.Max(0.0, 1.0-sinThetaMax2))
+	return UniformConePdf(cosThetaMax)
 }
 
 func (s *Sphere) ObjectToWorld() *Transform {
