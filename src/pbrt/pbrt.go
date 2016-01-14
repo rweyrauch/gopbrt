@@ -20,16 +20,14 @@ type ParamSet struct {
 // TODO: replace these stubs
 type TextureFloat struct {
 }
+func (t *TextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+    return 0.0
+}
+
 type TextureSpectrum struct {
 }
-type Material struct {
-	
-}
-func (m *Material) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
-	return nil	
-}
-func (m *Material) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
-	return nil	
+func (t *TextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+    return CreateSpectrum1(0.0)
 }
 
 type Options struct {
@@ -150,6 +148,10 @@ func Quadratic(A, B, C float64) (ok bool, t0, t1 float64) {
     return true, t0, t1
 }
 
+func Xor(a, b bool) bool {
+    if (a && !b) || (!a && b) { return true }
+    return false
+}
 func NumSystemCores() int {
 	return 1
 }

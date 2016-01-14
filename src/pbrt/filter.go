@@ -149,5 +149,5 @@ func (f *TriangleFilter) InvYWidth() float64 { return f.invYWidth }
 func CreateTriangleFilter(params *ParamSet) *TriangleFilter {
 	// "xwidth", 2.0
 	// "ywidth", 2.0
-    return nil
+	return nil
 }

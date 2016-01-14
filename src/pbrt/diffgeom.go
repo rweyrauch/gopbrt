@@ -24,7 +24,7 @@ func CreateDiffGeometry(p *Point, dpdu, dpdv *Vector, dndu, dndv *Normal, uu, vv
 	dg.dvdy = 0.0
 
 	// Adjust normal based on orientation and handedness
-	if dg.shape != nil && ((dg.shape.ReverseOrientation() && !dg.shape.TransformSwapsHandedness()) || (!dg.shape.ReverseOrientation() && dg.shape.TransformSwapsHandedness())) {
+	if dg.shape != nil && Xor(dg.shape.ReverseOrientation(),dg.shape.TransformSwapsHandedness()) {
 		dg.nn = dg.nn.Negate()
 	}
 	return dg

@@ -45,6 +45,9 @@ const (
 func CreateVector(x, y, z float64) *Vector {
 	return &Vector{x, y, z}
 }
+func CreateVectorFromNormal(n *Normal) *Vector {
+	return &Vector{n.x, n.y, n.z}
+}
 func (v *Vector) Negate() *Vector {
 	return &Vector{-v.x, -v.y, -v.z}
 }
