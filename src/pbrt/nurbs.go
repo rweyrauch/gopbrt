@@ -20,7 +20,7 @@ func (c *NURBS) WorldBound() *BBox {
 func (c *NURBS) CanIntersect() bool {
 	return false
 }
-func (c *NURBS) Refine() (refined []*Shape) {
+func (c *NURBS) Refine() (refined []Shape) {
 	return nil
 }
 func (c *NURBS) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {

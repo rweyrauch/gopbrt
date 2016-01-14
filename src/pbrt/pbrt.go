@@ -23,6 +23,13 @@ type TextureFloat struct {
 type TextureSpectrum struct {
 }
 type Material struct {
+	
+}
+func (m *Material) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil	
+}
+func (m *Material) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil	
 }
 
 type Options struct {

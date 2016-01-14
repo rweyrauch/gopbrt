@@ -20,7 +20,7 @@ func (c *Heightfield) WorldBound() *BBox {
 func (c *Heightfield) CanIntersect() bool {
 	return false
 }
-func (c *Heightfield) Refine() (refined []*Shape) {
+func (c *Heightfield) Refine() (refined []Shape) {
 	return nil
 }
 func (c *Heightfield) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {

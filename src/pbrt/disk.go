@@ -20,7 +20,7 @@ func (c *Disk) WorldBound() *BBox {
 func (c *Disk) CanIntersect() bool {
 	return false
 }
-func (c *Disk) Refine() (refined []*Shape) {
+func (c *Disk) Refine() (refined []Shape) {
 	return nil
 }
 func (c *Disk) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {

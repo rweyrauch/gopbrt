@@ -41,7 +41,7 @@ func (c *Cone) CanIntersect() bool {
 	return true
 }
 
-func (c *Cone) Refine() (refined []*Shape) {
+func (c *Cone) Refine() (refined []Shape) {
 	return nil
 }
 
@@ -103,21 +103,21 @@ func (c *Cone) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 		}
 	}
 
-    // Find parametric representation of cone hit
-    u := phi / c.phiMax
-    v := phit.z / c.height
+	// Find parametric representation of cone hit
+	u := phi / c.phiMax
+	v := phit.z / c.height
 
-    // Compute cone $\dpdu$ and $\dpdv$
-    dpdu := CreateVector(-c.phiMax * phit.y, c.phiMax * phit.x, 0.0)
-    dpdv := CreateVector(-phit.x / (1.0 - v), -phit.y / (1.0 - v), c.height)
+	// Compute cone $\dpdu$ and $\dpdv$
+	dpdu := CreateVector(-c.phiMax*phit.y, c.phiMax*phit.x, 0.0)
+	dpdv := CreateVector(-phit.x/(1.0-v), -phit.y/(1.0-v), c.height)
 
-    // Compute cone $\dndu$ and $\dndv$
-    d2Pduu := CreateVector(phit.x, phit.y, 0.0).Scale(-c.phiMax * c.phiMax)
-    d2Pduv := CreateVector(phit.y, -phit.x, 0.0).Scale(c.phiMax / (1.0 - v))
-                  
-    d2Pdvv := CreateVector(0, 0, 0)
+	// Compute cone $\dndu$ and $\dndv$
+	d2Pduu := CreateVector(phit.x, phit.y, 0.0).Scale(-c.phiMax * c.phiMax)
+	d2Pduv := CreateVector(phit.y, -phit.x, 0.0).Scale(c.phiMax / (1.0 - v))
 
-    // Compute coefficients for fundamental forms
+	d2Pdvv := CreateVector(0, 0, 0)
+
+	// Compute coefficients for fundamental forms
 	E := DotVector(dpdu, dpdu)
 	F := DotVector(dpdu, dpdv)
 	G := DotVector(dpdv, dpdv)
@@ -126,20 +126,20 @@ func (c *Cone) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 	f := DotVector(N, d2Pduv)
 	g := DotVector(N, d2Pdvv)
 
-    // Compute $\dndu$ and $\dndv$ from fundamental form coefficients
-    invEGF2 := 1.0 / (E*G - F*F)
+	// Compute $\dndu$ and $\dndv$ from fundamental form coefficients
+	invEGF2 := 1.0 / (E*G - F*F)
 	dndu := CreateNormalFromVector(dpdu.Scale((f*F - e*G) * invEGF2).Add(dpdv.Scale((e*F - f*E) * invEGF2)))
 	dndv := CreateNormalFromVector(dpdu.Scale((g*F - f*G) * invEGF2).Add(dpdv.Scale((f*F - g*E) * invEGF2)))
 
-    // Initialize _DifferentialGeometry_ from parametric information
+	// Initialize _DifferentialGeometry_ from parametric information
 	dg = CreateDiffGeometry(PointTransform(c.objectToWorld, phit), VectorTransform(c.objectToWorld, dpdu), VectorTransform(c.objectToWorld, dpdv),
 		NormalTransform(c.objectToWorld, dndu), NormalTransform(c.objectToWorld, dndv), u, v, c)
 
-    // Update _tHit_ for quadric intersection
-    tHit = thit
+	// Update _tHit_ for quadric intersection
+	tHit = thit
 
-    // Compute _rayEpsilon_ for quadric intersection
-    rayEpsilon = 5.0e-4 * tHit
+	// Compute _rayEpsilon_ for quadric intersection
+	rayEpsilon = 5.0e-4 * tHit
 
 	return true, tHit, rayEpsilon, dg
 }
@@ -217,7 +217,7 @@ func (c *Cone) Sample(u1, u2 float64) (*Point, *Normal) {
 }
 
 func (c *Cone) Pdf(pshape *Point) float64 {
-	 return 1.0 / c.Area()
+	return 1.0 / c.Area()
 }
 
 func (c *Cone) SampleAt(p *Point, u1, u2 float64) (*Point, *Normal) {

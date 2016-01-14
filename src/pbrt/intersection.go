@@ -2,7 +2,7 @@ package pbrt
 
 type Intersection struct {
 	dg                           *DifferentialGeometry
-	primitive                    *Primitive
+	primitive                    Primitive
 	WorldToObject, ObjectToWorld *Transform
 	shapeId, primitiveId         uint32
 	rayEpsilon                   float64

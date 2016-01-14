@@ -44,7 +44,7 @@ func (*Sphere) CanIntersect() bool {
 	return true
 }
 
-func (*Sphere) Refine() (refined []*Shape) {
+func (*Sphere) Refine() (refined []Shape) {
 	return nil
 }
 
