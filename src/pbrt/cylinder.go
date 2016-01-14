@@ -18,8 +18,8 @@ func (c *Cylinder) WorldBound() *BBox {
 func (c *Cylinder) CanIntersect() bool {
 	return false
 }
-func (c *Cylinder) Refine() (refined []Shape) {
-	return nil
+func (c *Cylinder) Refine(refined []Shape) []Shape {
+	return refined
 }
 func (c *Cylinder) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	return false, 0.0, 0.0, nil

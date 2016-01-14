@@ -20,8 +20,8 @@ func (c *Hyperboloid) WorldBound() *BBox {
 func (c *Hyperboloid) CanIntersect() bool {
 	return false
 }
-func (c *Hyperboloid) Refine() (refined []Shape) {
-	return nil
+func (c *Hyperboloid) Refine(refined []Shape) []Shape {
+	return refined
 }
 func (c *Hyperboloid) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	return false, 0.0, 0.0, nil

@@ -20,8 +20,8 @@ func (c *Paraboloid) WorldBound() *BBox {
 func (c *Paraboloid) CanIntersect() bool {
 	return false
 }
-func (c *Paraboloid) Refine() (refined []Shape) {
-	return nil
+func (c *Paraboloid) Refine(refined []Shape) []Shape {
+	return refined
 }
 func (c *Paraboloid) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	return false, 0.0, 0.0, nil

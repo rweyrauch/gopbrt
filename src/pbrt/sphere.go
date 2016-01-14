@@ -44,8 +44,8 @@ func (*Sphere) CanIntersect() bool {
 	return true
 }
 
-func (*Sphere) Refine() (refined []Shape) {
-	return nil
+func (*Sphere) Refine(refined []Shape) []Shape {
+	return refined
 }
 
 func (s *Sphere) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {

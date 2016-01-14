@@ -20,8 +20,8 @@ func (c *LoopSubdiv) WorldBound() *BBox {
 func (c *LoopSubdiv) CanIntersect() bool {
 	return false
 }
-func (c *LoopSubdiv) Refine() (refined []Shape) {
-	return nil
+func (c *LoopSubdiv) Refine(refined []Shape) []Shape {
+	return refined
 }
 func (c *LoopSubdiv) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	return false, 0.0, 0.0, nil

@@ -17,7 +17,7 @@ type Shape interface {
 	ObjectBound() *BBox
 	WorldBound() *BBox
 	CanIntersect() bool
-	Refine() (refined []Shape)
+	Refine(refined []Shape) []Shape
 	Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry)
 	IntersectP(ray *Ray) bool
 	GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry

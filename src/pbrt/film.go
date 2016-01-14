@@ -10,3 +10,7 @@ type Film interface {
 	XResolution() int
 	YResolution() int
 }
+
+type FilmData struct {
+    xResolution, yResolution int
+}

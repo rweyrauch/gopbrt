@@ -20,8 +20,8 @@ func (c *TriangleMesh) WorldBound() *BBox {
 func (c *TriangleMesh) CanIntersect() bool {
 	return false
 }
-func (c *TriangleMesh) Refine() (refined []Shape) {
-	return nil
+func (c *TriangleMesh) Refine(refined []Shape) []Shape {
+	return refined
 }
 func (c *TriangleMesh) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	return false, 0.0, 0.0, nil

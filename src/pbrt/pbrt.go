@@ -62,6 +62,16 @@ func Clampi(val, low, high int) int {
 	}
 }
 
+func Maxi(v1, v2 int) int {
+    if v1 > v2 { return v1 }
+    return v2
+}
+
+func Mini(v1, v2 int) int {
+    if v1 < v2 { return v1 }
+    return v2
+}
+
 func Mod(a, b int) int {
 	n := int(a / b)
 	a -= n * b
@@ -142,4 +152,9 @@ func Quadratic(A, B, C float64) (ok bool, t0, t1 float64) {
 
 func NumSystemCores() int {
 	return 1
+}
+
+func AtomicAdd(dest *float64, delta float64) {
+    // TODO: port this function
+    *dest = *dest + delta
 }

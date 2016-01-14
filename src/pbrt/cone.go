@@ -41,8 +41,8 @@ func (c *Cone) CanIntersect() bool {
 	return true
 }
 
-func (c *Cone) Refine() (refined []Shape) {
-	return nil
+func (c *Cone) Refine(refined []Shape) []Shape {
+	return refined
 }
 
 func (c *Cone) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
