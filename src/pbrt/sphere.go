@@ -16,7 +16,7 @@ func CreateSphere(o2w, w2o *Transform, ro bool, rad, z0, z1, pm float64) *Sphere
 	s.objectToWorld = o2w
 	s.worldToObject = w2o
 	s.reverseOrientation = ro
-	s.transformSwapsHandedness = false
+	s.transformSwapsHandedness = SwapsHandednessTransform(s.objectToWorld)
 	s.shapeId = GenerateShapeId()
 	s.radius = rad
 	s.zmin = Clamp(math.Min(z0, z1), -s.radius, s.radius)
@@ -29,7 +29,7 @@ func CreateSphere(o2w, w2o *Transform, ro bool, rad, z0, z1, pm float64) *Sphere
 }
 
 func (s *Sphere) String() string {
-	return fmt.Sprintf("[r: %f zmin: %f zmax: %f phimax: %f obj2world: %v]", s.radius, s.zmin, s.zmax, Degrees(s.phiMax), s.objectToWorld)
+	return fmt.Sprintf("sphere[r: %f zmin: %f zmax: %f phimax: %f obj2world: %v]", s.radius, s.zmin, s.zmax, Degrees(s.phiMax), s.objectToWorld)
 }
 
 func (s *Sphere) ObjectBound() *BBox {
@@ -297,7 +297,7 @@ func (s *Sphere) ReverseOrientation() bool {
 }
 
 func (s *Sphere) TransformSwapsHandedness() bool {
-	return SwapsHandednessTransform(s.objectToWorld)
+	return s.transformSwapsHandedness
 }
 
 func (s *Sphere) ShapeId() uint32 {
