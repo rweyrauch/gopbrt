@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/rweyrauch/gopbrt/src/core"
+	"github.com/rweyrauch/gopbrt/src/pbrt"
 )
 
 func main() {

@@ -110,6 +110,29 @@ func Ceil2Int(val float64) int {
 	return int(math.Ceil(val))
 }
 
+func Quadratic(A, B, C float64) (ok bool, t0, t1 float64) {
+    // Find quadratic discriminant
+    discrim := B * B - 4.0 * A * C
+    if (discrim < 0.0) {
+         return false, 0.0, 0.0
+    }
+    rootDiscrim := math.Sqrt(discrim)
+
+    // Compute quadratic _t_ values
+    var q float64
+    if B < 0.0 { 
+        q = -0.5 * (B - rootDiscrim)
+    } else {
+        q = -0.5 * (B + rootDiscrim)
+    }
+    t0 = q / A
+    t1 = C / q
+    if t0 > t1 {
+        t0, t1 = t1, t0
+    }
+    return true, t0, t1
+}
+
 func NumSystemCores() int {
 	return 1
 }

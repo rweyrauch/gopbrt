@@ -1,5 +1,13 @@
 package pbrt
 
+var (
+    nextShapeId uint32 = 0
+)
+func GenerateShapeId() uint32 {
+    nextShapeId++
+    return nextShapeId
+}
+
 type Shape interface {
 	ObjectBound() *BBox
 	WorldBound() *BBox

@@ -5,19 +5,19 @@ import (
 )
 
 type DifferentialGeometry struct {
-	p                      Point
-	nn                     Normal
+	p                      *Point
+	nn                     *Normal
 	u, v                   float64
 	shape                  Shape
-	dpdu, dpdv             Vector
-	dndu, dndv             Normal
-	dpdx, dpdy             Vector
+	dpdu, dpdv             *Vector
+	dndu, dndv             *Normal
+	dpdx, dpdy             *Vector
 	dudx, dvdx, dudy, dvdy float64
 }
 
-func CreateDiffGeometry(p Point, dpdu, dpdv Vector, dndu, dndv Normal, uu, vv float64, sh Shape) *DifferentialGeometry {
+func CreateDiffGeometry(p *Point, dpdu, dpdv *Vector, dndu, dndv *Normal, uu, vv float64, sh Shape) *DifferentialGeometry {
 	dg := &DifferentialGeometry{p: p, u: uu, v: vv, shape: sh, dpdu: dpdu, dpdv: dpdv, dndu: dndu, dndv: dndv}
-	dg.nn = *CreateNormalFromVector(NormalizeVector(CrossVector(&dpdu, &dpdv)))
+	dg.nn = CreateNormalFromVector(NormalizeVector(CrossVector(dpdu, dpdv)))
 	dg.dudx = 0.0
 	dg.dudy = 0.0
 	dg.dvdx = 0.0
@@ -25,7 +25,7 @@ func CreateDiffGeometry(p Point, dpdu, dpdv Vector, dndu, dndv Normal, uu, vv fl
 
 	// Adjust normal based on orientation and handedness
 	if dg.shape != nil && ((dg.shape.ReverseOrientation() && !dg.shape.TransformSwapsHandedness()) || (!dg.shape.ReverseOrientation() && dg.shape.TransformSwapsHandedness())) {
-		dg.nn = *dg.nn.Negate()
+		dg.nn = dg.nn.Negate()
 	}
 	return dg
 }
@@ -33,27 +33,27 @@ func CreateDiffGeometry(p Point, dpdu, dpdv Vector, dndu, dndv Normal, uu, vv fl
 func (dg *DifferentialGeometry) ComputeDifferentials(ray *RayDifferential) {
 	dg.dudx, dg.dvdx = 0.0, 0.0
 	dg.dudy, dg.dvdy = 0.0, 0.0
-	dg.dpdx, dg.dpdy = Vector{0, 0, 0}, Vector{0, 0, 0}
+	dg.dpdx, dg.dpdy = &Vector{0, 0, 0}, &Vector{0, 0, 0}
 
 	if ray.hasDifferentials {
 		// Estimate screen space change in $\pt{}$ and $(u,v)$
 
 		// Compute auxiliary intersection points with plane
-		d := -DotNormalVector(&dg.nn, &Vector{dg.p.x, dg.p.y, dg.p.z})
-		rxv := Vector{ray.rxOrigin.x, ray.rxOrigin.y, ray.rxOrigin.z}
-		tx := -(DotNormalVector(&dg.nn, &rxv) + d) / DotNormalVector(&dg.nn, &ray.rxDirection)
+		d := -DotNormalVector(dg.nn, &Vector{dg.p.x, dg.p.y, dg.p.z})
+		rxv := &Vector{ray.rxOrigin.x, ray.rxOrigin.y, ray.rxOrigin.z}
+		tx := -(DotNormalVector(dg.nn, rxv) + d) / DotNormalVector(dg.nn, &ray.rxDirection)
 		if math.IsNaN(tx) {
 			goto fail
 		}
 		px := ray.rxOrigin.Add(ray.rxDirection.Scale(tx))
-		ryv := Vector{ray.ryOrigin.x, ray.ryOrigin.y, ray.ryOrigin.z}
-		ty := -(DotNormalVector(&dg.nn, &ryv) + d) / DotNormalVector(&dg.nn, &ray.ryDirection)
+		ryv := &Vector{ray.ryOrigin.x, ray.ryOrigin.y, ray.ryOrigin.z}
+		ty := -(DotNormalVector(dg.nn, ryv) + d) / DotNormalVector(dg.nn, &ray.ryDirection)
 		if math.IsNaN(ty) {
 			goto fail
 		}
 		py := ray.ryOrigin.Add(ray.ryDirection.Scale(ty))
-		dg.dpdx = *px.Sub(&dg.p)
-		dg.dpdy = *py.Sub(&dg.p)
+		dg.dpdx = px.Sub(dg.p)
+		dg.dpdy = py.Sub(dg.p)
 
 		// Compute $(u,v)$ offsets at auxiliary points
 
