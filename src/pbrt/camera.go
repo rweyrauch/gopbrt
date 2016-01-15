@@ -11,28 +11,29 @@ type CameraCore struct {
 	Film                      Film
 }
 
-
 func GenerateRayDifferential(camera Camera, sample *CameraSample) (rd *RayDifferential, weight float64) {
-    ray, wt := camera.GenerateRay(sample)
+	ray, wt := camera.GenerateRay(sample)
 	rd = CreateRayDifferentialFromRay(ray)
-    // Find ray after shifting one pixel in the $x$ direction
-    sshift := sample
-    sshift.imageX++
-    	
-    rx, wtx := camera.GenerateRay(sshift)
-    rd.rxOrigin = rx.origin
-    rd.rxDirection = rx.dir
+	// Find ray after shifting one pixel in the $x$ direction
+	sshift := sample
+	sshift.imageX++
 
-    // Find ray after shifting one pixel in the $y$ direction
-    sshift.imageX--
-    sshift.imageY++
-    ry, wty := camera.GenerateRay(sshift)
-    rd.ryOrigin = ry.origin
-    rd.ryDirection = ry.dir
-    if wtx == 0.0 || wty == 0.0 { return rd, 0.0 }
-    rd.hasDifferentials = true
-    
-    return rd, wt
+	rx, wtx := camera.GenerateRay(sshift)
+	rd.rxOrigin = rx.origin
+	rd.rxDirection = rx.dir
+
+	// Find ray after shifting one pixel in the $y$ direction
+	sshift.imageX--
+	sshift.imageY++
+	ry, wty := camera.GenerateRay(sshift)
+	rd.ryOrigin = ry.origin
+	rd.ryDirection = ry.dir
+	if wtx == 0.0 || wty == 0.0 {
+		return rd, 0.0
+	}
+	rd.hasDifferentials = true
+
+	return rd, wt
 }
 
 type ProjectiveCamera struct {
@@ -54,4 +55,49 @@ func CreateProjectiveCamera(cam2world *AnimatedTransform, proj *Transform, scree
 	camera.RasterToCamera = InverseTransform(camera.CameraToScreen).MultTransform(camera.RasterToScreen)
 
 	return camera
+}
+
+type (
+	PerspectiveCamera struct {
+		ProjectiveCamera
+		dxCamera, dyCamera Vector
+	}
+
+	EnvironmentCamera struct {
+		CameraCore
+	}
+
+	OrthoCamera struct {
+		ProjectiveCamera
+		dxCamera, dyCamera Vector
+	}
+)
+
+func (c *PerspectiveCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight float64) {
+	return nil, 0.0
+}
+func (c *PerspectiveCamera) GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {
+	return nil, 0.0
+}
+
+func (c *EnvironmentCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight float64) {
+	return nil, 0.0
+}
+func (c *EnvironmentCamera) GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {
+	return nil, 0.0
+}
+
+func (c *OrthoCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight float64) { return nil, 0.0 }
+func (c *OrthoCamera) GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {
+	return nil, 0.0
+}
+
+func CreatePerspectiveCamera(params *ParamSet, cam2world *AnimatedTransform, film Film) *PerspectiveCamera {
+	return nil
+}
+func CreateEnvironmentCamera(params *ParamSet, cam2world *AnimatedTransform, film Film) *EnvironmentCamera {
+	return nil
+}
+func CreateOrthographicCamera(params *ParamSet, cam2world *AnimatedTransform, film Film) *OrthoCamera {
+	return nil
 }

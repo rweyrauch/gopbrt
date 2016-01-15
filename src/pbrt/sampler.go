@@ -4,7 +4,7 @@ type Sampler interface {
 	GetMoreSamples(sample *Sample, rng *RNG) int
 	MaximumSampleCount() int
 	ReportResults(samples []*Sample, rays []*RayDifferential, Ls *Spectrum, isects []*Intersection, count int) bool
-	GetSubSampler(num, count int) *Sampler
+	GetSubSampler(num, count int) Sampler
 	RoundSize(size int) int
 }
 
@@ -49,7 +49,7 @@ type Sample struct {
 	twoD     [][]float64
 }
 
-func CreateSample(sampler *Sampler, surf *SurfaceIntegrator, vol *VolumeIntegrator, scene *Scene) *Sample {
+func CreateSample(sampler Sampler, surf SurfaceIntegrator, vol VolumeIntegrator, scene Scene) *Sample {
 	// TODO: implement this
 	return nil
 }
@@ -66,5 +66,118 @@ func (s *Sample) Add2D(n int) int {
 
 func (s *Sample) Duplicate(count int) *Sample {
 	// TODO: implement this
+	return nil
+}
+
+const (
+	ADAPTIVE_COMPARE_SHAPE_ID = iota
+	ADAPTIVE_CONTRAST_THRESHOLD
+)
+
+type AdaptiveTest int
+
+type (
+	AdaptiveSampler struct {
+		SamplerData
+		xPos, yPos             int
+		minSamples, maxSamples int
+		sampleBuf              []float64
+
+		method           AdaptiveTest
+		supersamplePixel bool
+	}
+
+	BestCandidateSampler struct {
+		SamplerData
+		tableWidth                                 float64
+		tableOffset                                int
+		xTileStart, xTileEnd, yTileStart, yTileEnd int
+		xTile, yTile                               int
+		sampleOffsets                              [3]float64
+	}
+
+	HaltonSampler struct {
+		SamplerData
+		wantedSamples, currentSample int
+	}
+
+	LDSampler struct {
+		SamplerData
+		xPos, yPos, nPixelSamples int
+		sampleBuf                 []float64
+	}
+
+	RandomSampler struct {
+		SamplerData
+		xPos, yPos, nPixelSamples              int
+		imageSamples, lensSamples, timeSamples []float64
+		samplePos                              int
+	}
+
+	StratifiedSampler struct {
+		SamplerData
+		xPixelSamples, yPixelSamples int
+		jitterSamples                bool
+		xPos, yPos                   int
+		sampleBuf                    []float64
+	}
+)
+
+func (s *AdaptiveSampler) GetMoreSamples(sample *Sample, rng *RNG) int { return 0 }
+func (s *AdaptiveSampler) MaximumSampleCount() int                     { return 0 }
+func (s *AdaptiveSampler) ReportResults(samples []*Sample, rays []*RayDifferential, Ls *Spectrum, isects []*Intersection, count int) bool {
+	return false
+}
+func (s *AdaptiveSampler) GetSubSampler(num, count int) Sampler { return nil }
+func (s *AdaptiveSampler) RoundSize(size int) int               { return 0 }
+
+func (s *BestCandidateSampler) GetMoreSamples(sample *Sample, rng *RNG) int { return 0 }
+func (s *BestCandidateSampler) MaximumSampleCount() int                     { return 0 }
+func (s *BestCandidateSampler) ReportResults(samples []*Sample, rays []*RayDifferential, Ls *Spectrum, isects []*Intersection, count int) bool {
+	return false
+}
+func (s *BestCandidateSampler) GetSubSampler(num, count int) Sampler { return nil }
+func (s *BestCandidateSampler) RoundSize(size int) int               { return 0 }
+
+func (s *HaltonSampler) GetMoreSamples(sample *Sample, rng *RNG) int { return 0 }
+func (s *HaltonSampler) MaximumSampleCount() int                     { return 0 }
+func (s *HaltonSampler) ReportResults(samples []*Sample, rays []*RayDifferential, Ls *Spectrum, isects []*Intersection, count int) bool {
+	return false
+}
+func (s *HaltonSampler) GetSubSampler(num, count int) Sampler { return nil }
+func (s *HaltonSampler) RoundSize(size int) int               { return 0 }
+
+func (s *LDSampler) GetMoreSamples(sample *Sample, rng *RNG) int { return 0 }
+func (s *LDSampler) MaximumSampleCount() int                     { return 0 }
+func (s *LDSampler) ReportResults(samples []*Sample, rays []*RayDifferential, Ls *Spectrum, isects []*Intersection, count int) bool {
+	return false
+}
+func (s *LDSampler) GetSubSampler(num, count int) Sampler { return nil }
+func (s *LDSampler) RoundSize(size int) int               { return 0 }
+
+func (s *RandomSampler) GetMoreSamples(sample *Sample, rng *RNG) int { return 0 }
+func (s *RandomSampler) MaximumSampleCount() int                     { return 0 }
+func (s *RandomSampler) ReportResults(samples []*Sample, rays []*RayDifferential, Ls *Spectrum, isects []*Intersection, count int) bool {
+	return false
+}
+func (s *RandomSampler) GetSubSampler(num, count int) Sampler { return nil }
+func (s *RandomSampler) RoundSize(size int) int               { return 0 }
+
+func (s *StratifiedSampler) GetMoreSamples(sample *Sample, rng *RNG) int { return 0 }
+func (s *StratifiedSampler) MaximumSampleCount() int                     { return 0 }
+func (s *StratifiedSampler) ReportResults(samples []*Sample, rays []*RayDifferential, Ls *Spectrum, isects []*Intersection, count int) bool {
+	return false
+}
+func (s *StratifiedSampler) GetSubSampler(num, count int) Sampler { return nil }
+func (s *StratifiedSampler) RoundSize(size int) int               { return 0 }
+
+func CreateAdaptiveSampler(params *ParamSet, film Film, camera Camera) *AdaptiveSampler { return nil }
+func CreateBestCandidateSampler(params *ParamSet, film Film, camera Camera) *BestCandidateSampler {
+	return nil
+}
+func CreateHaltonSampler(params *ParamSet, film Film, camera Camera) *HaltonSampler     { return nil }
+func CreateLowDiscrepancySampler(params *ParamSet, film Film, camera Camera) *LDSampler { return nil }
+func CreateRandomSampler(params *ParamSet, film Film, camera Camera) *RandomSampler     { return nil }
+func CreateStratifiedSampler(params *ParamSet, film Film, camera Camera) *StratifiedSampler {
 	return nil
 }

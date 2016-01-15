@@ -9,7 +9,7 @@ type Material interface {
 	GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF
 }
 
-func Bump(texture *TextureFloat, dg, dgs *DifferentialGeometry) *DifferentialGeometry {
+func Bump(texture TextureFloat, dg, dgs *DifferentialGeometry) *DifferentialGeometry {
 	// Compute offset positions and evaluate displacement texture
 	dgEval := *dgs
 
@@ -130,7 +130,6 @@ func (m *GlassMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryAr
 	return nil
 }
 
-
 func CreateKdSubsurfaceMaterial(xform *Transform, mp *TextureParams) *KdSubsurfaceMaterial {
 	return nil
 }
@@ -140,8 +139,6 @@ func (m *KdSubsurfaceMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *Mem
 func (m *KdSubsurfaceMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
 }
-
-
 
 func CreateMatteMaterial(xform *Transform, mp *TextureParams) *MatteMaterial {
 	return nil
@@ -153,8 +150,6 @@ func (m *MatteMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryAr
 	return nil
 }
 
-
-
 func CreateMeasuredMaterial(xform *Transform, mp *TextureParams) *MeasuredMaterial {
 	return nil
 }
@@ -164,8 +159,6 @@ func (m *MeasuredMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryA
 func (m *MeasuredMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
 }
-
-
 
 func CreateMetalMaterial(xform *Transform, mp *TextureParams) *MetalMaterial {
 	return nil
@@ -177,7 +170,6 @@ func (m *MetalMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryAr
 	return nil
 }
 
-
 func CreateMirrorMaterial(xform *Transform, mp *TextureParams) *MirrorMaterial {
 	return nil
 }
@@ -187,8 +179,6 @@ func (m *MirrorMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryAre
 func (m *MirrorMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
 }
-
-
 
 func CreateMixMaterial(xform *Transform, mp *TextureParams, m1, m2 Material) *MixMaterial {
 	return nil
@@ -200,7 +190,6 @@ func (m *MixMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryAren
 	return nil
 }
 
-
 func CreatePlasticMaterial(xform *Transform, mp *TextureParams) *PlasticMaterial {
 	return nil
 }
@@ -210,7 +199,6 @@ func (m *PlasticMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryAr
 func (m *PlasticMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
 }
-
 
 func CreateShinyMetalMaterial(xform *Transform, mp *TextureParams) *ShinyMetalMaterial {
 	return nil
@@ -222,7 +210,6 @@ func (m *ShinyMetalMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *Mem
 	return nil
 }
 
-
 func CreateSubstrateMaterial(xform *Transform, mp *TextureParams) *SubstrateMaterial {
 	return nil
 }
@@ -232,7 +219,6 @@ func (m *SubstrateMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *Memory
 func (m *SubstrateMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
 }
-
 
 func CreateSubsurfaceMaterial(xform *Transform, mp *TextureParams) *SubsurfaceMaterial {
 	return nil
@@ -244,7 +230,6 @@ func (m *SubsurfaceMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *Mem
 	return nil
 }
 
-
 func CreateTranslucentMaterial(xform *Transform, mp *TextureParams) *TranslucentMaterial {
 	return nil
 }
@@ -254,7 +239,6 @@ func (m *TranslucentMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *Memo
 func (m *TranslucentMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
 }
-
 
 func CreateUberMaterial(xform *Transform, mp *TextureParams) *UberMaterial {
 	return nil

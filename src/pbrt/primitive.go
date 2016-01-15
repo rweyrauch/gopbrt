@@ -16,7 +16,7 @@ type Primitive interface {
 	IntersectP(r *Ray) bool
 	Refine(refined []Primitive) []Primitive
 	FullyRefine(refined []Primitive) []Primitive
-	GetAreaLight() *AreaLight
+	GetAreaLight() AreaLight
 	GetBSDF(dg *DifferentialGeometry, objectToWorld *Transform, arena *MemoryArena) *BSDF
 	GetBSSRDF(dg *DifferentialGeometry, objectToWorld *Transform, arena *MemoryArena) *BSSRDF
 	PrimitiveId() uint32
@@ -51,10 +51,10 @@ type GeometricPrimitive struct {
 	PrimitiveData
 	shape     Shape
 	material  Material
-	areaLight *AreaLight
+	areaLight AreaLight
 }
 
-func CreateGeometricPrimitive(s Shape, mtl Material, arealight *AreaLight) *GeometricPrimitive {
+func CreateGeometricPrimitive(s Shape, mtl Material, arealight AreaLight) *GeometricPrimitive {
 	gp := new(GeometricPrimitive)
 	gp.primitiveId = GeneratePrimitiveId()
 	gp.shape = s
@@ -110,7 +110,7 @@ func (p *GeometricPrimitive) FullyRefine(refined []Primitive) []Primitive {
 	return PrimitiveFullyRefine(p, refined)
 }
 
-func (p *GeometricPrimitive) GetAreaLight() *AreaLight {
+func (p *GeometricPrimitive) GetAreaLight() AreaLight {
 	return p.areaLight
 }
 
@@ -132,6 +132,15 @@ type TransformedPrimitive struct {
 	PrimitiveData
 	primitive        Primitive
 	worldToPrimitive *AnimatedTransform
+}
+
+func CreateTransformedPrimitive(prim Primitive, worldToPrimitive *AnimatedTransform) *TransformedPrimitive {
+	tp := new(TransformedPrimitive)
+	tp.primitiveId = GeneratePrimitiveId()
+	tp.primitive = prim
+	tp.worldToPrimitive = worldToPrimitive
+
+	return tp
 }
 
 func (p *TransformedPrimitive) WorldBound() *BBox {
@@ -180,7 +189,7 @@ func (p *TransformedPrimitive) FullyRefine(refined []Primitive) []Primitive {
 	return PrimitiveFullyRefine(p, refined)
 }
 
-func (p *TransformedPrimitive) GetAreaLight() *AreaLight {
+func (p *TransformedPrimitive) GetAreaLight() AreaLight {
 	return nil
 }
 
@@ -224,7 +233,7 @@ func (p *Aggregate) FullyRefine(refined []Primitive) []Primitive {
 	return PrimitiveFullyRefine(p, refined)
 }
 
-func (p *Aggregate) GetAreaLight() *AreaLight {
+func (p *Aggregate) GetAreaLight() AreaLight {
 	return nil
 }
 
