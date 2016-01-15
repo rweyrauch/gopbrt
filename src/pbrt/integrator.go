@@ -1,29 +1,244 @@
 package pbrt
 
-func Min(x, y int) int {
-	if x < y {
-		return x
+type LightStrategy int
+
+const (
+	SAMPLE_ALL_UNIFORM = iota
+	SAMPLE_ONE_UNIFORM
+)
+const (
+	SAMPLE_DEPTH = 3
+)
+
+type (
+	Integrator interface {
+		Preprocess(scene *Scene, camera *Camera, enderer *Renderer)
+		RequestSamples(sampler *Sampler, sample *Sample, scene *Scene)
 	}
-	return y
-}
 
-func Max(x, y int) int {
-	if x > y {
-		return x
+	SurfaceIntegrator interface {
+		Integrator
+		Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+			sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum
 	}
-	return y
+
+	AmbientOcclusionIntegrator struct {
+		nSamples int
+		maxDist  float64
+	}
+
+	DiffusePRTIntegrator struct {
+		lmax, nSamples int
+		c_in           []Spectrum
+	}
+
+	DipoleSubsurfaceIntegrator struct {
+		maxSpecularDepth         int
+		fmaxError, minSampleDist float64
+		filename                 string
+		//irradiancePoints []IrriancePoint
+		octreeBounds *BBox
+		//octree []SubsurfaceOctreeNode
+		octreeArena *MemoryArena
+
+		// Declare sample parameters for light source sampling
+		lightSampleOffsets []LightSampleOffsets
+		bsdfSampleOffsets  []BSDFSampleOffsets
+	}
+
+	DirectLightingIntegrator struct {
+		strategy LightStrategy
+		maxDepth int
+
+		// Declare sample parameters for light source sampling
+		lightSampleOffsets []LightSampleOffsets
+		bsdfSampleOffsets  []BSDFSampleOffsets
+		ligthNumOffset     int
+	}
+
+	EmissionIntegrator struct {
+		stepSize                             float64
+		tauSampleOffset, scatterSampleOffset int
+	}
+
+	GlossyPRTIntegrator struct {
+		Kd, Ks         Spectrum
+		roughness      float64
+		lmax, nSamples int
+		c_in           []Spectrum
+		B              []Spectrum
+	}
+
+	IGIIntegrator struct {
+		// Declare sample parameters for light source sampling
+		lightSampleOffsets      []LightSampleOffsets
+		bsdfSampleOffsets       []BSDFSampleOffsets
+		nLightPaths, nLightSets int
+		gLimit                  float64
+		nGatherSamples          int
+		rrThreshold             float64
+		maxSpecularDepth        int
+		vlSetOffset             int
+		gatherSampleOffset      BSDFSampleOffsets
+		//virtualLights [][]VirtualLight
+	}
+
+	IrradianceCacheIntegrator struct {
+		minSamplePixelSpacing, maxSamplePixelSpacing float64
+		minWeight, cosMaxSampleAngleDifference       float64
+		nSamples, maxSpecularDepth, maxIndirectDepth int
+		//mutex RWMutex
+
+		// Declare sample parameters for light source sampling
+		lightSampleOffsets []LightSampleOffsets
+		bsdfSampleOffsets  []BSDFSampleOffsets
+		//octree []*OctreeIrradianceSample
+	}
+
+	PathIntegrator struct {
+		maxDepth           int
+		lightSampleOffsets [SAMPLE_DEPTH]LightSampleOffsets
+		lightNumOffset     [SAMPLE_DEPTH]int
+		bsdfSampleOffsets  [SAMPLE_DEPTH]BSDFSampleOffsets
+		pathSampleOffsets  [SAMPLE_DEPTH]BSDFSampleOffsets
+	}
+
+	PhotonIntegrator struct {
+		nCausticPhotonsWanted, nIndirectPhotonsWanted, nLookup int
+		maxDistSquared                                         float64
+		maxSpecularDepth, maxPhotonDepth                       int
+		finalGather                                            bool
+		gatherSamples                                          int
+		cosGatherAngle                                         float64
+
+		// Declare sample parameters for light source sampling
+		lightSampleOffsets                                []LightSampleOffsets
+		bsdfSampleOffsets                                 []BSDFSampleOffsets
+		bsdfGatherSampleOffsets, indirGatherSampleOffsets BSDFSampleOffsets
+		nCausticPaths, nIndirectPaths                     int
+		//causticMap, indirectMap *KdTreePhoton
+		//radianceMap *KdTreeRadiancePhoton
+	}
+
+	SingleScatteringIntegrator struct {
+		stepSize                             float64
+		tauSampleOffset, scatterSampleOffset int
+	}
+
+	UseRadianceProbes struct {
+		bbox                                                 *BBox
+		lmax, includeDirectInProbes, includeIndirectInProbes int
+		nProbes                                              [3]int
+		c_in                                                 []Spectrum
+
+		// Declare sample parameters for light source sampling
+		lightSampleOffsets []LightSampleOffsets
+		bsdfSampleOffsets  []BSDFSampleOffsets
+	}
+
+	WhittedIntegrator struct {
+		maxDepth int
+	}
+)
+
+func (i *AmbientOcclusionIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *AmbientOcclusionIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *AmbientOcclusionIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
 }
 
-type Integrator interface {
-	Preprocess(scene *Scene, camera *Camera, enderer *Renderer)
-	RequestSamples(sampler *Sampler, sample *Sample, scene *Scene)
+func (i *DiffusePRTIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *DiffusePRTIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *DiffusePRTIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
 }
 
-type SurfaceIntegrator interface {
-	Integrator
-	Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
-		sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum
+func (i *DipoleSubsurfaceIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *DipoleSubsurfaceIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *DipoleSubsurfaceIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
 }
+
+func (i *DirectLightingIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *DirectLightingIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *DirectLightingIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
+}
+
+func (i *EmissionIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *EmissionIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *EmissionIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
+}
+func (i *GlossyPRTIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *GlossyPRTIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *GlossyPRTIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
+}
+func (i *IGIIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *IGIIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *IGIIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
+}
+func (i *IrradianceCacheIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *IrradianceCacheIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *IrradianceCacheIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
+}
+
+func (i *PathIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *PathIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *PathIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
+}
+func (i *PhotonIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *PhotonIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *PhotonIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
+}
+func (i *SingleScatteringIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *SingleScatteringIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *SingleScatteringIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
+}
+func (i *UseRadianceProbes) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *UseRadianceProbes) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *UseRadianceProbes) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
+}
+func (i *WhittedIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer) {}
+func (i *WhittedIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
+func (i *WhittedIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	return nil
+}
+
+
+func CreateAmbientOcclusionIntegrator(params *ParamSet) *AmbientOcclusionIntegrator      { return nil }
+func CreateDiffusePRTIntegratorSurfaceIntegrator(params *ParamSet) *DiffusePRTIntegrator { return nil }
+func CreateDipoleSubsurfaceIntegrator(params *ParamSet) *DipoleSubsurfaceIntegrator      { return nil }
+func CreateDirectLightingIntegrator(params *ParamSet) *DirectLightingIntegrator          { return nil }
+func CreateEmissionVolumeIntegrator(params *ParamSet) *EmissionIntegrator                { return nil }
+func CreateGlossyPRTIntegratorSurfaceIntegrator(params *ParamSet) *GlossyPRTIntegrator   { return nil }
+func CreateIGISurfaceIntegrator(params *ParamSet) *IGIIntegrator                         { return nil }
+func CreateIrradianceCacheIntegrator(params *ParamSet) *IrradianceCacheIntegrator        { return nil }
+func CreatePathSurfaceIntegrator(params *ParamSet) *PathIntegrator                       { return nil }
+func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator                { return nil }
+func CreateSingleScatteringIntegrator(params *ParamSet) *SingleScatteringIntegrator      { return nil }
+func CreateRadianceProbesSurfaceIntegrator(params *ParamSet) *UseRadianceProbes          { return nil }
+func CreateWhittedSurfaceIntegrator(params *ParamSet) *WhittedIntegrator                 { return nil }
 
 func UniformSampleAllLights(scene *Scene, renderer *Renderer,
 	arena *MemoryArena, p *Point, n *Normal, wo *Vector,
@@ -58,6 +273,7 @@ func UniformSampleAllLights(scene *Scene, renderer *Renderer,
 	}
 	return L
 }
+
 func UniformSampleOneLight(scene *Scene, renderer *Renderer,
 	arena *MemoryArena, p *Point, n *Normal, wo *Vector,
 	rayEpsilon, time float64, bsdf *BSDF,

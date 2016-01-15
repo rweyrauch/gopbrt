@@ -307,7 +307,7 @@ func MakeLight(name string, light2world *Transform, paramSet *ParamSet) Light {
     return light
 }
 
-func MakeAreaLight(name string, object2world, world2object *Transform, shape Shape) AreaLight {
+func MakeAreaLight(name string, light2world *Transform, paramSet *ParamSet, shape Shape) AreaLight {
     var area AreaLight = nil
     if strings.Compare(name, "area") == 0 || strings.Compare(name, "diffuse") == 0 {
         area = CreateDiffuseAreaLight(light2world, paramSet, shape);
@@ -318,8 +318,8 @@ func MakeAreaLight(name string, object2world, world2object *Transform, shape Sha
     return area
 }
 
-func MakeVolumeRegion(name string, volume2world *Transform, paramSet *ParamSet) *VolumeRegion {
-    var vr *VolumeRegion = nil
+func MakeVolumeRegion(name string, volume2world *Transform, paramSet *ParamSet) VolumeRegion {
+    var vr VolumeRegion = nil
     if strings.Compare(name, "homogeneous") == 0 {
         vr = CreateHomogeneousVolumeDensityRegion(volume2world, paramSet)
     } else if strings.Compare(name, "volumegrid") == 0 {
@@ -334,8 +334,8 @@ func MakeVolumeRegion(name string, volume2world *Transform, paramSet *ParamSet) 
 }
 
 
-func MakeSurfaceIntegrator(name string, paramSet *ParamSet) *SurfaceIntegrator {
-    var si *SurfaceIntegrator = nil
+func MakeSurfaceIntegrator(name string, paramSet *ParamSet) SurfaceIntegrator {
+    var si SurfaceIntegrator = nil
     if strings.Compare(name, "whitted") == 0 {
         si = CreateWhittedSurfaceIntegrator(paramSet)
     } else if strings.Compare(name, "directlighting") == 0 {
@@ -366,8 +366,8 @@ func MakeSurfaceIntegrator(name string, paramSet *ParamSet) *SurfaceIntegrator {
 }
 
 
-func MakeVolumeIntegrator(name string, paramSet *ParamSet) *VolumeIntegrator {
-    var vi *VolumeIntegrator = nil
+func MakeVolumeIntegrator(name string, paramSet *ParamSet) VolumeIntegrator {
+    var vi VolumeIntegrator = nil
     if strings.Compare(name, "single") == 0 {
         vi = CreateSingleScatteringIntegrator(paramSet)
     } else if strings.Compare(name, "emission") == 0 {

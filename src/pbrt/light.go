@@ -154,25 +154,74 @@ func CreateDiffuseAreaLight(light2world *Transform, paramSet *ParamSet, shape Sh
    return nil
 }
 
+func (l *DistantLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64) (s *Spectrum, wi *Vector, pdf float64, vis *VisibilityTester) { return nil, nil, 0.0, nil }
+func (l *DistantLight) Power(scene *Scene) *Spectrum { return nil }
+func (l *DistantLight) IsDeltaLight() bool { return false }
+func (l *DistantLight) Le(ray *RayDifferential) *Spectrum { return nil }
+func (l *DistantLight) Pdf(p *Point, wi *Vector) float64 { return 0.0}
+func (l *DistantLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) { return nil, nil, nil, 0.0 }
+func (l *DistantLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {}
+
 func CreateDistantLight(light2world *Transform, paramSet *ParamSet) *DistantLight {
 	return nil
 }
+
+func (l *GonioPhotometricLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64) (s *Spectrum, wi *Vector, pdf float64, vis *VisibilityTester) { return nil, nil, 0.0, nil }
+func (l *GonioPhotometricLight) Power(scene *Scene) *Spectrum { return nil }
+func (l *GonioPhotometricLight) IsDeltaLight() bool { return false }
+func (l *GonioPhotometricLight) Le(ray *RayDifferential) *Spectrum { return nil }
+func (l *GonioPhotometricLight) Pdf(p *Point, wi *Vector) float64 { return 0.0}
+func (l *GonioPhotometricLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) { return nil, nil, nil, 0.0 }
+func (l *GonioPhotometricLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {}
 
 func CreateGoniometricLight(light2world *Transform, paramSet *ParamSet) *GonioPhotometricLight {
 	return nil
 }
 
+func (l *InfiniteAreaLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64) (s *Spectrum, wi *Vector, pdf float64, vis *VisibilityTester) { return nil, nil, 0.0, nil }
+func (l *InfiniteAreaLight) Power(scene *Scene) *Spectrum { return nil }
+func (l *InfiniteAreaLight) IsDeltaLight() bool { return false }
+func (l *InfiniteAreaLight) Le(ray *RayDifferential) *Spectrum { return nil }
+func (l *InfiniteAreaLight) Pdf(p *Point, wi *Vector) float64 { return 0.0}
+func (l *InfiniteAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) { return nil, nil, nil, 0.0 }
+func (l *InfiniteAreaLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {}
+
 func CreateInfiniteLight(light2world *Transform, paramSet *ParamSet) *InfiniteAreaLight {
 	return nil
 }
+
+
+func (l *PointLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64) (s *Spectrum, wi *Vector, pdf float64, vis *VisibilityTester) { return nil, nil, 0.0, nil }
+func (l *PointLight) Power(scene *Scene) *Spectrum { return nil }
+func (l *PointLight) IsDeltaLight() bool { return false }
+func (l *PointLight) Le(ray *RayDifferential) *Spectrum { return nil }
+func (l *PointLight) Pdf(p *Point, wi *Vector) float64 { return 0.0}
+func (l *PointLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) { return nil, nil, nil, 0.0 }
+func (l *PointLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {}
 
 func CreatePointLight(light2world *Transform, paramSet *ParamSet) *PointLight {
 	return nil
 }
 
+func (l *ProjectionLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64) (s *Spectrum, wi *Vector, pdf float64, vis *VisibilityTester) { return nil, nil, 0.0, nil }
+func (l *ProjectionLight) Power(scene *Scene) *Spectrum { return nil }
+func (l *ProjectionLight) IsDeltaLight() bool { return false }
+func (l *ProjectionLight) Le(ray *RayDifferential) *Spectrum { return nil }
+func (l *ProjectionLight) Pdf(p *Point, wi *Vector) float64 { return 0.0}
+func (l *ProjectionLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) { return nil, nil, nil, 0.0 }
+func (l *ProjectionLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {}
+
 func CreateProjectionLight(light2world *Transform, paramSet *ParamSet) *ProjectionLight {
 	return nil
 }
+
+func (l *SpotLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64) (s *Spectrum, wi *Vector, pdf float64, vis *VisibilityTester) { return nil, nil, 0.0, nil }
+func (l *SpotLight) Power(scene *Scene) *Spectrum { return nil }
+func (l *SpotLight) IsDeltaLight() bool { return false }
+func (l *SpotLight) Le(ray *RayDifferential) *Spectrum { return nil }
+func (l *SpotLight) Pdf(p *Point, wi *Vector) float64 { return 0.0}
+func (l *SpotLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) { return nil, nil, nil, 0.0 }
+func (l *SpotLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {}
 
 func CreateSpotLight(light2world *Transform, paramSet *ParamSet) *SpotLight {
 	return nil
