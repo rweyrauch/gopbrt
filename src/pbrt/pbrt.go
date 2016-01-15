@@ -17,19 +17,6 @@ type ParamSet struct {
 	params []Object
 }
 
-// TODO: replace these stubs
-type TextureFloat struct {
-}
-func (t *TextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-    return 0.0
-}
-
-type TextureSpectrum struct {
-}
-func (t *TextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
-    return CreateSpectrum1(0.0)
-}
-
 type Options struct {
 	NumCores                                int
 	QuickRender, Quiet, Verbose, OpenWindow bool
