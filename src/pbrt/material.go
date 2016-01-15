@@ -49,3 +49,219 @@ func Bump(texture *TextureFloat, dg, dgs *DifferentialGeometry) *DifferentialGeo
 
 	return &dgBump
 }
+
+type (
+	GlassMaterial struct {
+		Kr, Kt         *TextureSpectrum
+		index, bumpMap *TextureFloat
+	}
+
+	KdSubsurfaceMaterial struct {
+		Kd, Kr                     *TextureSpectrum
+		meanfreepath, eta, bumpMap *TextureFloat
+	}
+
+	MatteMaterial struct {
+		Kd             *TextureSpectrum
+		sigma, bumpMap *TextureFloat
+	}
+
+	MeasuredMaterial struct {
+		//thetaPhiData *KdTreeIrregIsotropBRDFSample
+		regularHalfangleData    []float64
+		nThetaH, nThetaD, nPhiD uint32
+		bumpMap                 *TextureFloat
+	}
+
+	MetalMaterial struct {
+		eta, k             *TextureSpectrum
+		roughness, bumpMap *TextureFloat
+	}
+
+	MirrorMaterial struct {
+		Kr      *TextureSpectrum
+		bumpMap *TextureFloat
+	}
+
+	MixMaterial struct {
+		m1, m2 Material
+		scale  *TextureSpectrum
+	}
+
+	PlasticMaterial struct {
+		Kd, Ks             *TextureSpectrum
+		roughness, bumpMap *TextureFloat
+	}
+
+	ShinyMetalMaterial struct {
+		Ks, Kr             *TextureSpectrum
+		roughness, bumpMap *TextureFloat
+	}
+
+	SubstrateMaterial struct {
+		Kd, Ks          *TextureSpectrum
+		nu, nv, bumpMap *TextureFloat
+	}
+
+	SubsurfaceMaterial struct {
+		scale                      float64
+		Kr, sigma_a, sigma_prims_s *TextureSpectrum
+		eta, bumpMap               *TextureFloat
+	}
+
+	TranslucentMaterial struct {
+		Kd, Ks, reflect, transmit *TextureSpectrum
+		roughness, bumpMap        *TextureFloat
+	}
+
+	UberMaterial struct {
+		Kd, Ks, Kr, Kt, opacity *TextureSpectrum
+		roughness, eta, bumpMap *TextureFloat
+	}
+)
+
+func CreateGlassMaterial(xform *Transform, mp *TextureParams) *GlassMaterial {
+	return nil
+}
+func (m *GlassMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *GlassMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+func CreateKdSubsurfaceMaterial(xform *Transform, mp *TextureParams) *KdSubsurfaceMaterial {
+	return nil
+}
+func (m *KdSubsurfaceMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *KdSubsurfaceMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+
+func CreateMatteMaterial(xform *Transform, mp *TextureParams) *MatteMaterial {
+	return nil
+}
+func (m *MatteMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *MatteMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+
+func CreateMeasuredMaterial(xform *Transform, mp *TextureParams) *MeasuredMaterial {
+	return nil
+}
+func (m *MeasuredMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *MeasuredMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+
+func CreateMetalMaterial(xform *Transform, mp *TextureParams) *MetalMaterial {
+	return nil
+}
+func (m *MetalMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *MetalMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+func CreateMirrorMaterial(xform *Transform, mp *TextureParams) *MirrorMaterial {
+	return nil
+}
+func (m *MirrorMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *MirrorMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+
+func CreateMixMaterial(xform *Transform, mp *TextureParams, m1, m2 Material) *MixMaterial {
+	return nil
+}
+func (m *MixMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *MixMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+func CreatePlasticMaterial(xform *Transform, mp *TextureParams) *PlasticMaterial {
+	return nil
+}
+func (m *PlasticMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *PlasticMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+func CreateShinyMetalMaterial(xform *Transform, mp *TextureParams) *ShinyMetalMaterial {
+	return nil
+}
+func (m *ShinyMetalMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *ShinyMetalMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+func CreateSubstrateMaterial(xform *Transform, mp *TextureParams) *SubstrateMaterial {
+	return nil
+}
+func (m *SubstrateMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *SubstrateMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+func CreateSubsurfaceMaterial(xform *Transform, mp *TextureParams) *SubsurfaceMaterial {
+	return nil
+}
+func (m *SubsurfaceMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *SubsurfaceMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+func CreateTranslucentMaterial(xform *Transform, mp *TextureParams) *TranslucentMaterial {
+	return nil
+}
+func (m *TranslucentMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *TranslucentMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+
+
+func CreateUberMaterial(xform *Transform, mp *TextureParams) *UberMaterial {
+	return nil
+}
+func (m *UberMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (m *UberMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
+	return nil
+}

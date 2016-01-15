@@ -34,14 +34,12 @@ type (
 		worldToTexture *Transform
 	}
 
-	Texture interface {
+	TextureFloat interface {
 		Evaluate(dg *DifferentialGeometry) float64
 	}
 
-	TextureFloat struct {
-	}
-
-	TextureSpectrum struct {
+	TextureSpectrum interface {
+		Evaluate(dg *DifferentialGeometry) *Spectrum
 	}
 )
 
@@ -133,14 +131,6 @@ func (m *IdentityMapping3D) Map(dg *DifferentialGeometry) (p *Point, dpdx, dpdy 
     return PointTransform(m.worldToTexture, dg.p), VectorTransform(m.worldToTexture, dg.dpdx), VectorTransform(m.worldToTexture, dg.dpdy)
 }
 
-func (t *TextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-	return 0.0
-}
-
-func (t *TextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
-	return CreateSpectrum1(0.0)
-}
-
 // Texture Inline Functions
 func SmoothStep(min, max, value float64) float64 {
     v := Clamp((value - min) / (max - min), 0.0, 1.0)
@@ -204,4 +194,309 @@ func Turbulence(p *Point, dpdx, dpdy *Vector, omega float64, maxOctaves int) flo
     sum += (float64(maxOctaves) - foctaves) * 0.2
 
     return sum
+}
+
+type (
+	BilerpTextureFloat struct {
+		mapping TextureMapping2D
+		v00, v01, v10, v11 float64
+	}
+	BilerpTextureSpectrum struct {
+		mapping TextureMapping2D
+		v00, v01, v10, v11 Spectrum
+	}
+	
+	Checkerboard2DTextureFloat struct {
+		mapping TextureMapping2D
+		tex1, tex2 TextureFloat		
+	}
+	Checkerboard2DTextureSpectrum struct {
+		mapping TextureMapping2D
+		tex1, tex2 TextureSpectrum		
+	}
+	
+	ConstantTextureFloat struct {
+		value float64
+	}
+	ConstantTextureSpectrum struct {
+		value Spectrum
+	}
+	
+	DotsTextureFloat struct {
+		mapping TextureMapping2D
+		outsideDot, insideDot TextureFloat		
+	}
+	DotsTextureSpectrum struct {
+		mapping TextureMapping2D
+		outsideDot, insideDot TextureSpectrum		
+	}
+	
+	FBmTextureFloat struct {
+		omega float64
+		octaves int
+		mapping TextureMapping3D
+	}
+	FBmTextureSpectrum struct {
+		omega float64
+		octaves int
+		mapping TextureMapping3D		
+	}
+	
+	ImageTextureFloat struct {
+		mapping TextureMapping2D
+		//mipmap *MIPMap
+	}
+	ImageTextureSpectrum struct {
+		mapping TextureMapping2D
+		//mipmap *MIPMap		
+	}
+	
+	MarbleTextureFloat struct {
+		mapping TextureMapping3D		
+		octaves int
+		omega, scale, variation float64		
+	}
+	MarbleTextureSpectrum struct {
+		mapping TextureMapping3D		
+		octaves int
+		omega, scale, variation float64		
+	}
+	
+	MixTextureFloat struct {
+		tex1, tex2 TextureFloat
+		amount TextureFloat
+	}
+	MixTextureSpectrum struct {
+		tex1, tex2 TextureSpectrum
+		amount TextureFloat
+	}
+	
+	ScaleTextureFloat struct {
+		tex1, tex2 TextureFloat
+	}
+	ScaleTextureSpectrum struct {
+		tex1, tex2 TextureSpectrum
+	}
+	
+	UVTextureFloat struct {
+		mapping TextureMapping2D
+	}
+	UVTextureSpectrum struct {
+		mapping TextureMapping2D
+	}
+	
+	WindyTextureFloat struct {
+		mapping TextureMapping3D		
+	}
+	WindyTextureSpectrum struct {
+		mapping TextureMapping3D		
+	}
+	
+	WrinkledTextureFloat struct {
+		octaves int
+		omega float64
+		mapping TextureMapping3D		
+	}
+	WrinkledTextureSpectrum struct {
+		octaves int
+		omega float64
+		mapping TextureMapping3D		
+	}
+)
+
+
+func (t *BilerpTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *BilerpTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateBilerpFloatTexture(tex2world *Transform, tp *TextureParams) *BilerpTextureFloat {
+	return nil
+}
+func CreateBilerpSpectrumTexture(tex2world *Transform, tp *TextureParams) *BilerpTextureSpectrum {
+	return nil
+}
+
+
+func (t *Checkerboard2DTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *Checkerboard2DTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateCheckerboardFloatTexture(tex2world *Transform, tp *TextureParams) *Checkerboard2DTextureFloat {
+	return nil
+}
+func CreateCheckerboardSpectrumTexture(tex2world *Transform, tp *TextureParams) *Checkerboard2DTextureSpectrum {
+	return nil
+}
+
+
+func (t *ConstantTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *ConstantTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateConstantFloatTexture(tex2world *Transform, tp *TextureParams) *ConstantTextureFloat {
+	return nil
+}
+func CreateConstantSpectrumTexture(tex2world *Transform, tp *TextureParams) *ConstantTextureSpectrum {
+	return nil
+}
+
+
+
+func (t *DotsTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *DotsTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateDotsFloatTexture(tex2world *Transform, tp *TextureParams) *DotsTextureFloat {
+	return nil
+}
+func CreateDotsSpectrumTexture(tex2world *Transform, tp *TextureParams) *DotsTextureSpectrum {
+	return nil
+}
+
+
+
+func (t *FBmTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *FBmTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateFBmFloatTexture(tex2world *Transform, tp *TextureParams) *FBmTextureFloat {
+	return nil
+}
+func CreateFBmSpectrumTexture(tex2world *Transform, tp *TextureParams) *FBmTextureSpectrum {
+	return nil
+}
+
+
+func (t *ImageTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *ImageTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateImageFloatTexture(tex2world *Transform, tp *TextureParams) *ImageTextureFloat {
+	return nil
+}
+func CreateImageSpectrumTexture(tex2world *Transform, tp *TextureParams) *ImageTextureSpectrum {
+	return nil
+}
+
+
+func (t *MarbleTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *MarbleTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateMarbleFloatTexture(tex2world *Transform, tp *TextureParams) *MarbleTextureFloat {
+	return nil
+}
+func CreateMarbleSpectrumTexture(tex2world *Transform, tp *TextureParams) *MarbleTextureSpectrum {
+	return nil
+}
+
+
+
+func (t *MixTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *MixTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateMixFloatTexture(tex2world *Transform, tp *TextureParams) *MixTextureFloat {
+	return nil
+}
+func CreateMixSpectrumTexture(tex2world *Transform, tp *TextureParams) *MixTextureSpectrum {
+	return nil
+}
+
+
+
+func (t *ScaleTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *ScaleTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateScaleFloatTexture(tex2world *Transform, tp *TextureParams) *ScaleTextureFloat {
+	return nil
+}
+func CreateScaleSpectrumTexture(tex2world *Transform, tp *TextureParams) *ScaleTextureSpectrum {
+	return nil
+}
+
+
+
+func (t *UVTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *UVTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateUVFloatTexture(tex2world *Transform, tp *TextureParams) *UVTextureFloat {
+	return nil
+}
+func CreateUVSpectrumTexture(tex2world *Transform, tp *TextureParams) *UVTextureSpectrum {
+	return nil
+}
+
+
+func (t *WindyTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *WindyTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateWindyFloatTexture(tex2world *Transform, tp *TextureParams) *WindyTextureFloat {
+	return nil
+}
+func CreateWindySpectrumTexture(tex2world *Transform, tp *TextureParams) *WindyTextureSpectrum {
+	return nil
+}
+
+
+func (t *WrinkledTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return 0.0
+}
+
+func (t *WrinkledTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+	return CreateSpectrum1(0.0)
+}
+
+func CreateWrinkledFloatTexture(tex2world *Transform, tp *TextureParams) *WrinkledTextureFloat {
+	return nil
+}
+func CreateWrinkledSpectrumTexture(tex2world *Transform, tp *TextureParams) *WrinkledTextureSpectrum {
+	return nil
 }

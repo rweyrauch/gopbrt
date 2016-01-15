@@ -17,6 +17,10 @@ type ParamSet struct {
 	params []Object
 }
 
+type TextureParams struct {
+	
+}
+
 type Options struct {
 	NumCores                                int
 	QuickRender, Quiet, Verbose, OpenWindow bool

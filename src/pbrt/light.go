@@ -97,3 +97,83 @@ func (s *ShapeSet) Pdf(p *Point) float64 {
 	}
 	return pdf / (float64(len(s.shapes)) * s.sumArea)
 }
+
+type (
+	DiffuseAreaLight struct {
+		LightData
+		Lemit Spectrum
+		shapeSet []Spectrum
+		area float64
+	}
+	
+	InfiniteAreaLight struct {
+		LightData
+		//radianceMap *MIPMapSpectrum
+		distribution *Distribution2D
+	}
+	
+	DistantLight struct {
+		LightData
+		lightDir Vector
+		L Spectrum
+	}
+	
+	GonioPhotometricLight struct {
+		LightData
+		lightPos Point
+		Intensity Spectrum
+		//mipmap *MIPMapSpectrum
+	}
+	
+	PointLight struct {
+		LightData
+		lightPos Point
+		Intensity Spectrum
+	}
+	
+	ProjectionLight struct {
+		LightData
+		//projectionMap *MIPMapSpectrum
+		lightPos Point
+		Intensity Spectrum
+		lightProjection *Transform
+		hither, yon float64
+		screenX0, screenX1, screenY0, screenY1 float64
+		cosTotalWidth float64
+	}
+	
+	SpotLight struct {
+		LightData
+		lightPos Point
+		Intensity Spectrum
+		cosTotalWidth, cosFalloffStart float64		
+	}
+)
+
+func CreateDiffuseAreaLight(light2world *Transform, paramSet *ParamSet, shape Shape) AreaLight {
+   return nil
+}
+
+func CreateDistantLight(light2world *Transform, paramSet *ParamSet) *DistantLight {
+	return nil
+}
+
+func CreateGoniometricLight(light2world *Transform, paramSet *ParamSet) *GonioPhotometricLight {
+	return nil
+}
+
+func CreateInfiniteLight(light2world *Transform, paramSet *ParamSet) *InfiniteAreaLight {
+	return nil
+}
+
+func CreatePointLight(light2world *Transform, paramSet *ParamSet) *PointLight {
+	return nil
+}
+
+func CreateProjectionLight(light2world *Transform, paramSet *ParamSet) *ProjectionLight {
+	return nil
+}
+
+func CreateSpotLight(light2world *Transform, paramSet *ParamSet) *SpotLight {
+	return nil
+}
