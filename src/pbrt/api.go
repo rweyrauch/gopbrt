@@ -1,7 +1,6 @@
 package pbrt
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -24,7 +23,7 @@ func (ts *TransformSet) get(i int) *Transform {
 	return ts.t[i]
 }
 func inverseTransformSet(ts *TransformSet) *TransformSet {
-	var t2 *TransformSet
+	t2 := new(TransformSet)
 	for i := 0; i < MAX_TRANSFORMS; i++ {
 		t2.t[i] = InverseTransform(ts.t[i])
 	}
@@ -44,9 +43,14 @@ type TransformPair struct {
 }
 type TransformCache struct {
 	cache map[*Transform]TransformPair
-	arena MemoryArena
+	arena *MemoryArena
 }
-
+func CreateTransformCache() *TransformCache {
+	tc := new(TransformCache)
+	tc.cache = make(map[*Transform]TransformPair, 4)
+	tc.arena = nil
+	return tc
+}
 func (tc *TransformCache) Lookup(t *Transform) (tCache, tInvCache *Transform) {
 	tpair := tc.cache[t]
 	return tpair.first, tpair.second
@@ -110,7 +114,12 @@ type GraphicsState struct {
 }
 
 func CreateGraphicsState() *GraphicsState {
-	return &GraphicsState{material: "matte", reverseOrientation: false}
+	gs := &GraphicsState{material: "matte", reverseOrientation: false}
+	gs.floatTextures = make(map[string]TextureFloat, 4)
+	gs.spectrumTextures = make(map[string]TextureSpectrum, 4)
+	gs.materialParams = &ParamSet{nil, nil}
+	gs.areaLightParams = &ParamSet{nil, nil}
+	return gs
 }
 func (gs *GraphicsState) CreateMaterial(params *ParamSet) Material {
 	return nil
@@ -133,8 +142,59 @@ var (
 	pushedGraphicsStates      []*GraphicsState
 	pushedTransforms          []*TransformSet
 	pushedActiveTransformBits []uint32
-	transformCache            TransformCache
+	transformCache            *TransformCache
 )
+
+func init() {
+	curTransform = new(TransformSet)
+	curTransform.t[0], _ = CreateTransform(CreateIdentityMatrix4x4())	
+	curTransform.t[1], _ = CreateTransform(CreateIdentityMatrix4x4())	
+	
+	namedCoordinateSystems = make(map[string]*TransformSet, 4)
+	pushedGraphicsStates = make([]*GraphicsState, 0, 8)
+	pushedTransforms = make([]*TransformSet, 0, 8)
+	pushedActiveTransformBits = make([]uint32, 0, 8)
+	
+	transformCache = CreateTransformCache()
+}
+
+
+// API "Macros"
+func VERIFY_INITIALIZED(funcname string) {
+	Debug("Trace: %s", funcname)
+	if currentApiState == STATE_UNINITIALIZED {
+    	Error("pbrtInit() must be before calling \"%s()\".  Ignoring.", funcname)
+	}
+}
+
+func VERIFY_OPTIONS(funcname string) {
+	VERIFY_INITIALIZED(funcname)
+	if currentApiState == STATE_WORLD_BLOCK {
+    	Error("Options cannot be set inside world block; \"%s\" not allowed.  Ignoring.", funcname)
+    }
+}
+ 
+func VERIFY_WORLD(funcname string) {
+	VERIFY_INITIALIZED(funcname)
+	if currentApiState == STATE_OPTIONS_BLOCK {
+    	Error("Scene description must be inside world block; \"%s\" not allowed. Ignoring.", funcname)
+    }
+}
+
+func FOR_ACTIVE_TRANSFORMS(action func(ndx uint)) {
+	var i uint
+	for i = 0; i < MAX_TRANSFORMS; i++ {
+		if activeTransformBits&(1<<i) != 0 {
+			action(i)
+		}
+	}
+}
+
+func WARN_IF_ANIMATED_TRANSFORM(funcname string) {
+	if curTransform.isAnimated() {
+         Warning("Animated transformations set; ignoring for \"%s\" and using the start transform only", funcname)
+    }
+}
 
 // Object Creation Function Definitions
 func MakeShape(name string, object2world, world2object *Transform,
@@ -162,7 +222,7 @@ func MakeShape(name string, object2world, world2object *Transform,
 	} else if strings.Compare(name, "nurbs") == 0 {
 		s = CreateNURBSShape(object2world, world2object, reverseOrientation, paramSet)
 	} else {
-		fmt.Printf("Shape \"%s\" unknown.", name)
+		Warning("Shape \"%s\" unknown.", name)
 	}
 	return s
 }
@@ -187,11 +247,11 @@ func MakeMaterial(name string, mtl2world *Transform, mp *TextureParams) Material
 		mat1 := graphicsState.namedMaterials[m1]
 		mat2 := graphicsState.namedMaterials[m2]
 		if mat1 == nil {
-			fmt.Printf("Named material \"%s\" undefined.  Using \"matte\"\n", m1)
+			Error("Named material \"%s\" undefined.  Using \"matte\"", m1)
 			mat1 = MakeMaterial("matte", curTransform.t[0], mp)
 		}
 		if mat2 == nil {
-			fmt.Printf("Named material \"%s\" undefined.  Using \"matte\"\n", m2)
+			Error("Named material \"%s\" undefined.  Using \"matte\"", m2)
 			mat2 = MakeMaterial("matte", curTransform.t[0], mp)
 		}
 
@@ -211,11 +271,11 @@ func MakeMaterial(name string, mtl2world *Transform, mp *TextureParams) Material
 	} else if strings.Compare(name, "shinymetal") == 0 {
 		material = CreateShinyMetalMaterial(mtl2world, mp)
 	} else {
-		fmt.Printf("Material \"%s\" unknown.\n", name)
+		Warning("Material \"%s\" unknown.", name)
 	}
 	//mp.ReportUnused()
 	if material == nil {
-		fmt.Printf("Unable to create material \"%s\"\n", name)
+		Error("Unable to create material \"%s\"", name)
 	}
 	return material
 }
@@ -247,7 +307,7 @@ func MakeFloatTexture(name string, tex2world *Transform, tp *TextureParams) Text
 	} else if strings.Compare(name, "windy") == 0 {
 		tex = CreateWindyFloatTexture(tex2world, tp)
 	} else {
-		fmt.Printf("Float texture \"%s\" unknown.\n", name)
+		Warning("Float texture \"%s\" unknown.", name)
 	}
 	//tp.ReportUnused()
 	return tex
@@ -280,7 +340,7 @@ func MakeSpectrumTexture(name string, tex2world *Transform, tp *TextureParams) T
 	} else if strings.Compare(name, "windy") == 0 {
 		tex = CreateWindySpectrumTexture(tex2world, tp)
 	} else {
-		fmt.Printf("Spectrum texture \"%s\" unknown.\n", name)
+		Warning("Spectrum texture \"%s\" unknown.", name)
 	}
 	//tp.ReportUnused()
 	return tex
@@ -301,7 +361,7 @@ func MakeLight(name string, light2world *Transform, paramSet *ParamSet) Light {
 	} else if strings.Compare(name, "infinite") == 0 || strings.Compare(name, "exinfinite") == 0 {
 		light = CreateInfiniteLight(light2world, paramSet)
 	} else {
-		fmt.Printf("Light \"%s\" unknown.\n", name)
+		Warning("Light \"%s\" unknown.", name)
 	}
 	//paramSet.ReportUnused()
 	return light
@@ -312,7 +372,7 @@ func MakeAreaLight(name string, light2world *Transform, paramSet *ParamSet, shap
 	if strings.Compare(name, "area") == 0 || strings.Compare(name, "diffuse") == 0 {
 		area = CreateDiffuseAreaLight(light2world, paramSet, shape)
 	} else {
-		fmt.Printf("Area light \"%s\" unknown.\n", name)
+		Warning("Area light \"%s\" unknown.", name)
 	}
 	//paramSet.ReportUnused()
 	return area
@@ -327,7 +387,7 @@ func MakeVolumeRegion(name string, volume2world *Transform, paramSet *ParamSet) 
 	} else if strings.Compare(name, "exponential") == 0 {
 		vr = CreateExponentialVolumeRegion(volume2world, paramSet)
 	} else {
-		fmt.Printf("Volume region \"%s\" unknown.\n", name)
+		Warning("Volume region \"%s\" unknown.", name)
 	}
 	//paramSet.ReportUnused()
 	return vr
@@ -358,7 +418,7 @@ func MakeSurfaceIntegrator(name string, paramSet *ParamSet) SurfaceIntegrator {
 	} else if strings.Compare(name, "glossyprt") == 0 {
 		si = CreateGlossyPRTIntegratorSurfaceIntegrator(paramSet)
 	} else {
-		fmt.Printf("Surface integrator \"%s\" unknown.\n", name)
+		Warning("Surface integrator \"%s\" unknown.", name)
 	}
 	//paramSet.ReportUnused()
 	return si
@@ -371,7 +431,7 @@ func MakeVolumeIntegrator(name string, paramSet *ParamSet) VolumeIntegrator {
 	} else if strings.Compare(name, "emission") == 0 {
 		vi = CreateEmissionVolumeIntegrator(paramSet)
 	} else {
-		fmt.Printf("Volume integrator \"%s\" unknown.\n", name)
+		Warning("Volume integrator \"%s\" unknown.", name)
 	}
 	//paramSet.ReportUnused();
 	return vi
@@ -386,7 +446,7 @@ func MakeAccelerator(name string, prims []Primitive, paramSet *ParamSet) Primiti
 	} else if strings.Compare(name, "kdtree") == 0 {
 		accel = CreateKdTreeAccelerator(prims, paramSet)
 	} else {
-		fmt.Printf("Accelerator \"%s\" unknown.\n", name)
+		Warning("Accelerator \"%s\" unknown.", name)
 	}
 	//paramSet.ReportUnused()
 	return accel
@@ -405,7 +465,7 @@ func MakeCamera(name string, paramSet *ParamSet, cam2worldSet *TransformSet, tra
 	} else if strings.Compare(name, "environment") == 0 {
 		camera = CreateEnvironmentCamera(paramSet, animatedCam2World, film)
 	} else {
-		fmt.Printf("Camera \"%s\" unknown.\n", name)
+		Warning("Camera \"%s\" unknown.", name)
 	}
 	//paramSet.ReportUnused()
 	return camera
@@ -426,7 +486,7 @@ func MakeSampler(name string, paramSet *ParamSet, film Film, camera Camera) Samp
 	} else if strings.Compare(name, "stratified") == 0 {
 		sampler = CreateStratifiedSampler(paramSet, film, camera)
 	} else {
-		fmt.Printf("Sampler \"%s\" unknown.\n", name)
+		Warning("Sampler \"%s\" unknown.", name)
 	}
 	//paramSet.ReportUnused()
 	return sampler
@@ -445,7 +505,7 @@ func MakeFilter(name string, paramSet *ParamSet) Filter {
 	} else if strings.Compare(name, "triangle") == 0 {
 		filter = CreateTriangleFilter(paramSet)
 	} else {
-		fmt.Printf("Filter \"%s\" unknown.\n", name)
+		Warning("Filter \"%s\" unknown.", name)
 	}
 	//paramSet.ReportUnused()
 	return filter
@@ -456,19 +516,10 @@ func MakeFilm(name string, paramSet *ParamSet, filter Filter) Film {
 	if strings.Compare(name, "image") == 0 {
 		film = CreateImageFilmFromParams(paramSet, filter)
 	} else {
-		fmt.Printf("Film \"%s\" unknown.\n", name)
+		Warning("Film \"%s\" unknown.", name)
 	}
 	//paramSet.ReportUnused()
 	return film
-}
-
-func FOR_ACTIVE_TRANSFORMS(action func(ndx uint)) {
-	var i uint
-	for i = 0; i < MAX_TRANSFORMS; i++ {
-		if activeTransformBits&(1<<i) != 0 {
-			action(i)
-		}
-	}
 }
 
 // API Function Declarations
@@ -476,7 +527,7 @@ func PbrtInit(opt *Options) {
 	options = opt
 	// API Initialization
 	if currentApiState != STATE_UNINITIALIZED {
-		fmt.Printf("PbrtInit() has already been called.\n")
+		Error("pbrtInit() has already been called.")
 	}
 	currentApiState = STATE_OPTIONS_BLOCK
 	renderOptions = CreateRenderOptions()
@@ -488,35 +539,40 @@ func PbrtCleanup() {
 	//ProbesCleanup()
 	// API Cleanup
 	if currentApiState == STATE_UNINITIALIZED {
-		fmt.Printf("pbrtCleanup() called without pbrtInit().\n")
+		Error("pbrtCleanup() called without pbrtInit().")
 	} else if currentApiState == STATE_WORLD_BLOCK {
-		fmt.Printf("pbrtCleanup() called while inside world block.\n")
+		Error("pbrtCleanup() called while inside world block.")
 	}
 	currentApiState = STATE_UNINITIALIZED
 	renderOptions = nil
 }
 
 func PbrtIdentity() {
+    VERIFY_INITIALIZED("Identity")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) { curTransform.t[i] = new(Transform) })
 }
 
 func PbrtTranslate(dx, dy, dz float64) {
+    VERIFY_INITIALIZED("Translate")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) {
 		curTransform.t[i] = curTransform.t[i].MultTransform(TranslateTransform(&Vector{dx, dy, dz}))
 	})
 }
 
 func PbrtRotate(angle, ax, ay, az float64) {
+    VERIFY_INITIALIZED("Rotate")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) {
 		curTransform.t[i] = curTransform.t[i].MultTransform(RotateTransform(angle, &Vector{ax, ay, az}))
 	})
 }
 
 func PbrtScale(sx, sy, sz float64) {
+    VERIFY_INITIALIZED("Scale")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) { curTransform.t[i] = curTransform.t[i].MultTransform(ScaleTransform(sx, sy, sz)) })
 }
 
 func PbrtLookAt(ex, ey, ez, lx, ly, lz, ux, uy, uz float64) {
+    VERIFY_INITIALIZED("LookAt")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) {
 		look, _ := LookAtTransform(&Point{ex, ey, ez}, &Point{lx, ly, lz}, &Vector{ux, uy, uz})
 		curTransform.t[i] = curTransform.t[i].MultTransform(look)
@@ -524,6 +580,7 @@ func PbrtLookAt(ex, ey, ez, lx, ly, lz, ux, uy, uz float64) {
 }
 
 func PbrtConcatTransform(transform Matrix4x4) {
+    VERIFY_INITIALIZED("ConcatTransform")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) {
 		xform, _ := CreateTransform(&transform)
 		curTransform.t[i] = curTransform.t[i].MultTransform(xform)
@@ -531,18 +588,21 @@ func PbrtConcatTransform(transform Matrix4x4) {
 }
 
 func PbrtTransform(transform Matrix4x4) {
+    VERIFY_INITIALIZED("Transform")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) { curTransform.t[i], _ = CreateTransform(&transform) })
 }
 
 func PbrtCoordinateSystem(name string) {
+    VERIFY_INITIALIZED("CoordinateSystem")
 	namedCoordinateSystems[name] = curTransform
 }
 
 func PbrtCoordSysTransform(name string) {
+    VERIFY_INITIALIZED("CoordSysTransform")
 	if namedCoordinateSystems[name] != nil {
 		curTransform = namedCoordinateSystems[name]
 	} else {
-		fmt.Printf("Could't find named coordinate system \"%s\"\n", name)
+		Warning("Could't find named coordinate system \"%s\"", name)
 	}
 }
 
@@ -559,46 +619,55 @@ func PbrtActiveTransformStartTime() {
 }
 
 func PbrtTransformTimes(start, end float64) {
+    VERIFY_OPTIONS("TransformTimes")	
 	renderOptions.transformStartTime = start
 	renderOptions.transformEndTime = end
 }
 
 func PbrtPixelFilter(name string, params *ParamSet) {
+    VERIFY_OPTIONS("PixelFilter")
 	renderOptions.FilterName = name
 	renderOptions.FilterParams = params
 }
 
 func PbrtFilm(filmtype string, params *ParamSet) {
+    VERIFY_OPTIONS("Film")
 	renderOptions.FilmParams = params
 	renderOptions.FilmName = filmtype
 }
 
 func PbrtSampler(name string, params *ParamSet) {
+    VERIFY_OPTIONS("Sampler")
 	renderOptions.SamplerName = name
 	renderOptions.SamplerParams = params
 }
 
 func PbrtAccelerator(name string, params *ParamSet) {
+    VERIFY_OPTIONS("Accelerator")
 	renderOptions.AcceleratorName = name
 	renderOptions.AcceleratorParams = params
 }
 
 func PbrtSurfaceIntegrator(name string, params *ParamSet) {
+    VERIFY_OPTIONS("SurfaceIntegrator")
 	renderOptions.SurfIntegratorName = name
 	renderOptions.SurfIntegratorParams = params
 }
 
 func PbrtVolumeIntegrator(name string, params *ParamSet) {
+    VERIFY_OPTIONS("VolumeIntegrator")
 	renderOptions.VolIntegratorName = name
 	renderOptions.VolIntegratorParams = params
 }
 
 func PbrtRenderer(name string, params *ParamSet) {
+    VERIFY_OPTIONS("Renderer")
 	renderOptions.RendererName = name
 	renderOptions.RendererParams = params
 }
 
 func PbrtCamera(camtype string, cameraParams *ParamSet) {
+    VERIFY_OPTIONS("Camera")
 	renderOptions.CameraName = camtype
 	renderOptions.CameraParams = cameraParams
 	renderOptions.CameraToWorld = inverseTransformSet(curTransform)
@@ -606,6 +675,7 @@ func PbrtCamera(camtype string, cameraParams *ParamSet) {
 }
 
 func PbrtWorldBegin() {
+    VERIFY_OPTIONS("WorldBegin")
 	currentApiState = STATE_WORLD_BLOCK
 	for i := 0; i < MAX_TRANSFORMS; i++ {
 		curTransform.t[i] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
@@ -615,14 +685,16 @@ func PbrtWorldBegin() {
 }
 
 func PbrtAttributeBegin() {
+    VERIFY_WORLD("AttributeBegin")
 	pushedGraphicsStates = append(pushedGraphicsStates, graphicsState)
 	pushedTransforms = append(pushedTransforms, curTransform)
 	pushedActiveTransformBits = append(pushedActiveTransformBits, activeTransformBits)
 }
 
 func PbrtAttributeEnd() {
+    VERIFY_WORLD("AttributeEnd")
 	if len(pushedGraphicsStates) == 0 {
-		fmt.Printf("Unmatched pbrtAttributeEnd() encountered.  Ignoring it.\n")
+		Error("Unmatched pbrtAttributeEnd() encountered.  Ignoring it.")
 		return
 	}
 
@@ -635,13 +707,15 @@ func PbrtAttributeEnd() {
 }
 
 func PbrtTransformBegin() {
+    VERIFY_WORLD("TransformBegin")
 	pushedTransforms = append(pushedTransforms, curTransform)
 	pushedActiveTransformBits = append(pushedActiveTransformBits, activeTransformBits)
 }
 
 func PbrtTransformEnd() {
+    VERIFY_WORLD("TransformEnd")
 	if len(pushedTransforms) == 0 {
-		fmt.Printf("Unmatched pbrtTransformEnd() encountered.  Ignoring it.\n")
+		Error("Unmatched pbrtTransformEnd() encountered.  Ignoring it.")
 		return
 	}
 
@@ -652,13 +726,14 @@ func PbrtTransformEnd() {
 }
 
 func PbrtTexture(name string, textype string, texname string, params *ParamSet) {
+    VERIFY_WORLD("Texture")
 	tp := CreateTextureParams(params, params, graphicsState.floatTextures, graphicsState.spectrumTextures)
 	if strings.Compare(textype, "float") == 0 {
 		// Create _float_ texture and store in _floatTextures_
 		if graphicsState.floatTextures[name] != nil {
-			fmt.Printf("Texture \"%s\" being redefined\n", name)
+			Info("Texture \"%s\" being redefined", name)
 		}
-		//WARN_IF_ANIMATED_TRANSFORM("Texture");
+		WARN_IF_ANIMATED_TRANSFORM("Texture")
 		ft := MakeFloatTexture(texname, curTransform.t[0], tp)
 		if ft != nil {
 			graphicsState.floatTextures[name] = ft
@@ -666,31 +741,33 @@ func PbrtTexture(name string, textype string, texname string, params *ParamSet) 
 	} else if strings.Compare(textype, "color") == 0 || strings.Compare(textype, "spectrum") == 0 {
 		// Create _color_ texture and store in _spectrumTextures_
 		if graphicsState.spectrumTextures[name] != nil {
-			fmt.Printf("Texture \"%s\" being redefined\n", name)
+			Info("Texture \"%s\" being redefined", name)
 		}
-		//WARN_IF_ANIMATED_TRANSFORM("Texture");
+		WARN_IF_ANIMATED_TRANSFORM("Texture")
 		st := MakeSpectrumTexture(texname, curTransform.t[0], tp)
 		if st != nil {
 			graphicsState.spectrumTextures[name] = st
 		}
 	} else {
-		fmt.Printf("Texture type \"%s\" unknown.\n", textype)
+		Error("Texture type \"%s\" unknown.", textype)
 	}
 }
 
 func PbrtMaterial(name string, params *ParamSet) {
+    VERIFY_WORLD("Material")
 	graphicsState.material = name
 	graphicsState.materialParams = params
 	graphicsState.currentNamedMaterial = ""
 }
 
 func PbrtMakeNamedMaterial(name string, params *ParamSet) {
+    VERIFY_WORLD("MakeNamedMaterial")
 	// error checking, warning if replace, what to use for transform?
 	mp := CreateTextureParams(params, graphicsState.materialParams, graphicsState.floatTextures, graphicsState.spectrumTextures)
 	matName := "" // = mp.FindString("type"); // TODO: extract texture type from params
-	//WARN_IF_ANIMATED_TRANSFORM("MakeNamedMaterial");
+	WARN_IF_ANIMATED_TRANSFORM("MakeNamedMaterial")
 	if len(matName) == 0 {
-		fmt.Printf("No parameter string \"type\" found in MakeNamedMaterial\n")
+		Error("No parameter string \"type\" found in MakeNamedMaterial")
 	} else {
 		mtl := MakeMaterial(matName, curTransform.t[0], mp)
 		if mtl != nil {
@@ -700,25 +777,29 @@ func PbrtMakeNamedMaterial(name string, params *ParamSet) {
 }
 
 func PbrtNamedMaterial(name string) {
+    VERIFY_WORLD("NamedMaterial")
 	graphicsState.currentNamedMaterial = name
 }
 
 func PbrtLightSource(name string, params *ParamSet) {
-	//WARN_IF_ANIMATED_TRANSFORM("LightSource");
+    VERIFY_WORLD("LightSource")
+	WARN_IF_ANIMATED_TRANSFORM("LightSource")
 	lt := MakeLight(name, curTransform.t[0], params)
 	if lt == nil {
-		fmt.Printf("pbrtLightSource: light type \"%s\" unknown.\n", name)
+		Error("pbrtLightSource: light type \"%s\" unknown.", name)
 	} else {
 		renderOptions.lights = append(renderOptions.lights, lt)
 	}
 }
 
 func PbrtAreaLightSource(name string, params *ParamSet) {
+    VERIFY_WORLD("AreaLightSource")
 	graphicsState.areaLight = name
 	graphicsState.areaLightParams = params
 }
 
 func PbrtShape(name string, params *ParamSet) {
+    VERIFY_WORLD("Shape")
 	var area AreaLight
 	var prim Primitive
 	if !curTransform.isAnimated() {
@@ -742,7 +823,7 @@ func PbrtShape(name string, params *ParamSet) {
 
 		// Create initial _Shape_ for animated shape
 		if len(graphicsState.areaLight) != 0 {
-			fmt.Printf("Ignoring currently set area light when creating animated shape.\n")
+			Warning("Ignoring currently set area light when creating animated shape.")
 		}
 		identity, _ := transformCache.Lookup(CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4()))
 		shape := MakeShape(name, identity, identity, graphicsState.reverseOrientation, params)
@@ -778,7 +859,7 @@ func PbrtShape(name string, params *ParamSet) {
 	// Add primitive to scene or current instance
 	if renderOptions.currentInstance != nil {
 		if area != nil {
-			fmt.Printf("Area lights not supported with object instancing.\n")
+			Warning("Area lights not supported with object instancing.")
 		}
 		renderOptions.currentInstance = append(renderOptions.currentInstance, prim)
 	} else {
@@ -790,11 +871,13 @@ func PbrtShape(name string, params *ParamSet) {
 }
 
 func PbrtReverseOrientation() {
+    VERIFY_WORLD("ReverseOrientation")	
 	graphicsState.reverseOrientation = !graphicsState.reverseOrientation
 }
 
 func PbrtVolume(name string, params *ParamSet) {
-	//WARN_IF_ANIMATED_TRANSFORM("Volume");
+    VERIFY_WORLD("Volume")	
+	WARN_IF_ANIMATED_TRANSFORM("Volume")
 	vr := MakeVolumeRegion(name, curTransform.t[0], params)
 	if vr != nil {
 		renderOptions.volumeRegions = append(renderOptions.volumeRegions, vr)
@@ -802,30 +885,33 @@ func PbrtVolume(name string, params *ParamSet) {
 }
 
 func PbrtObjectBegin(name string) {
+    VERIFY_WORLD("ObjectBegin")	
 	PbrtAttributeBegin()
 	if renderOptions.currentInstance != nil {
-		fmt.Printf("ObjectBegin called inside of instance definition\n")
+		Error("ObjectBegin called inside of instance definition")
 	}
 	renderOptions.instances[name] = make([]Primitive, 0, 1)
 	renderOptions.currentInstance = renderOptions.instances[name]
 }
 
 func PbrtObjectEnd() {
+    VERIFY_WORLD("ObjectEnd")	
 	if renderOptions.currentInstance == nil {
-		fmt.Printf("ObjectEnd called outside of instance definition\n")
+		Error("ObjectEnd called outside of instance definition")
 	}
 	renderOptions.currentInstance = nil
 	PbrtAttributeEnd()
 }
 
 func PbrtObjectInstance(name string) {
+    VERIFY_WORLD("ObjectInstance")	
 	// Object instance error checking
 	if renderOptions.currentInstance != nil {
-		fmt.Printf("ObjectInstance can't be called inside instance definition\n")
+		Error("ObjectInstance can't be called inside instance definition")
 		return
 	}
 	if renderOptions.instances[name] == nil {
-		fmt.Printf("Unable to find instance named \"%s\"\n", name)
+		Error("Unable to find instance named \"%s\"", name)
 		return
 	}
 	in := renderOptions.instances[name]
@@ -839,7 +925,7 @@ func PbrtObjectInstance(name string) {
 			accel = MakeAccelerator("bvh", in, &ParamSet{nil, nil})
 		}
 		if accel == nil {
-			fmt.Printf("Unable to create \"bvh\" accelerator\n")
+			Severe("Unable to create \"bvh\" accelerator")
 		}
 		in = make([]Primitive, 1, 1)
 		in[0] = accel
@@ -855,13 +941,14 @@ func PbrtObjectInstance(name string) {
 }
 
 func PbrtWorldEnd() {
+    VERIFY_WORLD("WorldEnd")
 	// Ensure there are no pushed graphics states
 	if len(pushedGraphicsStates) != 0 {
-		fmt.Printf("Missing end to pbrtAttributeBegin()\n")
+		Warning("Missing end to pbrtAttributeBegin()")
 		pushedGraphicsStates = make([]*GraphicsState, 0, 8)
 	}
 	if len(pushedTransforms) != 0 {
-		fmt.Printf("Missing end to pbrtTransformBegin()\n")
+		Warning("Missing end to pbrtTransformBegin()")
 		pushedTransforms = make([]*TransformSet, 0, 8)
 		pushedActiveTransformBits = make([]uint32, 0, 8)
 	}
@@ -906,7 +993,7 @@ func (ro *RenderOptions) MakeScene() *Scene {
 		accelerator = MakeAccelerator("bvh", ro.primitives, &ParamSet{nil, nil})
 	}
 	if accelerator == nil {
-		fmt.Printf("Unable to create \"bvh\" accelerator.\n")
+		Severe("Unable to create \"bvh\" accelerator.")
 	}
 	scene := CreateScene(accelerator, ro.lights, volumeRegion)
 	// Erase primitives, lights, and volume regions from _RenderOptions_
@@ -924,23 +1011,23 @@ func (ro *RenderOptions) MakeRenderer() Renderer {
 		// RendererParams.ReportUnused()
 		// Warn if no light sources are defined
 		if len(ro.lights) == 0 {
-			fmt.Printf("No light sources defined in scene; possibly rendering a black image.\n")
+			Warning("No light sources defined in scene; possibly rendering a black image.")
 		}
 	} else if strings.Compare(ro.RendererName, "createprobes") == 0 { // Create remaining _Renderer_ types
 		// Create surface and volume integrators
 		surfaceIntegrator := MakeSurfaceIntegrator(ro.SurfIntegratorName, ro.SurfIntegratorParams)
 		if surfaceIntegrator == nil {
-			fmt.Printf("Unable to create surface integrator.\n")
+			Severe("Unable to create surface integrator.")
 		}
 		volumeIntegrator := MakeVolumeIntegrator(ro.VolIntegratorName, ro.VolIntegratorParams)
 		if volumeIntegrator == nil {
-			fmt.Printf("Unable to create volume integrator.\n")
+			Severe("Unable to create volume integrator.")
 		}
 		renderer = CreateRadianceProbesRenderer(camera, surfaceIntegrator, volumeIntegrator, ro.RendererParams)
 		//RendererParams.ReportUnused();
 		// Warn if no light sources are defined
 		if len(ro.lights) == 0 {
-			fmt.Printf("No light sources defined in scene; possibly rendering a black image.\n")
+			Warning("No light sources defined in scene; possibly rendering a black image.")
 		}
 	} else if strings.Compare(ro.RendererName, "aggregatetest") == 0 {
 		renderer = CreateAggregateTestRenderer(ro.RendererParams, ro.primitives)
@@ -951,27 +1038,27 @@ func (ro *RenderOptions) MakeRenderer() Renderer {
 		//RendererParams.ReportUnused()
 	} else {
 		if strings.Compare(ro.RendererName, "sampler") != 0 {
-			fmt.Printf("Renderer type \"%s\" unknown.  Using \"sampler\".\n", ro.RendererName)
+			Warning("Renderer type \"%s\" unknown.  Using \"sampler\".", ro.RendererName)
 		}
 		var visIds bool // = RendererParams.FindOneBool("visualizeobjectids", false);
 		//RendererParams.ReportUnused();
 		sampler := MakeSampler(ro.SamplerName, ro.SamplerParams, camera.Film(), camera)
 		if sampler == nil {
-			fmt.Printf("Unable to create sampler.\n")
+			Severe("Unable to create sampler.")
 		}
 		// Create surface and volume integrators
 		surfaceIntegrator := MakeSurfaceIntegrator(ro.SurfIntegratorName, ro.SurfIntegratorParams)
 		if surfaceIntegrator == nil {
-			fmt.Printf("Unable to create surface integrator.\n")
+			Severe("Unable to create surface integrator.")
 		}
 		volumeIntegrator := MakeVolumeIntegrator(ro.VolIntegratorName, ro.VolIntegratorParams)
 		if volumeIntegrator == nil {
-			fmt.Printf("Unable to create volume integrator.\n")
+			Severe("Unable to create volume integrator.")
 		}
 		renderer = CreateSamplerRenderer(sampler, camera, surfaceIntegrator, volumeIntegrator, visIds)
 		// Warn if no light sources are defined
 		if len(ro.lights) == 0 {
-			fmt.Printf("No light sources defined in scene;  possibly rendering a black image.\n")
+			Warning("No light sources defined in scene;  possibly rendering a black image.")
 		}
 	}
 	return renderer
@@ -981,11 +1068,11 @@ func (ro *RenderOptions) MakeCamera() Camera {
 	filter := MakeFilter(ro.FilterName, ro.FilterParams)
 	film := MakeFilm(ro.FilmName, ro.FilmParams, filter)
 	if film == nil {
-		fmt.Printf("Unable to create film.\n")
+		Severe("Unable to create film.")
 	}
 	camera := MakeCamera(ro.CameraName, ro.CameraParams, ro.CameraToWorld, ro.transformStartTime, ro.transformEndTime, film)
 	if camera == nil {
-		fmt.Printf("Unable to create camera.\n")
+		Severe("Unable to create camera.")
 	}
 	return camera
 }

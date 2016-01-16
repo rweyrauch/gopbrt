@@ -15,7 +15,7 @@ func main() {
 	flag.BoolVar(&options.QuickRender, "quick", false, "Quick render mode.")
 	flag.BoolVar(&options.Quiet, "quiet", false, "Quiet mode.")
 	flag.BoolVar(&options.Verbose, "verbose", false, "Verbose mode.")
-
+	flag.BoolVar(&options.Debug, "debug", true, "Debug mode.")
 	flag.Parse()
 
 	for _, arg := range flag.Args() {
@@ -42,7 +42,7 @@ func main() {
 		// Parse scene from input files
 		for _, f := range filenames {
 			if !pbrt.ParseFile(f) {
-				fmt.Printf("Couldn't open scene file \"%s\"", f)
+				pbrt.Error("Couldn't open scene file \"%s\"", f)
 			}
 		}
 	}

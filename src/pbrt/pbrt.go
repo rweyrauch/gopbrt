@@ -9,27 +9,9 @@ const (
 	PBRT_VERSION   = "2.0.0"
 )
 
-
-type Object interface{}
-
-type ParamSet struct {
-	tokens []string
-	params []Object
-}
-
-type TextureParams struct {
-	floatTextures        map[string]TextureFloat
-	spectrumTextures     map[string]TextureSpectrum
-    geomParams, materialParams *ParamSet	
-}
-
-func CreateTextureParams(gp, mp *ParamSet, tf map[string]TextureFloat, ts map[string]TextureSpectrum) *TextureParams {
-    return &TextureParams{tf, ts, gp, mp}
-}
-
 type Options struct {
 	NumCores                                int
-	QuickRender, Quiet, Verbose, OpenWindow bool
+	QuickRender, Quiet, Verbose, OpenWindow, Debug bool
 	ImageFile                               string
 }
 

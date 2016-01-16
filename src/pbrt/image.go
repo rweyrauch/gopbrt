@@ -1,9 +1,7 @@
 package pbrt
 
 import (
-	"fmt"
 	"math"
-	"strings"
 )
 
 const (
@@ -19,7 +17,7 @@ type imagePixel struct {
 type ImageFilm struct {
 	FilmData
 	filter                                             Filter
-	cropWindow                                         [4]float64
+	cropWindow                                         []float64
 	filename                                           string
 	xPixelStart, yPixelStart, xPixelCount, yPixelCount int
 
@@ -27,7 +25,7 @@ type ImageFilm struct {
 	filterTable [filterTableSize * filterTableSize]float64
 }
 
-func CreateImageFilm(xres, yres int, filter Filter, crop [4]float64, filename string, openWindow bool) *ImageFilm {
+func CreateImageFilm(xres, yres int, filter Filter, crop []float64, filename string, openWindow bool) *ImageFilm {
 	film := new(ImageFilm)
 	film.xResolution = xres
 	film.yResolution = yres
@@ -55,7 +53,7 @@ func CreateImageFilm(xres, yres int, filter Filter, crop [4]float64, filename st
 
 	// Possibly open window for image display
 	if openWindow || options.OpenWindow {
-		fmt.Printf("Support for opening image display window not available in this build.\n")
+		Warning("Support for opening image display window not available in this build.")
 	}
 
 	return film
@@ -123,7 +121,7 @@ func (f *ImageFilm) AddSample(sample *CameraSample, L *Spectrum) {
 
 func (f *ImageFilm) Splat(sample *CameraSample, L *Spectrum) {
 	if L.HasNaNs() {
-		fmt.Printf("ImageFilm ignoring splatted spectrum with NaN values.\n")
+		Warning("ImageFilm ignoring splatted spectrum with NaN values.")
 		return
 	}
 	xyz := L.ToXYZ()
@@ -210,48 +208,26 @@ func (f *ImageFilm) YResolution() int {
 }
 
 func CreateImageFilmFromParams(params *ParamSet, filter Filter) *ImageFilm {
-
-	// defaults
-	filename := ""
-	xres, yres := 640, 480
-	openwin := false
-	crop := [4]float64{0, 1, 0, 1}
-
-	for i, t := range params.tokens {
-		ps, ok := params.params[i].([]Object)
-		if !ok {
-			continue
-		}
-		if strings.Compare("filename", t) == 0 {
-			if fn, ok := ps[0].(string); ok {
-				filename = fn
-			}
-		} else if strings.Compare("xresolution", t) == 0 {
-
-		} else if strings.Compare("yresolution", t) == 0 {
-
-		} else if strings.Compare("display", t) == 0 {
-
-		} else if strings.Compare("cropwindow", t) == 0 {
-
-		}
-	}
-
+	filename := params.FindStringParam("filename", "")
+	xres := params.FindIntParam("xresolution", 640)
+	yres := params.FindIntParam("yresolution", 480)
+	openwin := params.FindBoolParam("display", false)
+	crop := params.FindFloatArrayParam("cropwindow", []float64{0, 1, 0, 1})
 	if len(options.ImageFile) != 0 {
 		if len(filename) != 0 {
-			fmt.Printf("Output filename supplied on command line, \"%s\", ignored due to filename provided in scene description file, \"%s\".",
+			Warning("Output filename supplied on command line, \"%s\", ignored due to filename provided in scene description file, \"%s\".",
 				options.ImageFile, filename)
 		} else {
 			filename = options.ImageFile
 		}
 	}
 	if len(filename) == 0 {
-		filename = "pbrt.png"
+		filename = "pbrt.exr"
 	}
 	if options.QuickRender {
 		xres = Maxi(1, xres/4)
 		yres = Maxi(1, yres/4)
 	}
-
+	
 	return CreateImageFilm(xres, yres, filter, crop, filename, openwin)
 }

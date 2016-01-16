@@ -2,7 +2,6 @@ package pbrt
 
 import (
 	"math"
-	//"strings"
 )
 
 type (
@@ -53,9 +52,9 @@ func (f *BoxFilter) InvXWidth() float64 { return f.invXWidth }
 func (f *BoxFilter) InvYWidth() float64 { return f.invYWidth }
 
 func CreateBoxFilter(params *ParamSet) *BoxFilter {
-	// "xwidth", 0.5
-	// "ywidth", 0.5
-	return nil
+	xw := params.FindFloatParam("xwidth", 0.5)
+	yw := params.FindFloatParam("ywidth", 0.5)
+	return &BoxFilter{FilterData{xw, yw, 1.0 / xw, 1.0 / yw}}
 }
 
 func (f *GaussianFilter) Evaluate(x, y float64) float64 {
@@ -72,10 +71,12 @@ func (f *GaussianFilter) gaussian(d, expv float64) float64 {
 }
 
 func CreateGaussianFilter(params *ParamSet) *GaussianFilter {
-	// "xwidth", 2.0
-	// "ywidth", 2.0
-	// "alpha", 2.0
-	return nil
+	xw := params.FindFloatParam("xwidth", 2.0)
+	yw := params.FindFloatParam("ywidth", 2.0)
+	alpha := params.FindFloatParam("alpha", 2.0)
+	expX := math.Exp(-alpha * xw * xw)
+	expY := math.Exp(-alpha * yw * yw)
+	return &GaussianFilter{FilterData{xw, yw, 1.0 / xw, 1.0 / yw}, alpha, expX, expY}
 }
 
 func (f *MitchellFilter) Evaluate(x, y float64) float64 {
@@ -100,11 +101,11 @@ func (f *MitchellFilter) mitchell1D(x float64) float64 {
 }
 
 func CreateMitchellFilter(params *ParamSet) *MitchellFilter {
-	// "xwidth", 2.0
-	// "ywidth", 2.0
-	// "B", 1/3
-	// "C", 1/3
-	return nil
+	xw := params.FindFloatParam("xwidth", 2.0)
+	yw := params.FindFloatParam("ywidth", 2.0)
+	B := params.FindFloatParam("B", 1.0/3.0)
+	C := params.FindFloatParam("C", 1.0/3.0)
+	return &MitchellFilter{FilterData{xw, yw, 1.0 / xw, 1.0 / yw}, B, C}
 }
 
 func (f *LanczosSincFilter) Evaluate(x, y float64) float64 {
@@ -131,10 +132,10 @@ func (f *LanczosSincFilter) sinc1D(x float64) float64 {
 }
 
 func CreateLanczosSincFilter(params *ParamSet) *LanczosSincFilter {
-	// "xwidth", 4.0
-	// "ywidth", 4.0
-	// "tau", 3.0
-	return nil
+	xw := params.FindFloatParam("xwidth", 4.0)
+	yw := params.FindFloatParam("ywidth", 4.0)
+	tau := params.FindFloatParam("tau", 3.0)
+	return &LanczosSincFilter{FilterData{xw, yw, 1.0 / xw, 1.0 / yw}, tau}
 }
 
 func (f *TriangleFilter) Evaluate(x, y float64) float64 {
@@ -147,7 +148,7 @@ func (f *TriangleFilter) InvXWidth() float64 { return f.invXWidth }
 func (f *TriangleFilter) InvYWidth() float64 { return f.invYWidth }
 
 func CreateTriangleFilter(params *ParamSet) *TriangleFilter {
-	// "xwidth", 2.0
-	// "ywidth", 2.0
-	return nil
+	xw := params.FindFloatParam("xwidth", 2.0)
+	yw := params.FindFloatParam("ywidth", 2.0)
+	return &TriangleFilter{FilterData{xw, yw, 1.0 / xw, 1.0 / yw}}
 }

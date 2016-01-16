@@ -7,7 +7,139 @@ package pbrt
 
 import (
 	"os"
+	"strings"
 )
+
+type Object interface{}
+
+type ParamSet struct {
+	tokens []string
+	params []Object
+}
+
+func (ps *ParamSet) FindStringParam(name, defval string) string {
+	if ps == nil {
+		return defval
+	}
+	value := defval
+	fullparamname := "string " + name
+	for i, p := range ps.tokens {
+		if strings.Compare(p, fullparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+				if s, ok := values[0].(string); ok {
+					value = s
+				}
+			}
+		}
+	}
+	return value
+} 
+
+func (ps *ParamSet) FindFloatParam(name string, defval float64) float64 {
+	if ps == nil {
+		return defval
+	}
+	value := defval
+	fullparamname := "float " + name
+	for i, p := range ps.tokens {
+		if strings.Compare(p, fullparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+				if val, ok := values[0].(float64); ok {
+					value = val					
+				}
+			}
+		}
+	}
+	return value	
+}
+
+func (ps *ParamSet) FindFloatArrayParam(name string, defval []float64) []float64 {
+	if ps == nil {
+		return defval
+	}
+	value := defval
+	fullparamname := "float " + name
+	for i, p := range ps.tokens {
+		if strings.Compare(p, fullparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+				value = make([]float64, len(values), len(values))
+				for i, vs := range values {
+					if v, ok := vs.(float64); ok {
+						value[i] = v
+					}
+				}
+			}
+		}
+	}
+	return value	
+}
+
+func (ps *ParamSet) FindIntParam(name string, defval int) int {
+	if ps == nil {
+		return defval
+	}
+	value := defval
+	fullparamname := "integer " + name
+	for i, p := range ps.tokens {
+		if strings.Compare(p, fullparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+				if val, ok := values[0].(float64); ok {
+					value = int(val)					
+				}
+			}
+		}
+	}
+	return value	
+}
+
+func (ps *ParamSet) FindIntArrayParam(name string, defval []int) []int {
+	if ps == nil {
+		return defval
+	}
+	value := defval
+	fullparamname := "integer " + name
+	for i, p := range ps.tokens {
+		if strings.Compare(p, fullparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+				value = make([]int, len(values), len(values))
+				for i, vs := range values {
+					if v, ok := vs.(float64); ok {
+						value[i] = int(v)
+					}
+				}
+			}
+		}
+	}
+	return value	
+}
+
+func (ps *ParamSet) FindBoolParam(name string, defval bool) bool {
+	if ps == nil {
+		return defval
+	}
+	value := defval
+	fullparamname := "bool " + name
+	for i, p := range ps.tokens {
+		if strings.Compare(p, fullparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+				if b, ok := values[0].(bool); ok {
+					value = b
+				}
+			}
+		}
+	}
+	return value	
+}
+
+type TextureParams struct {
+	floatTextures        map[string]TextureFloat
+	spectrumTextures     map[string]TextureSpectrum
+    geomParams, materialParams *ParamSet	
+}
+
+func CreateTextureParams(gp, mp *ParamSet, tf map[string]TextureFloat, ts map[string]TextureSpectrum) *TextureParams {
+    return &TextureParams{tf, ts, gp, mp}
+}
 
 func extractFloatParam(parm []Object) (float64, bool) {
 	v, ok := parm[0].(float64)
