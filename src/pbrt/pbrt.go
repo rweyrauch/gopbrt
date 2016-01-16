@@ -18,7 +18,13 @@ type ParamSet struct {
 }
 
 type TextureParams struct {
-	
+	floatTextures        map[string]TextureFloat
+	spectrumTextures     map[string]TextureSpectrum
+    geomParams, materialParams *ParamSet	
+}
+
+func CreateTextureParams(gp, mp *ParamSet, tf map[string]TextureFloat, ts map[string]TextureSpectrum) *TextureParams {
+    return &TextureParams{tf, ts, gp, mp}
 }
 
 type Options struct {

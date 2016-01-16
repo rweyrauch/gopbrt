@@ -47,13 +47,12 @@ type TransformCache struct {
 	arena MemoryArena
 }
 
-func (tc *TransformCache) lookup(t *Transform) (tCache, tInvCache *Transform) {
+func (tc *TransformCache) Lookup(t *Transform) (tCache, tInvCache *Transform) {
 	tpair := tc.cache[t]
-	// TODO: handle case of adding a missing transform to cache
 	return tpair.first, tpair.second
 }
-func (tc *TransformCache) clear() {
-	// TODO: clear the cache map
+func (tc *TransformCache) Clear() {
+	tc.cache = make(map[*Transform]TransformPair)
 }
 
 type RenderOptions struct {
@@ -77,7 +76,7 @@ type RenderOptions struct {
 	lights                                    []Light
 	primitives                                []Primitive
 	volumeRegions                             []VolumeRegion
-	instances                                 map[string]Primitive
+	instances                                 map[string][]Primitive
 	currentInstance                           []Primitive
 }
 
@@ -396,8 +395,8 @@ func MakeAccelerator(name string, prims []Primitive, paramSet *ParamSet) Primiti
 func MakeCamera(name string, paramSet *ParamSet, cam2worldSet *TransformSet, transformStart, transformEnd float64, film Film) Camera {
 	var camera Camera = nil
 	var cam2worldStart, cam2worldEnd *Transform
-	cam2worldStart, _ = transformCache.lookup(cam2worldSet.get(0))
-	cam2worldEnd, _ = transformCache.lookup(cam2worldSet.get(1))
+	cam2worldStart, _ = transformCache.Lookup(cam2worldSet.get(0))
+	cam2worldEnd, _ = transformCache.Lookup(cam2worldSet.get(1))
 	animatedCam2World := CreateAnimatedTransform(cam2worldStart, transformStart, cam2worldEnd, transformEnd)
 	if strings.Compare(name, "perspective") == 0 {
 		camera = CreatePerspectiveCamera(paramSet, animatedCam2World, film)
@@ -609,7 +608,7 @@ func PbrtCamera(camtype string, cameraParams *ParamSet) {
 func PbrtWorldBegin() {
 	currentApiState = STATE_WORLD_BLOCK
 	for i := 0; i < MAX_TRANSFORMS; i++ {
-		curTransform.t[i] = new(Transform)
+		curTransform.t[i] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
 	}
 	activeTransformBits = ALL_TRANSFORMS_BITS
 	namedCoordinateSystems["world"] = curTransform
@@ -652,19 +651,68 @@ func PbrtTransformEnd() {
 	pushedActiveTransformBits = pushedActiveTransformBits[:len(pushedActiveTransformBits)-1]
 }
 
-func PbrtTexture(name string, textype string, texname string, params *ParamSet) {}
+func PbrtTexture(name string, textype string, texname string, params *ParamSet) {
+	tp := CreateTextureParams(params, params, graphicsState.floatTextures, graphicsState.spectrumTextures)
+	if strings.Compare(textype, "float") == 0 {
+		// Create _float_ texture and store in _floatTextures_
+		if graphicsState.floatTextures[name] != nil {
+			fmt.Printf("Texture \"%s\" being redefined\n", name)
+		}
+		//WARN_IF_ANIMATED_TRANSFORM("Texture");
+		ft := MakeFloatTexture(texname, curTransform.t[0], tp)
+		if ft != nil {
+			graphicsState.floatTextures[name] = ft
+		}
+	} else if strings.Compare(textype, "color") == 0 || strings.Compare(textype, "spectrum") == 0 {
+		// Create _color_ texture and store in _spectrumTextures_
+		if graphicsState.spectrumTextures[name] != nil {
+			fmt.Printf("Texture \"%s\" being redefined\n", name)
+		}
+		//WARN_IF_ANIMATED_TRANSFORM("Texture");
+		st := MakeSpectrumTexture(texname, curTransform.t[0], tp)
+		if st != nil {
+			graphicsState.spectrumTextures[name] = st
+		}
+	} else {
+		fmt.Printf("Texture type \"%s\" unknown.\n", textype)
+	}
+}
+
 func PbrtMaterial(name string, params *ParamSet) {
 	graphicsState.material = name
 	graphicsState.materialParams = params
 	graphicsState.currentNamedMaterial = ""
 }
 
-func PbrtMakeNamedMaterial(name string, params *ParamSet) {}
+func PbrtMakeNamedMaterial(name string, params *ParamSet) {
+	// error checking, warning if replace, what to use for transform?
+	mp := CreateTextureParams(params, graphicsState.materialParams, graphicsState.floatTextures, graphicsState.spectrumTextures)
+	matName := "" // = mp.FindString("type"); // TODO: extract texture type from params
+	//WARN_IF_ANIMATED_TRANSFORM("MakeNamedMaterial");
+	if len(matName) == 0 {
+		fmt.Printf("No parameter string \"type\" found in MakeNamedMaterial\n")
+	} else {
+		mtl := MakeMaterial(matName, curTransform.t[0], mp)
+		if mtl != nil {
+			graphicsState.namedMaterials[name] = mtl
+		}
+	}
+}
+
 func PbrtNamedMaterial(name string) {
 	graphicsState.currentNamedMaterial = name
 }
 
-func PbrtLightSource(name string, params *ParamSet) {}
+func PbrtLightSource(name string, params *ParamSet) {
+	//WARN_IF_ANIMATED_TRANSFORM("LightSource");
+	lt := MakeLight(name, curTransform.t[0], params)
+	if lt == nil {
+		fmt.Printf("pbrtLightSource: light type \"%s\" unknown.\n", name)
+	} else {
+		renderOptions.lights = append(renderOptions.lights, lt)
+	}
+}
+
 func PbrtAreaLightSource(name string, params *ParamSet) {
 	graphicsState.areaLight = name
 	graphicsState.areaLightParams = params
@@ -675,7 +723,7 @@ func PbrtShape(name string, params *ParamSet) {
 	var prim Primitive
 	if !curTransform.isAnimated() {
 		// Create primitive for static shape
-		obj2world, world2obj := transformCache.lookup(curTransform.t[0])
+		obj2world, world2obj := transformCache.Lookup(curTransform.t[0])
 		shape := MakeShape(name, obj2world, world2obj, graphicsState.reverseOrientation, params)
 		if shape == nil {
 			return
@@ -696,7 +744,7 @@ func PbrtShape(name string, params *ParamSet) {
 		if len(graphicsState.areaLight) != 0 {
 			fmt.Printf("Ignoring currently set area light when creating animated shape.\n")
 		}
-		identity, _ := transformCache.lookup(CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4()))
+		identity, _ := transformCache.Lookup(CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4()))
 		shape := MakeShape(name, identity, identity, graphicsState.reverseOrientation, params)
 		if shape == nil {
 			return
@@ -708,8 +756,8 @@ func PbrtShape(name string, params *ParamSet) {
 		// Get _animatedWorldToObject_ transform for shape
 		//Assert(MAX_TRANSFORMS == 2);
 		var world2obj [2]*Transform
-		_, world2obj[0] = transformCache.lookup(curTransform.t[0])
-		_, world2obj[1] = transformCache.lookup(curTransform.t[1])
+		_, world2obj[0] = transformCache.Lookup(curTransform.t[0])
+		_, world2obj[1] = transformCache.Lookup(curTransform.t[1])
 		animatedWorldToObject := CreateAnimatedTransform(world2obj[0], renderOptions.transformStartTime, world2obj[1], renderOptions.transformEndTime)
 		var baseprim Primitive
 		baseprim = CreateGeometricPrimitive(shape, mtl, nil)
@@ -745,10 +793,199 @@ func PbrtReverseOrientation() {
 	graphicsState.reverseOrientation = !graphicsState.reverseOrientation
 }
 
-func PbrtVolume(name string, params *ParamSet) {}
-func PbrtObjectBegin(name string)              {}
-func PbrtObjectEnd()                           {}
-func PbrtObjectInstance(name string)           {}
+func PbrtVolume(name string, params *ParamSet) {
+	//WARN_IF_ANIMATED_TRANSFORM("Volume");
+	vr := MakeVolumeRegion(name, curTransform.t[0], params)
+	if vr != nil {
+		renderOptions.volumeRegions = append(renderOptions.volumeRegions, vr)
+	}
+}
+
+func PbrtObjectBegin(name string) {
+	PbrtAttributeBegin()
+	if renderOptions.currentInstance != nil {
+		fmt.Printf("ObjectBegin called inside of instance definition\n")
+	}
+	renderOptions.instances[name] = make([]Primitive, 0, 1)
+	renderOptions.currentInstance = renderOptions.instances[name]
+}
+
+func PbrtObjectEnd() {
+	if renderOptions.currentInstance == nil {
+		fmt.Printf("ObjectEnd called outside of instance definition\n")
+	}
+	renderOptions.currentInstance = nil
+	PbrtAttributeEnd()
+}
+
+func PbrtObjectInstance(name string) {
+	// Object instance error checking
+	if renderOptions.currentInstance != nil {
+		fmt.Printf("ObjectInstance can't be called inside instance definition\n")
+		return
+	}
+	if renderOptions.instances[name] == nil {
+		fmt.Printf("Unable to find instance named \"%s\"\n", name)
+		return
+	}
+	in := renderOptions.instances[name]
+	if len(in) == 0 {
+		return
+	}
+	if len(in) > 1 || !in[0].CanIntersect() {
+		// Refine instance _Primitive_s and create aggregate
+		accel := MakeAccelerator(renderOptions.AcceleratorName, in, renderOptions.AcceleratorParams)
+		if accel == nil {
+			accel = MakeAccelerator("bvh", in, &ParamSet{nil, nil})
+		}
+		if accel == nil {
+			fmt.Printf("Unable to create \"bvh\" accelerator\n")
+		}
+		in = make([]Primitive, 1, 1)
+		in[0] = accel
+	}
+	//Assert(MAX_TRANSFORMS == 2);
+	var world2instance [2]*Transform
+	world2instance[0], _ = transformCache.Lookup(curTransform.t[0])
+	world2instance[1], _ = transformCache.Lookup(curTransform.t[1])
+	animatedWorldToInstance := CreateAnimatedTransform(world2instance[0], renderOptions.transformStartTime,
+		world2instance[1], renderOptions.transformEndTime)
+	prim := CreateTransformedPrimitive(in[0], animatedWorldToInstance)
+	renderOptions.primitives = append(renderOptions.primitives, prim)
+}
+
 func PbrtWorldEnd() {
-	fmt.Printf("WorldEnd\n")
+	// Ensure there are no pushed graphics states
+	if len(pushedGraphicsStates) != 0 {
+		fmt.Printf("Missing end to pbrtAttributeBegin()\n")
+		pushedGraphicsStates = make([]*GraphicsState, 0, 8)
+	}
+	if len(pushedTransforms) != 0 {
+		fmt.Printf("Missing end to pbrtTransformBegin()\n")
+		pushedTransforms = make([]*TransformSet, 0, 8)
+		pushedActiveTransformBits = make([]uint32, 0, 8)
+	}
+
+	// Create scene and render
+	renderer := renderOptions.MakeRenderer()
+	scene := renderOptions.MakeScene()
+	if scene != nil && renderer != nil {
+		renderer.Render(scene)
+	}
+	//TasksCleanup()
+	renderer = nil
+	scene = nil
+
+	// Clean up after rendering
+	graphicsState = CreateGraphicsState()
+	transformCache.Clear()
+	currentApiState = STATE_OPTIONS_BLOCK
+	//ProbesPrint(stdout)
+	for i := 0; i < MAX_TRANSFORMS; i++ {
+		curTransform.t[i] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
+	}
+	activeTransformBits = ALL_TRANSFORMS_BITS
+	namedCoordinateSystems = make(map[string]*TransformSet)
+
+	//ImageTextureFloatClearCache()
+	//ImageTextureSpectrumClearCache()
+}
+
+func (ro *RenderOptions) MakeScene() *Scene {
+	// Initialize _volumeRegion_ from volume region(s)
+	var volumeRegion VolumeRegion
+	if len(ro.volumeRegions) == 0 {
+		volumeRegion = nil
+	} else if len(ro.volumeRegions) == 1 {
+		volumeRegion = ro.volumeRegions[0]
+	} else {
+		volumeRegion = CreateAggregateVolume(ro.volumeRegions)
+	}
+	accelerator := MakeAccelerator(ro.AcceleratorName, ro.primitives, ro.AcceleratorParams)
+	if accelerator == nil {
+		accelerator = MakeAccelerator("bvh", ro.primitives, &ParamSet{nil, nil})
+	}
+	if accelerator == nil {
+		fmt.Printf("Unable to create \"bvh\" accelerator.\n")
+	}
+	scene := CreateScene(accelerator, ro.lights, volumeRegion)
+	// Erase primitives, lights, and volume regions from _RenderOptions_
+	ro.primitives = make([]Primitive, 0, 8)
+	ro.lights = make([]Light, 0, 2)
+	ro.volumeRegions = make([]VolumeRegion, 0, 2)
+	return scene
+}
+
+func (ro *RenderOptions) MakeRenderer() Renderer {
+	var renderer Renderer
+	camera := ro.MakeCamera()
+	if strings.Compare(ro.RendererName, "metropolis") == 0 {
+		renderer = CreateMetropolisRenderer(ro.RendererParams, camera)
+		// RendererParams.ReportUnused()
+		// Warn if no light sources are defined
+		if len(ro.lights) == 0 {
+			fmt.Printf("No light sources defined in scene; possibly rendering a black image.\n")
+		}
+	} else if strings.Compare(ro.RendererName, "createprobes") == 0 { // Create remaining _Renderer_ types
+		// Create surface and volume integrators
+		surfaceIntegrator := MakeSurfaceIntegrator(ro.SurfIntegratorName, ro.SurfIntegratorParams)
+		if surfaceIntegrator == nil {
+			fmt.Printf("Unable to create surface integrator.\n")
+		}
+		volumeIntegrator := MakeVolumeIntegrator(ro.VolIntegratorName, ro.VolIntegratorParams)
+		if volumeIntegrator == nil {
+			fmt.Printf("Unable to create volume integrator.\n")
+		}
+		renderer = CreateRadianceProbesRenderer(camera, surfaceIntegrator, volumeIntegrator, ro.RendererParams)
+		//RendererParams.ReportUnused();
+		// Warn if no light sources are defined
+		if len(ro.lights) == 0 {
+			fmt.Printf("No light sources defined in scene; possibly rendering a black image.\n")
+		}
+	} else if strings.Compare(ro.RendererName, "aggregatetest") == 0 {
+		renderer = CreateAggregateTestRenderer(ro.RendererParams, ro.primitives)
+		//RendererParams.ReportUnused();
+	} else if strings.Compare(ro.RendererName, "surfacepoints") == 0 {
+		pCamera := PointAnimatedTransform(camera.CameraToWorld(), camera.ShutterOpen(), CreatePoint(0, 0, 0))
+		renderer = CreateSurfacePointsRenderer(ro.RendererParams, pCamera, camera.ShutterOpen())
+		//RendererParams.ReportUnused()
+	} else {
+		if strings.Compare(ro.RendererName, "sampler") != 0 {
+			fmt.Printf("Renderer type \"%s\" unknown.  Using \"sampler\".\n", ro.RendererName)
+		}
+		var visIds bool // = RendererParams.FindOneBool("visualizeobjectids", false);
+		//RendererParams.ReportUnused();
+		sampler := MakeSampler(ro.SamplerName, ro.SamplerParams, camera.Film(), camera)
+		if sampler == nil {
+			fmt.Printf("Unable to create sampler.\n")
+		}
+		// Create surface and volume integrators
+		surfaceIntegrator := MakeSurfaceIntegrator(ro.SurfIntegratorName, ro.SurfIntegratorParams)
+		if surfaceIntegrator == nil {
+			fmt.Printf("Unable to create surface integrator.\n")
+		}
+		volumeIntegrator := MakeVolumeIntegrator(ro.VolIntegratorName, ro.VolIntegratorParams)
+		if volumeIntegrator == nil {
+			fmt.Printf("Unable to create volume integrator.\n")
+		}
+		renderer = CreateSamplerRenderer(sampler, camera, surfaceIntegrator, volumeIntegrator, visIds)
+		// Warn if no light sources are defined
+		if len(ro.lights) == 0 {
+			fmt.Printf("No light sources defined in scene;  possibly rendering a black image.\n")
+		}
+	}
+	return renderer
+}
+
+func (ro *RenderOptions) MakeCamera() Camera {
+	filter := MakeFilter(ro.FilterName, ro.FilterParams)
+	film := MakeFilm(ro.FilmName, ro.FilmParams, filter)
+	if film == nil {
+		fmt.Printf("Unable to create film.\n")
+	}
+	camera := MakeCamera(ro.CameraName, ro.CameraParams, ro.CameraToWorld, ro.transformStartTime, ro.transformEndTime, film)
+	if camera == nil {
+		fmt.Printf("Unable to create camera.\n")
+	}
+	return camera
 }

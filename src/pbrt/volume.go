@@ -102,6 +102,17 @@ type AggregateVolume struct {
 	bound   *BBox
 }
 
+func (v *AggregateVolume) WorldBound() *BBox { return nil }
+func (v *AggregateVolume) IntersectP(ray *Ray) (hit bool, t0, t1 float64) { return false, 0.0, 0.0 }
+func (v *AggregateVolume) Sigma_a(p *Point, w *Vector, time float64) *Spectrum { return nil }
+func (v *AggregateVolume) Sigma_s(p *Point, w *Vector, time float64) *Spectrum { return nil }
+func (v *AggregateVolume) Lve(p *Point, w *Vector, time float64) *Spectrum { return nil }
+func (v *AggregateVolume) P(p *Point, w, wp *Vector, time float64) float64 { return 0.0 }
+func (v *AggregateVolume) Sigma_t(p *Point, wo *Vector, time float64) *Spectrum { return nil }
+func (v *AggregateVolume) Tau(ray *Ray, step, offset float64) *Spectrum { return nil }
+
+func CreateAggregateVolume(regions []VolumeRegion) *AggregateVolume { return nil }
+
 type VolumeIntegrator interface {
 	Integrator
 	Li(scene *Scene, renderer *Renderer, ray *RayDifferential, sample *Sample, rng *RNG, transmittance *Spectrum, arena *MemoryArena) *Spectrum

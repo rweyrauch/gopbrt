@@ -3,12 +3,16 @@ package pbrt
 type Camera interface {
 	GenerateRay(sample *CameraSample) (ray *Ray, weight float64)
 	GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64)
+    CameraToWorld() *AnimatedTransform
+    ShutterOpen() float64
+    ShutterClose() float64
+    Film() Film
 }
 
 type CameraCore struct {
-	CameraToWorld             *AnimatedTransform
-	ShutterOpen, ShutterClose float64
-	Film                      Film
+	cameraToWorld             *AnimatedTransform
+	shutterOpen, shutterClose float64
+	film                      Film
 }
 
 func GenerateRayDifferential(camera Camera, sample *CameraSample) (rd *RayDifferential, weight float64) {
@@ -79,6 +83,10 @@ func (c *PerspectiveCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight 
 func (c *PerspectiveCamera) GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {
 	return nil, 0.0
 }
+func (c *PerspectiveCamera) CameraToWorld() *AnimatedTransform { return c.cameraToWorld }
+func (c *PerspectiveCamera) ShutterOpen() float64 { return c.shutterOpen }
+func (c *PerspectiveCamera) ShutterClose() float64 { return c.shutterClose }
+func (c *PerspectiveCamera) Film() Film { return c.film }
 
 func (c *EnvironmentCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight float64) {
 	return nil, 0.0
@@ -86,11 +94,19 @@ func (c *EnvironmentCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight 
 func (c *EnvironmentCamera) GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {
 	return nil, 0.0
 }
+func (c *EnvironmentCamera) CameraToWorld() *AnimatedTransform { return c.cameraToWorld }
+func (c *EnvironmentCamera) ShutterOpen() float64 { return c.shutterOpen }
+func (c *EnvironmentCamera) ShutterClose() float64 { return c.shutterClose }
+func (c *EnvironmentCamera) Film() Film { return c.film }
 
 func (c *OrthoCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight float64) { return nil, 0.0 }
 func (c *OrthoCamera) GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {
 	return nil, 0.0
 }
+func (c *OrthoCamera) CameraToWorld() *AnimatedTransform { return c.cameraToWorld }
+func (c *OrthoCamera) ShutterOpen() float64 { return c.shutterOpen }
+func (c *OrthoCamera) ShutterClose() float64 { return c.shutterClose }
+func (c *OrthoCamera) Film() Film { return c.film }
 
 func CreatePerspectiveCamera(params *ParamSet, cam2world *AnimatedTransform, film Film) *PerspectiveCamera {
 	return nil
