@@ -1,4 +1,4 @@
-package pbrt
+package core
 
 type Renderer interface {
 	Render(scene *Scene)

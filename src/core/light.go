@@ -1,4 +1,4 @@
-package pbrt
+package core
 
 type Light interface {
 	Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64) (s *Spectrum, wi *Vector, pdf float64, vis *VisibilityTester)

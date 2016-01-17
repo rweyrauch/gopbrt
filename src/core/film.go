@@ -1,4 +1,4 @@
-package pbrt
+package core
 
 type Film interface {
 	AddSample(sample *CameraSample, L *Spectrum)

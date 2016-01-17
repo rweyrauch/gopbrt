@@ -1,5 +1,5 @@
 %{
-package pbrt
+package core
 
 import (
 	"fmt"	

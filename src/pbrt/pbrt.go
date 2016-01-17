@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/rweyrauch/gopbrt/src/pbrt"
+	"github.com/rweyrauch/gopbrt/src/core"
 )
 
 func main() {
@@ -25,26 +25,26 @@ func main() {
 	// Print welcome banner
 	if !options.Quiet {
 		fmt.Printf("gopbrt version %s [Detected %d core(s)]\n",
-			pbrt.PBRT_VERSION, pbrt.NumSystemCores())
+			core.PBRT_VERSION, core.NumSystemCores())
 		fmt.Printf("gopbrt based on pbrt 2.0.0 by Matt Pharr ang Grey Humphreys.\n")
 		fmt.Printf("Copyright (c)1998-2014 Matt Pharr and Greg Humphreys.\n")
 		fmt.Printf("The source code to pbrt (but *not* the book contents) is covered by the BSD License.\n")
 		fmt.Printf("See the file LICENSE.txt for the conditions of the license.\n")
 	}
 
-	pbrt.PbrtInit(&options)
+	core.PbrtInit(&options)
 	// Process scene description
 	//PBRT_STARTED_PARSING();
 	if len(filenames) == 0 {
 		// Parse scene from standard input
-		pbrt.ParseFile("-")
+		core.ParseFile("-")
 	} else {
 		// Parse scene from input files
 		for _, f := range filenames {
-			if !pbrt.ParseFile(f) {
-				pbrt.Error("Couldn't open scene file \"%s\"", f)
+			if !core.ParseFile(f) {
+				core.Error("Couldn't open scene file \"%s\"", f)
 			}
 		}
 	}
-	pbrt.PbrtCleanup()
+	core.PbrtCleanup()
 }

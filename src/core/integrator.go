@@ -1,4 +1,4 @@
-package pbrt
+package core
 
 type LightStrategy int
 

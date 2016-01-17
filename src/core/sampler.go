@@ -1,4 +1,4 @@
-package pbrt
+package core
 
 type Sampler interface {
 	GetMoreSamples(sample *Sample, rng *RNG) int

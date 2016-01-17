@@ -1,4 +1,4 @@
-package pbrt
+package core
 
 type Camera interface {
 	GenerateRay(sample *CameraSample) (ray *Ray, weight float64)
