@@ -2,6 +2,7 @@ package pbrt
 
 import (
 	"strings"
+	"sort"
 )
 
 const (
@@ -31,18 +32,6 @@ type (
 		bounds                                  BBox
 		children                                [2]*BVHBuildNode
 		splitAxis, firstPrimOffset, nPrimitives int
-	}
-
-	CompareToMid struct {
-		dim int
-		mid float64
-	}
-	ComparePoints struct {
-		dim int
-	}
-	CompareToBucket struct {
-		splitBucket, nBuckets, dim int
-		centroidBounds             BBox
 	}
 
 	LinearBVHNode struct {
@@ -126,7 +115,7 @@ func CreateBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 	for _, p := range prims {
 		bvh.primitives = p.FullyRefine(bvh.primitives)
 	}
-	if strings.Compare(sm, "shah") == 0 {
+	if strings.Compare(sm, "sah") == 0 {
 		bvh.splitMethod = SPLIT_SAH
 	} else if strings.Compare(sm, "middle") == 0 {
 		bvh.splitMethod = SPLIT_MIDDLE
@@ -199,14 +188,50 @@ func (bvh *BVHAccel) WorldBound() *BBox {
 	}
 }
 
-func partition(buildData []BVHPrimitiveInfo, first, last int, comp CompareToMid) int {
-	return 0
+func partition(buildData []BVHPrimitiveInfo, first, last int, comp func (info *BVHPrimitiveInfo) bool) int {
+ 	if first == last { return first }
+ 	first++
+ 	part := first
+    if first == last {
+    	if comp(&buildData[part]) {
+    		return first
+    	} else {
+    		return part
+    	}
+	}
+    for (first != last) {
+        if comp(&buildData[part]) {
+            part++
+        } else if comp(&buildData[first]) {
+        	buildData[part], buildData[first] = buildData[first], buildData[part]
+            part++
+        }
+        first++
+    } 
+    return part	
 }
-func partitionB(buildData []BVHPrimitiveInfo, first, last int, comp CompareToBucket) int {
-	return 0
-}
-func nth_element(buildData []BVHPrimitiveInfo, first, nth, last int, comp ComparePoints) {
 
+type bvhInfoSorter struct {
+	buildData []BVHPrimitiveInfo
+	by func (info0, info1 *BVHPrimitiveInfo) bool
+}
+func (s *bvhInfoSorter) Len() int {
+	return len(s.buildData)
+}
+func (s *bvhInfoSorter) Swap(i, j int) {
+	s.buildData[i], s.buildData[j] = s.buildData[j], s.buildData[i]
+}
+func (s *bvhInfoSorter) Less(i, j int) bool {
+	return s.by(&s.buildData[i], &s.buildData[j])
+}
+type By func(i0, i1 *BVHPrimitiveInfo) bool
+func (by By) Sort(buildData []BVHPrimitiveInfo) {
+	infoSorter := &bvhInfoSorter{buildData, by}
+	sort.Sort(infoSorter)
+}
+// TODO: implement a real nth_element function rather than a full sort on the range
+func nth_element(buildData []BVHPrimitiveInfo, first, nth, last int, comp func (info0, info1 *BVHPrimitiveInfo) bool) {
+	By(comp).Sort(buildData[first:last])
 }
 
 func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrimitiveInfo, start, end int, orderedPrims []Primitive) (node *BVHBuildNode, totalNodes int) {
@@ -270,25 +295,41 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 		case SPLIT_MIDDLE:
 			// Partition primitives through node's midpoint
 			pmid := 0.5 * (centroidBounds.pMin.At(dim) + centroidBounds.pMax.At(dim))
-			mid := partition(buildData, start, end-1, CompareToMid{dim, pmid})
+			compareToMid := func (info *BVHPrimitiveInfo) bool {
+				if info.centroid.At(dim) < pmid {
+					return true
+				} else {
+					return false
+				}
+			}
+			mid := partition(buildData, start, end-1, compareToMid)
 			if mid == start || mid == end {
 				// for lots of prims with large overlapping bounding boxes, this
 				// may fail to partition; in that case don't break and fall through
 				// to SPLIT_EQUAL_COUNTS
 				mid = (start + end) / 2
-				nth_element(buildData, start, mid, end-1, ComparePoints{dim})
+				comparePoints := func (info0, info1 *BVHPrimitiveInfo) bool {
+					return info0.centroid.At(dim) < info0.centroid.At(dim)
+				}
+				nth_element(buildData, start, mid, end-1, comparePoints)
 			}
 		case SPLIT_EQUAL_COUNTS:
 			// Partition primitives into equally-sized subsets
 			mid = (start + end) / 2
-			nth_element(buildData, start, mid, end-1, ComparePoints{dim})
+			comparePoints := func (info0, info1 *BVHPrimitiveInfo) bool {
+				return info0.centroid.At(dim) < info0.centroid.At(dim)
+			}
+			nth_element(buildData, start, mid, end-1, comparePoints)
 		case SPLIT_SAH:
 		default:
 			// Partition primitives using approximate SAH
 			if nPrimitives <= 4 {
 				// Partition primitives into equally-sized subsets
 				mid = (start + end) / 2
-				nth_element(buildData, start, mid, end-1, ComparePoints{dim})
+				comparePoints := func (info0, info1 *BVHPrimitiveInfo) bool {
+					return info0.centroid.At(dim) < info0.centroid.At(dim)
+				}
+				nth_element(buildData, start, mid, end-1, comparePoints)
 			} else {
 				// Allocate _BucketInfo_ for SAH partition buckets
 				buckets := make([]SAHBucketInfo, SAH_NUM_BUCKETS, SAH_NUM_BUCKETS)
@@ -335,7 +376,13 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 
 				// Either create leaf or split primitives at selected SAH bucket
 				if nPrimitives > bvh.maxPrimsInNode || minCost < float64(nPrimitives) {
-					mid = partitionB(buildData, start, end-1, CompareToBucket{minCostSplit, SAH_NUM_BUCKETS, dim, *centroidBounds})
+					compareToBucket := func (info *BVHPrimitiveInfo) bool {
+   						b := int(float64(SAH_NUM_BUCKETS) * ((info.centroid.At(dim) - centroidBounds.pMin.At(dim)) / (centroidBounds.pMax.At(dim) - centroidBounds.pMin.At(dim))))
+    					if (b == SAH_NUM_BUCKETS) { b = SAH_NUM_BUCKETS-1 }
+    					//Assert(b >= 0 && b < SAH_NUM_BUCKETS);
+    					return b <= minCostSplit
+					}
+					mid = partition(buildData, start, end-1, compareToBucket)
 				} else {
 					// Create leaf _BVHBuildNode_
 					firstPrimOffset := len(orderedPrims)
