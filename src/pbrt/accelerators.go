@@ -1,25 +1,8 @@
 package pbrt
 
-const (
-	SPLIT_MIDDLE = iota
-	SPLIT_EQUAL_COUNTS
-	SPLIT_SAH
-)
-
-type SplitMethod int
-
 type (
 	Voxel         struct{}
 	KdAccelNode   struct{}
-	LinearBVHNode struct{}
-
-	BVHAccel struct {
-		PrimitiveData
-		maxPrimsInNode int
-		splitMethod    SplitMethod
-		primitives     []Primitive
-		nodes          []LinearBVHNode
-	}
 
 	GridAccel struct {
 		PrimitiveData
@@ -42,22 +25,6 @@ type (
 		arena                                        *MemoryArena
 	}
 )
-
-func CreateBVHAccel(prims []Primitive) *BVHAccel                { return nil }
-func (p *BVHAccel) WorldBound() *BBox                           { return nil }
-func (p *BVHAccel) CanIntersect() bool                          { return false }
-func (p *BVHAccel) Intersect(r *Ray) (bool, *Intersection)      { return false, nil }
-func (p *BVHAccel) IntersectP(r *Ray) bool                      { return false }
-func (p *BVHAccel) Refine(refined []Primitive) []Primitive      { return refined }
-func (p *BVHAccel) FullyRefine(refined []Primitive) []Primitive { return refined }
-func (p *BVHAccel) GetAreaLight() AreaLight                     { return nil }
-func (p *BVHAccel) GetBSDF(dg *DifferentialGeometry, objectToWorld *Transform, arena *MemoryArena) *BSDF {
-	return nil
-}
-func (p *BVHAccel) GetBSSRDF(dg *DifferentialGeometry, objectToWorld *Transform, arena *MemoryArena) *BSSRDF {
-	return nil
-}
-func (p *BVHAccel) PrimitiveId() uint32 { return p.primitiveId }
 
 func (p *GridAccel) WorldBound() *BBox                           { return nil }
 func (p *GridAccel) CanIntersect() bool                          { return false }
@@ -89,6 +56,5 @@ func (p *KdTreeAccel) GetBSSRDF(dg *DifferentialGeometry, objectToWorld *Transfo
 }
 func (p *KdTreeAccel) PrimitiveId() uint32 { return p.primitiveId }
 
-func CreateBVHAccelerator(prims []Primitive, ps *ParamSet) *BVHAccel       { return nil }
 func CreateGridAccelerator(prims []Primitive, ps *ParamSet) *GridAccel     { return nil }
 func CreateKdTreeAccelerator(prims []Primitive, ps *ParamSet) *KdTreeAccel { return nil }

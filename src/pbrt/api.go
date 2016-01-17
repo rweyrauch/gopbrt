@@ -18,7 +18,12 @@ const (
 type TransformSet struct {
 	t [MAX_TRANSFORMS]*Transform
 }
-
+func CreateTransformSet() *TransformSet {
+	ts := new(TransformSet)
+	ts.t[0] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
+	ts.t[1] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
+	return ts 
+}
 func (ts *TransformSet) get(i int) *Transform {
 	return ts.t[i]
 }
@@ -42,21 +47,27 @@ type TransformPair struct {
 	first, second *Transform
 }
 type TransformCache struct {
-	cache map[*Transform]TransformPair
+	cache map[Transform]TransformPair
 	arena *MemoryArena
 }
 func CreateTransformCache() *TransformCache {
 	tc := new(TransformCache)
-	tc.cache = make(map[*Transform]TransformPair, 4)
+	tc.cache = make(map[Transform]TransformPair, 4)
 	tc.arena = nil
 	return tc
 }
 func (tc *TransformCache) Lookup(t *Transform) (tCache, tInvCache *Transform) {
-	tpair := tc.cache[t]
+	tpair := tc.cache[*t]
+	if tpair.first == nil && tpair.second == nil {
+		tinv := InverseTransform(t)
+		tpair.first = t
+		tpair.second = tinv		
+		tc.cache[*t] = tpair
+	}
 	return tpair.first, tpair.second
 }
 func (tc *TransformCache) Clear() {
-	tc.cache = make(map[*Transform]TransformPair)
+	tc.cache = make(map[Transform]TransformPair)
 }
 
 type RenderOptions struct {
@@ -96,6 +107,7 @@ func CreateRenderOptions() *RenderOptions {
 	opts.SurfIntegratorName = "directlighting"
 	opts.VolIntegratorName = "emission"
 	opts.CameraName = "perspective"
+	opts.CameraToWorld = CreateTransformSet()
 	opts.currentInstance = nil
 	return opts
 }
@@ -849,7 +861,7 @@ func PbrtShape(name string, params *ParamSet) {
 				return
 			}
 			if len(refinedPrimitives) > 1 {
-				baseprim = CreateBVHAccel(refinedPrimitives)
+				baseprim = CreateBVHAccel(refinedPrimitives, 1, "sah")
 			} else {
 				baseprim = refinedPrimitives[0]
 			}
