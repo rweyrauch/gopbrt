@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	var options pbrt.Options
+	var options core.Options
 	var filenames []string
 
 	flag.IntVar(&options.NumCores, "ncores", 1, "Number of cores to use.")

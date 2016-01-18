@@ -271,7 +271,17 @@ func RadicalInverse(n, base int) float64 {
 	return val
 }
 
-func Shuffle(samp []uint32, count, dims uint32, rng *RNG) {
+func Shufflei(samp []uint32, count, dims uint32, rng *RNG) {
+	var i, j uint32
+	for i = 0; i < count; i++ {
+		other := i + (rng.RandomUInt() % (count - i))
+		for j = 0; j < dims; j++ {
+			samp[dims*i+j], samp[dims*other+j] = samp[dims*other+j], samp[dims*i+j]
+		}
+	}
+}
+
+func Shuffle(samp []float64, count, dims uint32, rng *RNG) {
 	var i, j uint32
 	for i = 0; i < count; i++ {
 		other := i + (rng.RandomUInt() % (count - i))
@@ -286,7 +296,7 @@ func GeneratePermutation(buf []uint32, b uint32, rng *RNG) {
 	for i = 0; i < b; i++ {
 		buf[i] = i
 	}
-	Shuffle(buf, b, 1, rng)
+	Shufflei(buf, b, 1, rng)
 }
 
 func PermutedRadicalInverse(n uint32, base uint32, p []uint32) float64 {
@@ -314,7 +324,7 @@ func LDPixelSampleFloatsNeeded(sample *Sample, nPixelSamples int) int {
 	return nPixelSamples * n
 }
 
-func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamples int, samples *Sample,
+func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamples int, samples []Sample,
 	buf []float64, rng *RNG) {
 	/*
 	   // Prepare temporary array pointers for low-discrepancy camera samples
@@ -367,6 +377,57 @@ func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamp
 	       }
 	   }
 	*/
+}
+
+// Sampling Inline Functions
+func Sample02(n uint32, scramble [2]uint32, sample []float64) {
+	sample[0] = VanDerCorput(n, scramble[0])
+	sample[1] = Sobol2(n, scramble[1])
+}
+
+func VanDerCorput(n, scramble uint32) float64 {
+	// Reverse bits of _n_
+	n = (n << 16) | (n >> 16)
+	n = ((n & 0x00ff00ff) << 8) | ((n & 0xff00ff00) >> 8)
+	n = ((n & 0x0f0f0f0f) << 4) | ((n & 0xf0f0f0f0) >> 4)
+	n = ((n & 0x33333333) << 2) | ((n & 0xcccccccc) >> 2)
+	n = ((n & 0x55555555) << 1) | ((n & 0xaaaaaaaa) >> 1)
+	n ^= scramble
+	return math.Min(float64((n>>8)&0xffffff)/float64(1<<24), OneMinusEpsilon)
+}
+
+func Sobol2(n, scramble uint32) float64 {
+	var v uint32
+	for v = 1 << 31; n != 0; n >>= 1 {
+		if n&0x1 != 0 {
+			scramble ^= v
+		}
+		v ^= v >> 1
+	}
+	return math.Min((float64((scramble>>8)&0xffffff))/float64(1<<24), OneMinusEpsilon)
+}
+
+func LDShuffleScrambled1D(nSamples, nPixel int, samples []float64, rng *RNG) {
+	scramble := rng.RandomUInt()
+	for i := 0; i < nSamples*nPixel; i++ {
+		samples[i] = VanDerCorput(uint32(i), scramble)
+	}
+	for i := 0; i < nPixel; i++ {
+		Shuffle(samples[i*nSamples:], uint32(nSamples), 1, rng)
+	}
+	Shuffle(samples, uint32(nPixel), uint32(nSamples), rng)
+}
+
+func LDShuffleScrambled2D(nSamples, nPixel int, samples []float64, rng *RNG) {
+	scramble := [2]uint32{rng.RandomUInt(), rng.RandomUInt()}
+	for i := 0; i < nSamples*nPixel; i++ {
+		Sample02(uint32(i), scramble, samples[2*i:])
+	}
+
+	for i := 0; i < nPixel; i++ {
+		Shuffle(samples[2*i*nSamples:], uint32(nSamples), 2, rng)
+	}
+	Shuffle(samples, uint32(nPixel), uint32(2*nSamples), rng)
 }
 
 // Monte Carlo Function Definitions
@@ -479,16 +540,16 @@ func CreateDistribution2D(dfunc []float64, nu, nv int) *Distribution2D {
 	d := new(Distribution2D)
 	d.pConditionalV = make([]*Distribution1D, 0, nv)
 	/*
-	    for v := 0; v < nv; v++ {
-	        // Compute conditional sampling distribution for $\tilde{v}$
-	        d.pConditionalV = append(d.pConditionalV, CreateDistribution1D(dfunc[v*nu:], nu))
-	    }
-	    // Compute marginal sampling distribution $p[\tilde{v}]$
-	    marginalFunc := make([]float64, nv, nv)
-	    for v := 0; v < nv; v++ {
-	        marginalFunc[v] = d.pConditionalV[v].dfuncInt
-		}
-	    d.pMarginal = CreateDistribution1D(marginalFunc, nv)
+		    for v := 0; v < nv; v++ {
+		        // Compute conditional sampling distribution for $\tilde{v}$
+		        d.pConditionalV = append(d.pConditionalV, CreateDistribution1D(dfunc[v*nu:], nu))
+		    }
+		    // Compute marginal sampling distribution $p[\tilde{v}]$
+		    marginalFunc := make([]float64, nv, nv)
+		    for v := 0; v < nv; v++ {
+		        marginalFunc[v] = d.pConditionalV[v].dfuncInt
+			}
+		    d.pMarginal = CreateDistribution1D(marginalFunc, nv)
 	*/
 	return d
 }
