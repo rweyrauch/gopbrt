@@ -147,7 +147,7 @@ func CreateBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 	orderedPrims := make([]Primitive, 0, len(bvh.primitives))
 	root, totalNodes := bvh.recursiveBuild(buildArena, buildData, 0, len(bvh.primitives), orderedPrims)
 	bvh.primitives, orderedPrims = orderedPrims, bvh.primitives
-	Info("BVH created with %d nodes for %d primitives", totalNodes, len(bvh.primitives))
+	Info("BVH created with %d nodes for %d(%d) primitives", totalNodes, len(bvh.primitives), len(orderedPrims))
 
 	// Compute representation of depth-first traversal of BVH tree
 	bvh.nodes = make([]LinearBVHNode, totalNodes, totalNodes)
