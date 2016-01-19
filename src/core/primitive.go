@@ -64,11 +64,17 @@ func CreateGeometricPrimitive(s Shape, mtl Material, arealight AreaLight) *Geome
 }
 
 func (p *GeometricPrimitive) WorldBound() *BBox {
-	return p.shape.WorldBound()
+    if p.shape != nil {
+	    return p.shape.WorldBound()
+    }
+    return nil
 }
 
 func (p *GeometricPrimitive) CanIntersect() bool {
-	return p.shape.CanIntersect()
+    if p.shape != nil {
+    	return p.shape.CanIntersect()
+    }
+    return false
 }
 
 func (p *GeometricPrimitive) Intersect(r *Ray) (hit bool, isect *Intersection) {

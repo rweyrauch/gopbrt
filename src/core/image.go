@@ -212,7 +212,8 @@ func CreateImageFilmFromParams(params *ParamSet, filter Filter) *ImageFilm {
 	xres := params.FindIntParam("xresolution", 640)
 	yres := params.FindIntParam("yresolution", 480)
 	openwin := params.FindBoolParam("display", false)
-	crop := params.FindFloatArrayParam("cropwindow", []float64{0, 1, 0, 1})
+	crop := params.FindFloatArrayParam("cropwindow")
+    if crop == nil { crop = []float64{0, 1, 0, 1} }
 	if len(options.ImageFile) != 0 {
 		if len(filename) != 0 {
 			Warning("Output filename supplied on command line, \"%s\", ignored due to filename provided in scene description file, \"%s\".",

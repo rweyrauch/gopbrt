@@ -226,6 +226,7 @@ func MakeShape(name string, object2world, world2object *Transform,
 	} else if strings.Compare(name, "hyperboloid") == 0 {
 		s = CreateHyperboloidShape(object2world, world2object, reverseOrientation, paramSet)
 	} else if strings.Compare(name, "trianglemesh") == 0 {
+        Debug("Creating tri-mesh shape")
 		s = CreateTriangleMeshShape(object2world, world2object, reverseOrientation, paramSet, graphicsState.floatTextures)
 	} else if strings.Compare(name, "heightfield") == 0 {
 		s = CreateHeightfieldShape(object2world, world2object, reverseOrientation, paramSet)

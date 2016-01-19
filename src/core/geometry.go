@@ -187,6 +187,9 @@ func (p *Point) String() string {
 	return fmt.Sprintf("p[ %f, %f, %f ]", p.x, p.y, p.z)
 }
 
+func CreateNormal(x, y, z float64) *Normal {
+    return &Normal{x, y, z}
+}
 func CreateNormalFromVector(v *Vector) *Normal {
 	return &Normal{v.x, v.y, v.z}
 }

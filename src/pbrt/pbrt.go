@@ -31,6 +31,11 @@ func main() {
 		fmt.Printf("The source code to pbrt (but *not* the book contents) is covered by the BSD License.\n")
 		fmt.Printf("See the file LICENSE.txt for the conditions of the license.\n")
 	}
+    
+    if options.Debug {
+        options.Quiet = false
+        options.Verbose = true
+    }
 
 	core.PbrtInit(&options)
 	// Process scene description

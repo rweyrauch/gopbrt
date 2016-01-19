@@ -35,6 +35,24 @@ func (ps *ParamSet) FindStringParam(name, defval string) string {
 	return value
 } 
 
+func (ps *ParamSet) FindTextureParam(name string) string {
+	if ps == nil {
+		return ""
+	}
+	var value string
+	fullparamname := "texture " + name
+	for i, p := range ps.tokens {
+		if strings.Compare(p, fullparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+				if s, ok := values[0].(string); ok {
+					value = s
+				}
+			}
+		}
+	}
+	return value
+} 
+
 func (ps *ParamSet) FindFloatParam(name string, defval float64) float64 {
 	if ps == nil {
 		return defval
@@ -53,11 +71,11 @@ func (ps *ParamSet) FindFloatParam(name string, defval float64) float64 {
 	return value	
 }
 
-func (ps *ParamSet) FindFloatArrayParam(name string, defval []float64) []float64 {
+func (ps *ParamSet) FindFloatArrayParam(name string) []float64 {
 	if ps == nil {
-		return defval
+		return nil
 	}
-	value := defval
+	var value []float64
 	fullparamname := "float " + name
 	for i, p := range ps.tokens {
 		if strings.Compare(p, fullparamname) == 0 {
@@ -92,11 +110,11 @@ func (ps *ParamSet) FindIntParam(name string, defval int) int {
 	return value	
 }
 
-func (ps *ParamSet) FindIntArrayParam(name string, defval []int) []int {
+func (ps *ParamSet) FindIntArrayParam(name string) []int {
 	if ps == nil {
-		return defval
+		return nil
 	}
-	value := defval
+	var value []int
 	fullparamname := "integer " + name
 	for i, p := range ps.tokens {
 		if strings.Compare(p, fullparamname) == 0 {
@@ -129,6 +147,88 @@ func (ps *ParamSet) FindBoolParam(name string, defval bool) bool {
 		}
 	}
 	return value	
+}
+
+func (ps *ParamSet) FindPointArrayParam(name string) []Point {
+	if ps == nil {
+		return nil
+	}
+	var array []Point
+	fullparamname := "point " + name
+	for i, p := range ps.tokens {
+		if strings.Compare(p, fullparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+                numPoints := len(values)/3
+				array = make([]Point, numPoints, numPoints)
+				for i, _ := range array {
+					if v, ok := values[i*3+0].(float64); ok {
+						array[i].x = v
+					}
+					if v, ok := values[i*3+1].(float64); ok {
+						array[i].y = v
+					}
+					if v, ok := values[i*3+2].(float64); ok {
+						array[i].z = v
+					}
+				}
+			}
+		}
+	}
+	return array	
+}
+func (ps *ParamSet) FindVectorArrayParam(name string) []Vector {
+	if ps == nil {
+		return nil
+	}
+	var array []Vector
+	fullparamname := "vector " + name
+	for i, p := range ps.tokens {
+		if strings.Compare(p, fullparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+                numVectors := len(values)/3
+				array = make([]Vector, numVectors, numVectors)
+				for i, _ := range array {
+					if v, ok := values[i*3+0].(float64); ok {
+						array[i].x = v
+					}
+					if v, ok := values[i*3+1].(float64); ok {
+						array[i].y = v
+					}
+					if v, ok := values[i*3+2].(float64); ok {
+						array[i].z = v
+					}
+				}
+			}
+		}
+	}
+	return array	
+}
+func (ps *ParamSet) FindNormalArrayParam(name string) []Normal {
+	if ps == nil {
+		return nil
+	}
+	var array []Normal
+	fullparamname := "normal " + name
+	for i, p := range ps.tokens {
+		if strings.Compare(p, fullparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+                numNormals := len(values)/3
+				array = make([]Normal, numNormals, numNormals)
+				for i, _ := range array {
+					if v, ok := values[i*3+0].(float64); ok {
+						array[i].x = v
+					}
+					if v, ok := values[i*3+1].(float64); ok {
+						array[i].y = v
+					}
+					if v, ok := values[i*3+2].(float64); ok {
+						array[i].z = v
+					}
+				}
+			}
+		}
+	}
+	return array	
 }
 
 type TextureParams struct {
