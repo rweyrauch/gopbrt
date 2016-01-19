@@ -2,6 +2,7 @@ package core
 
 import (
 	"math"
+	"strings"
 )
 
 type (
@@ -483,8 +484,44 @@ func (t *ImageTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
 }
 
 func CreateImageFloatTexture(tex2world *Transform, tp *TextureParams) *ImageTextureFloat {
-	return nil
+    // Initialize 2D texture mapping _map_ from _tp_
+    var mapping *TextureMapping2D
+    maptype := tp.FindString("mapping", "uv");
+    if strings.Compare(maptype, "uv") == 0 {
+        su := tp.FindFloat("uscale", 1.0)
+        sv := tp.FindFloat("vscale", 1.0)
+        du := tp.FindFloat("udelta", 0.0)
+        dv := tp.FindFloat("vdelta", 0.0)
+        mapping = NewUVMapping2D(su, sv, du, dv)
+    } else if strings.Compare(maptype, "spherical") == 0 { 
+    	mapping = NewSphericalMapping2D(Inverse(tex2world)) 
+    } else if strings.Compare(maptype, "cylindrical") == 0 {
+   		mapping = NewCylindricalMapping2D(Inverse(tex2world))
+    } else if (maptype == "planar") == 0 {
+        mapping = NewPlanarMapping2D(tp.FindVector("v1", CreateVector(1,0,0)),
+            tp.FindVector("v2", CreateVector(0,1,0)),
+            tp.FindFloat("udelta", 0.0), tp.FindFloat("vdelta", 0.0))
+    } else {
+        Error("2D texture mapping \"%s\" unknown", maptype)
+        mapping = NewUVMapping2D()
+    }
+
+    // Initialize _ImageTexture_ parameters
+    maxAniso := tp.FindFloat("maxanisotropy", 8.0)
+    trilerp := tp.FindBool("trilinear", false)
+    wrap := tp.FindString("wrap", "repeat")
+    wrapMode := TEXTURE_REPEAT
+    if strings.Compare(wrap, "black") == 0 { 
+    	wrapMode = TEXTURE_BLACK
+    } else if strings.Compare(wrap, "clamp") == 0 { 
+    	wrapMode = TEXTURE_CLAMP
+	}    	
+     scale := tp.FindFloat("scale", 1.0)
+     gamma := tp.FindFloat("gamma", 1.0)
+    return CreateImageTextureFloat(mapping, tp.FindFilename("filename"),
+        trilerp, maxAniso, wrapMode, scale, gamma)
 }
+
 func CreateImageSpectrumTexture(tex2world *Transform, tp *TextureParams) *ImageTextureSpectrum {
 	return nil
 }
