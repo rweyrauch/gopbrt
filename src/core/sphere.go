@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"math"
-	"strings"
 )
 
 type Sphere struct {
@@ -305,37 +304,9 @@ func (s *Sphere) ShapeId() uint32 {
 }
 
 func CreateSphereShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *Sphere {
-	radius := 1.0
-	zmin := -radius
-	zmax := radius
-	phimax := 360.0
-
-	for i, t := range params.tokens {
-		ps, ok := params.params[i].([]Object)
-		if !ok {
-			continue
-		}
-		if strings.Compare("radius", t) == 0 {
-			v, ok := extractFloatParam(ps)
-			if ok {
-				radius = v
-			}
-		} else if strings.Compare("zmin", t) == 0 {
-			v, ok := extractFloatParam(ps)
-			if ok {
-				zmin = v
-			}
-		} else if strings.Compare("zmax", t) == 0 {
-			v, ok := extractFloatParam(ps)
-			if ok {
-				zmax = v
-			}
-		} else if strings.Compare("phimax", t) == 0 {
-			v, ok := extractFloatParam(ps)
-			if ok {
-				phimax = v
-			}
-		}
-	}
+	radius := params.FindFloatParam("radius", 1.0)
+	zmin := params.FindFloatParam("zmin", -radius)
+	zmax := params.FindFloatParam("zmax", radius)
+	phimax := params.FindFloatParam("phimax", 360)
 	return CreateSphere(o2w, w2o, reverseOrientation, radius, zmin, zmax, phimax)
 }

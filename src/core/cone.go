@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"math"
-	"strings"
 )
 
 type Cone struct {
@@ -11,7 +10,7 @@ type Cone struct {
 	radius, height, phiMax float64
 }
 
-func CreateCone(o2w, w2o *Transform, ro bool, rad, h, pm float64) *Cone {
+func NewCone(o2w, w2o *Transform, ro bool, rad, h, pm float64) *Cone {
 	c := new(Cone)
 	c.objectToWorld = o2w
 	c.worldToObject = w2o
@@ -249,31 +248,8 @@ func (c *Cone) ShapeId() uint32 {
 }
 
 func CreateConeShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *Cone {
-	radius := 1.0
-	height := radius
-	phimax := 360.0
-
-	for i, t := range params.tokens {
-		ps, ok := params.params[i].([]Object)
-		if !ok {
-			continue
-		}
-		if strings.Compare("radius", t) == 0 {
-			v, ok := extractFloatParam(ps)
-			if ok {
-				radius = v
-			}
-		} else if strings.Compare("height", t) == 0 {
-			v, ok := extractFloatParam(ps)
-			if ok {
-				height = v
-			}
-		} else if strings.Compare("phimax", t) == 0 {
-			v, ok := extractFloatParam(ps)
-			if ok {
-				phimax = v
-			}
-		}
-	}
-	return CreateCone(o2w, w2o, reverseOrientation, radius, height, phimax)
+	radius := params.FindFloatParam("radius", 1.0)
+	height := params.FindFloatParam("height", radius)
+	phimax := params.FindFloatParam("phimax", 360)
+	return NewCone(o2w, w2o, reverseOrientation, radius, height, phimax)
 }
