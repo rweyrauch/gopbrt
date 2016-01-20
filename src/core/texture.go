@@ -5,6 +5,13 @@ import (
 	"strings"
 )
 
+const (
+	AA_NONE AntialiasMethod = iota
+	AA_CLOSEDFORM
+)
+
+type AntialiasMethod int
+
 type (
 	TextureMapping2D interface {
 		Map(dg *DifferentialGeometry) (s, t, dsdx, dtdx, dsdy, dtdy float64)
@@ -23,7 +30,7 @@ type (
 	}
 
 	PlanarMapping2D struct {
-		vs, vt *Vector
+		vs, vt Vector
 		ds, dt float64
 	}
 
@@ -44,6 +51,10 @@ type (
 	}
 )
 
+func NewUVMapping2D(su, sv, du, dv float64) *UVMapping2D {
+	return &UVMapping2D{su, sv, du, dv}
+}
+
 func (m *UVMapping2D) Map(dg *DifferentialGeometry) (s, t, dsdx, dtdx, dsdy, dtdy float64) {
 	s = m.su*dg.u + m.du
 	t = m.sv*dg.v + m.dv
@@ -53,6 +64,10 @@ func (m *UVMapping2D) Map(dg *DifferentialGeometry) (s, t, dsdx, dtdx, dsdy, dtd
 	dsdy = m.su * dg.dudy
 	dtdy = m.sv * dg.dvdy
 	return s, t, dsdx, dtdx, dsdy, dtdy
+}
+
+func NewSphericalMapping2D(worldToTexture *Transform) *SphericalMapping2D {
+	return &SphericalMapping2D{worldToTexture}
 }
 
 func (m *SphericalMapping2D) Map(dg *DifferentialGeometry) (s, t, dsdx, dtdx, dsdy, dtdy float64) {
@@ -87,6 +102,10 @@ func (m *SphericalMapping2D) sphere(p *Point) (s, t float64) {
 	return s, t
 }
 
+func NewCylindricalMapping2D(worldToTexture *Transform) *CylindricalMapping2D {
+	return &CylindricalMapping2D{worldToTexture}
+}
+
 func (m *CylindricalMapping2D) Map(dg *DifferentialGeometry) (s, t, dsdx, dtdx, dsdy, dtdy float64) {
 	s, t = m.cylinder(dg.p)
 	// Compute texture coordinate differentials for cylinder $(u,v)$ mapping
@@ -117,15 +136,23 @@ func (m *CylindricalMapping2D) cylinder(p *Point) (s, t float64) {
 	return s, t
 }
 
+func NewPlanarMapping2D(vs, vt Vector, ds, dt float64) *PlanarMapping2D {
+	return &PlanarMapping2D{vs, vt, ds, dt}
+}
+
 func (m *PlanarMapping2D) Map(dg *DifferentialGeometry) (s, t, dsdx, dtdx, dsdy, dtdy float64) {
 	vec := dg.p.Sub(CreatePoint(0, 0, 0))
-	s = m.ds + DotVector(vec, m.vs)
-	t = m.dt + DotVector(vec, m.vt)
-	dsdx = DotVector(dg.dpdx, m.vs)
-	dtdx = DotVector(dg.dpdx, m.vt)
-	dsdy = DotVector(dg.dpdy, m.vs)
-	dtdy = DotVector(dg.dpdy, m.vt)
+	s = m.ds + DotVector(vec, &m.vs)
+	t = m.dt + DotVector(vec, &m.vt)
+	dsdx = DotVector(dg.dpdx, &m.vs)
+	dtdx = DotVector(dg.dpdx, &m.vt)
+	dsdy = DotVector(dg.dpdy, &m.vs)
+	dtdy = DotVector(dg.dpdy, &m.vt)
 	return s, t, dsdx, dtdx, dsdy, dtdy
+}
+
+func NewIdentityMapping3D(worldToTexture *Transform) *IdentityMapping3D {
+	return &IdentityMapping3D{worldToTexture}
 }
 
 func (m *IdentityMapping3D) Map(dg *DifferentialGeometry) (p *Point, dpdx, dpdy *Vector) {
@@ -305,9 +332,19 @@ type (
 	Checkerboard2DTextureFloat struct {
 		mapping    TextureMapping2D
 		tex1, tex2 TextureFloat
+		aaMethod   AntialiasMethod
 	}
 	Checkerboard2DTextureSpectrum struct {
 		mapping    TextureMapping2D
+		tex1, tex2 TextureSpectrum
+		aaMethod   AntialiasMethod
+	}
+	Checkerboard3DTextureFloat struct {
+		mapping    TextureMapping3D
+		tex1, tex2 TextureFloat
+	}
+	Checkerboard3DTextureSpectrum struct {
+		mapping    TextureMapping3D
 		tex1, tex2 TextureSpectrum
 	}
 
@@ -400,40 +437,283 @@ type (
 	}
 )
 
-func (t *BilerpTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-	return 0.0
+func NewBilerpTextureFloat(mapping TextureMapping2D, v00, v01, v10, v11 float64) *BilerpTextureFloat {
+	return &BilerpTextureFloat{mapping, v00, v01, v10, v11}
+}
+func (tex *BilerpTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	s, t, _, _, _, _ := tex.mapping.Map(dg)
+	return (1-s)*(1-t)*tex.v00 + (1-s)*(t)*tex.v01 +
+		(s)*(1-t)*tex.v10 + (s)*(t)*tex.v11
 }
 
-func (t *BilerpTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
-	return *CreateSpectrum1(0.0)
+func NewBilerpTextureSpectrum(mapping TextureMapping2D, v00, v01, v10, v11 Spectrum) *BilerpTextureSpectrum {
+	return &BilerpTextureSpectrum{mapping, v00, v01, v10, v11}
+}
+func (tex *BilerpTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
+	s, t, _, _, _, _ := tex.mapping.Map(dg)
+	return *tex.v00.Scale((1 - s) * (1 - t)).Add(tex.v01.Scale((1 - s) * t)).Add(tex.v10.Scale(s * (1 - t))).Add(tex.v11.Scale(s * t))
 }
 
 func CreateBilerpFloatTexture(tex2world *Transform, tp *TextureParams) *BilerpTextureFloat {
-	return nil
+	// Initialize 2D texture mapping _map_ from _tp_
+	var mapping TextureMapping2D
+	maptype := tp.FindString("mapping", "uv")
+	if strings.Compare(maptype, "uv") == 0 {
+		su := tp.FindFloat("uscale", 1.0)
+		sv := tp.FindFloat("vscale", 1.0)
+		du := tp.FindFloat("udelta", 0.0)
+		dv := tp.FindFloat("vdelta", 0.0)
+		mapping = NewUVMapping2D(su, sv, du, dv)
+	} else if strings.Compare(maptype, "spherical") == 0 {
+		mapping = NewSphericalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "cylindrical") == 0 {
+		mapping = NewCylindricalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "planar") == 0 {
+		mapping = NewPlanarMapping2D(tp.FindVector("v1", Vector{1, 0, 0}),
+			tp.FindVector("v2", Vector{0, 1, 0}),
+			tp.FindFloat("udelta", 0.0), tp.FindFloat("vdelta", 0.0))
+	} else {
+		Error("2D texture mapping \"%s\" unknown", maptype)
+		mapping = NewUVMapping2D(1, 1, 0, 0)
+	}
+	return NewBilerpTextureFloat(mapping,
+		tp.FindFloat("v00", 0.0), tp.FindFloat("v01", 1.0),
+		tp.FindFloat("v10", 0.0), tp.FindFloat("v11", 1.0))
 }
+
 func CreateBilerpSpectrumTexture(tex2world *Transform, tp *TextureParams) *BilerpTextureSpectrum {
-	return nil
+	// Initialize 2D texture mapping _map_ from _tp_
+	var mapping TextureMapping2D
+	maptype := tp.FindString("mapping", "uv")
+	if strings.Compare(maptype, "uv") == 0 {
+		su := tp.FindFloat("uscale", 1.0)
+		sv := tp.FindFloat("vscale", 1.0)
+		du := tp.FindFloat("udelta", 0.0)
+		dv := tp.FindFloat("vdelta", 0.0)
+		mapping = NewUVMapping2D(su, sv, du, dv)
+	} else if strings.Compare(maptype, "spherical") == 0 {
+		mapping = NewSphericalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "cylindrical") == 0 {
+		mapping = NewCylindricalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "planar") == 0 {
+		mapping = NewPlanarMapping2D(tp.FindVector("v1", Vector{1, 0, 0}),
+			tp.FindVector("v2", Vector{0, 1, 0}),
+			tp.FindFloat("udelta", 0.0), tp.FindFloat("vdelta", 0.0))
+	} else {
+		Error("2D texture mapping \"%s\" unknown", maptype)
+		mapping = NewUVMapping2D(1, 1, 0, 0)
+	}
+	return NewBilerpTextureSpectrum(mapping,
+		tp.FindSpectrum("v00", *CreateSpectrum1(0)), tp.FindSpectrum("v01", *CreateSpectrum1(1)),
+		tp.FindSpectrum("v10", *CreateSpectrum1(0)), tp.FindSpectrum("v11", *CreateSpectrum1(1)))
 }
 
-func (t *Checkerboard2DTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-	return 0.0
+func NewCheckerboard2DTextureFloat(mapping TextureMapping2D, tex1, tex2 TextureFloat, aamode string) *Checkerboard2DTextureFloat {
+	aaMethod := AA_NONE
+	if strings.Compare(aamode, "closedform") == 0 {
+		aaMethod = AA_CLOSEDFORM
+	}
+	return &Checkerboard2DTextureFloat{mapping, tex1, tex2, aaMethod}
 }
 
-func (t *Checkerboard2DTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
-	return *CreateSpectrum1(0.0)
+func (tex *Checkerboard2DTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	s, t, dsdx, dtdx, dsdy, dtdy := tex.mapping.Map(dg)
+	if tex.aaMethod == AA_NONE {
+		// Point sample _Checkerboard2DTexture_
+		if Floor2Int(s)+Floor2Int(t)%2 == 0 {
+			return tex.tex1.Evaluate(dg)
+		}
+		return tex.tex2.Evaluate(dg)
+	} else {
+		// Compute closed-form box-filtered _Checkerboard2DTexture_ value
+
+		// Evaluate single check if filter is entirely inside one of them
+		ds := math.Max(math.Abs(dsdx), math.Abs(dsdy))
+		dt := math.Max(math.Abs(dtdx), math.Abs(dtdy))
+		s0, s1 := s-ds, s+ds
+		t0, t1 := t-dt, t+dt
+		if Floor2Int(s0) == Floor2Int(s1) && Floor2Int(t0) == Floor2Int(t1) {
+			// Point sample _Checkerboard2DTexture_
+			if Floor2Int(s)+Floor2Int(t)%2 == 0 {
+				return tex.tex1.Evaluate(dg)
+			}
+			return tex.tex2.Evaluate(dg)
+		}
+
+		// Apply box filter to checkerboard region
+		BUMPINT := func(x float64) float64 {
+			return (float64(Floor2Int((x)/2)) + 2.0*math.Max((x/2)-float64(Floor2Int(x/2))-0.5, 0.0))
+		}
+		sint := (BUMPINT(s1) - BUMPINT(s0)) / (2.0 * ds)
+		tint := (BUMPINT(t1) - BUMPINT(t0)) / (2.0 * dt)
+		area2 := sint + tint - 2.0*sint*tint
+		if ds > 1.0 || dt > 1.0 {
+			area2 = 0.5
+		}
+		return (1.0-area2)*tex.tex1.Evaluate(dg) + area2*tex.tex2.Evaluate(dg)
+	}
 }
 
-func CreateCheckerboardFloatTexture(tex2world *Transform, tp *TextureParams) *Checkerboard2DTextureFloat {
-	return nil
-}
-func CreateCheckerboardSpectrumTexture(tex2world *Transform, tp *TextureParams) *Checkerboard2DTextureSpectrum {
-	return nil
+func NewCheckerboard2DTextureSpectrum(mapping TextureMapping2D, tex1, tex2 TextureSpectrum, aamode string) *Checkerboard2DTextureSpectrum {
+	aaMethod := AA_NONE
+	if strings.Compare(aamode, "closedform") == 0 {
+		aaMethod = AA_CLOSEDFORM
+	}
+	return &Checkerboard2DTextureSpectrum{mapping, tex1, tex2, aaMethod}
 }
 
+func (tex *Checkerboard2DTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
+	s, t, dsdx, dtdx, dsdy, dtdy := tex.mapping.Map(dg)
+	if tex.aaMethod == AA_NONE {
+		// Point sample _Checkerboard2DTexture_
+		if Floor2Int(s)+Floor2Int(t)%2 == 0 {
+			return tex.tex1.Evaluate(dg)
+		}
+		return tex.tex2.Evaluate(dg)
+	} else {
+		// Compute closed-form box-filtered _Checkerboard2DTexture_ value
+
+		// Evaluate single check if filter is entirely inside one of them
+		ds := math.Max(math.Abs(dsdx), math.Abs(dsdy))
+		dt := math.Max(math.Abs(dtdx), math.Abs(dtdy))
+		s0, s1 := s-ds, s+ds
+		t0, t1 := t-dt, t+dt
+		if Floor2Int(s0) == Floor2Int(s1) && Floor2Int(t0) == Floor2Int(t1) {
+			// Point sample _Checkerboard2DTexture_
+			if Floor2Int(s)+Floor2Int(t)%2 == 0 {
+				return tex.tex1.Evaluate(dg)
+			}
+			return tex.tex2.Evaluate(dg)
+		}
+
+		// Apply box filter to checkerboard region
+		BUMPINT := func(x float64) float64 {
+			return (float64(Floor2Int((x)/2)) + 2.0*math.Max((x/2)-float64(Floor2Int(x/2))-0.5, 0.0))
+		}
+		sint := (BUMPINT(s1) - BUMPINT(s0)) / (2.0 * ds)
+		tint := (BUMPINT(t1) - BUMPINT(t0)) / (2.0 * dt)
+		area2 := sint + tint - 2.0*sint*tint
+		if ds > 1.0 || dt > 1.0 {
+			area2 = 0.5
+		}
+		spec1 := tex.tex1.Evaluate(dg)
+		spec2 := tex.tex2.Evaluate(dg)
+		return *spec1.Scale(1.0 - area2).Add(spec2.Scale(area2))
+	}
+}
+
+func NewCheckerboard3DTextureFloat(mapping TextureMapping3D, tex1, tex2 TextureFloat) *Checkerboard3DTextureFloat {
+	return &Checkerboard3DTextureFloat{mapping, tex1, tex2}
+}
+func (tex *Checkerboard3DTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	p, _, _ := tex.mapping.Map(dg)
+	if (Floor2Int(p.x)+Floor2Int(p.y)+Floor2Int(p.z))%2 == 0 {
+		return tex.tex1.Evaluate(dg)
+	} else {
+		return tex.tex2.Evaluate(dg)
+	}
+}
+
+func NewCheckerboard3DTextureSpectrum(mapping TextureMapping3D, tex1, tex2 TextureSpectrum) *Checkerboard3DTextureSpectrum {
+	return &Checkerboard3DTextureSpectrum{mapping, tex1, tex2}
+}
+func (tex *Checkerboard3DTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
+	p, _, _ := tex.mapping.Map(dg)
+	if (Floor2Int(p.x)+Floor2Int(p.y)+Floor2Int(p.z))%2 == 0 {
+		return tex.tex1.Evaluate(dg)
+	} else {
+		return tex.tex2.Evaluate(dg)
+	}
+}
+
+func CreateCheckerboardFloatTexture(tex2world *Transform, tp *TextureParams) TextureFloat {
+	dim := tp.FindInt("dimension", 2)
+	if dim != 2 && dim != 3 {
+		Error("%d dimensional checkerboard texture not supported", dim)
+		return nil
+	}
+	tex1 := tp.GetFloatTexture("tex1", 1.0)
+	tex2 := tp.GetFloatTexture("tex2", 0.0)
+	if dim == 2 {
+		// Initialize 2D texture mapping _map_ from _tp_
+		var mapping TextureMapping2D
+		maptype := tp.FindString("mapping", "uv")
+		if strings.Compare(maptype, "uv") == 0 {
+			su := tp.FindFloat("uscale", 1.0)
+			sv := tp.FindFloat("vscale", 1.0)
+			du := tp.FindFloat("udelta", 0.0)
+			dv := tp.FindFloat("vdelta", 0.0)
+			mapping = NewUVMapping2D(su, sv, du, dv)
+		} else if strings.Compare(maptype, "spherical") == 0 {
+			mapping = NewSphericalMapping2D(InverseTransform(tex2world))
+		} else if strings.Compare(maptype, "cylindrical") == 0 {
+			mapping = NewCylindricalMapping2D(InverseTransform(tex2world))
+		} else if strings.Compare(maptype, "planar") == 0 {
+			mapping = NewPlanarMapping2D(tp.FindVector("v1", Vector{1, 0, 0}),
+				tp.FindVector("v2", Vector{0, 1, 0}),
+				tp.FindFloat("udelta", 0.0), tp.FindFloat("vdelta", 0.0))
+		} else {
+			Error("2D texture mapping \"%s\" unknown", maptype)
+			mapping = NewUVMapping2D(1.0, 1.0, 0.0, 0.0)
+		}
+		aamode := tp.FindString("aamode", "closedform")
+		return NewCheckerboard2DTextureFloat(mapping, tex1, tex2, aamode)
+	} else {
+		// Initialize 3D texture mapping _map_ from _tp_
+		mapping := NewIdentityMapping3D(tex2world)
+		return NewCheckerboard3DTextureFloat(mapping, tex1, tex2)
+	}
+}
+
+func CreateCheckerboardSpectrumTexture(tex2world *Transform, tp *TextureParams) TextureSpectrum {
+	dim := tp.FindInt("dimension", 2)
+	if dim != 2 && dim != 3 {
+		Error("%d dimensional checkerboard texture not supported", dim)
+		return nil
+	}
+	tex1 := tp.GetSpectrumTexture("tex1", *CreateSpectrum1(1.0))
+	tex2 := tp.GetSpectrumTexture("tex2", *CreateSpectrum1(0.0))
+	if dim == 2 {
+		// Initialize 2D texture mapping _map_ from _tp_
+		var mapping TextureMapping2D
+		maptype := tp.FindString("mapping", "uv")
+		if strings.Compare(maptype, "uv") == 0 {
+			su := tp.FindFloat("uscale", 1.0)
+			sv := tp.FindFloat("vscale", 1.0)
+			du := tp.FindFloat("udelta", 0.0)
+			dv := tp.FindFloat("vdelta", 0.0)
+			mapping = NewUVMapping2D(su, sv, du, dv)
+		} else if strings.Compare(maptype, "spherical") == 0 {
+			mapping = NewSphericalMapping2D(InverseTransform(tex2world))
+		} else if strings.Compare(maptype, "cylindrical") == 0 {
+			mapping = NewCylindricalMapping2D(InverseTransform(tex2world))
+		} else if strings.Compare(maptype, "planar") == 0 {
+			mapping = NewPlanarMapping2D(tp.FindVector("v1", Vector{1, 0, 0}),
+				tp.FindVector("v2", Vector{0, 1, 0}),
+				tp.FindFloat("udelta", 0.0), tp.FindFloat("vdelta", 0.0))
+		} else {
+			Error("2D texture mapping \"%s\" unknown", maptype)
+			mapping = NewUVMapping2D(1.0, 1.0, 0.0, 0.0)
+		}
+		aamode := tp.FindString("aamode", "closedform")
+		return NewCheckerboard2DTextureSpectrum(mapping, tex1, tex2, aamode)
+	} else {
+		// Initialize 3D texture mapping _map_ from _tp_
+		mapping := NewIdentityMapping3D(tex2world)
+		return NewCheckerboard3DTextureSpectrum(mapping, tex1, tex2)
+	}
+}
+
+func NewConstantTextureFloat(value float64) *ConstantTextureFloat {
+	return &ConstantTextureFloat{value}
+}
 func (t *ConstantTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
 	return t.value
 }
 
+func NewConstantTextureSpectrum(value Spectrum) *ConstantTextureSpectrum {
+	return &ConstantTextureSpectrum{value}
+}
 func (t *ConstantTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
 	return t.value
 }
@@ -445,33 +725,129 @@ func CreateConstantSpectrumTexture(tex2world *Transform, tp *TextureParams) *Con
 	return &ConstantTextureSpectrum{tp.FindSpectrum("value", *CreateSpectrum1(1.0))}
 }
 
-func (t *DotsTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-	return 0.0
+func NewDotsTextureFloat(mapping TextureMapping2D, tex1, tex2 TextureFloat) *DotsTextureFloat {
+	return &DotsTextureFloat{mapping, tex1, tex2}
 }
 
-func (t *DotsTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
-	return *CreateSpectrum1(0.0)
+func (tex *DotsTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	// Compute cell indices for dots
+	s, t, _, _, _, _ := tex.mapping.Map(dg)
+	sCell, tCell := float64(Floor2Int(s+0.5)), float64(Floor2Int(t+0.5))
+
+	// Return _insideDot_ result if point is inside dot
+	if Noise(sCell+0.5, tCell+0.5, 0.0) > 0 {
+		radius := 0.35
+		maxShift := 0.5 - radius
+		sCenter := sCell + maxShift*Noise(sCell+1.50, tCell+2.8, 0.0)
+		tCenter := tCell + maxShift*Noise(sCell+4.5, tCell+9.8, 0.0)
+		ds, dt := s-sCenter, t-tCenter
+		if ds*ds+dt*dt < radius*radius {
+			return tex.insideDot.Evaluate(dg)
+		}
+	}
+	return tex.outsideDot.Evaluate(dg)
+}
+
+func NewDotsTextureSpectrum(mapping TextureMapping2D, tex1, tex2 TextureSpectrum) *DotsTextureSpectrum {
+	return &DotsTextureSpectrum{mapping, tex1, tex2}
+}
+func (tex *DotsTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
+	// Compute cell indices for dots
+	s, t, _, _, _, _ := tex.mapping.Map(dg)
+	sCell, tCell := float64(Floor2Int(s+0.5)), float64(Floor2Int(t+0.5))
+
+	// Return _insideDot_ result if point is inside dot
+	if Noise(sCell+0.5, tCell+0.5, 0.0) > 0 {
+		radius := 0.35
+		maxShift := 0.5 - radius
+		sCenter := sCell + maxShift*Noise(sCell+1.50, tCell+2.8, 0.0)
+		tCenter := tCell + maxShift*Noise(sCell+4.5, tCell+9.8, 0.0)
+		ds, dt := s-sCenter, t-tCenter
+		if ds*ds+dt*dt < radius*radius {
+			return tex.insideDot.Evaluate(dg)
+		}
+	}
+	return tex.outsideDot.Evaluate(dg)
 }
 
 func CreateDotsFloatTexture(tex2world *Transform, tp *TextureParams) *DotsTextureFloat {
-	return nil
+	// Initialize 2D texture mapping _map_ from _tp_
+	var mapping TextureMapping2D
+	maptype := tp.FindString("mapping", "uv")
+	if strings.Compare(maptype, "uv") == 0 {
+		su := tp.FindFloat("uscale", 1.0)
+		sv := tp.FindFloat("vscale", 1.0)
+		du := tp.FindFloat("udelta", 0.0)
+		dv := tp.FindFloat("vdelta", 0.0)
+		mapping = NewUVMapping2D(su, sv, du, dv)
+	} else if strings.Compare(maptype, "spherical") == 0 {
+		mapping = NewSphericalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "cylindrical") == 0 {
+		mapping = NewCylindricalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "planar") == 0 {
+		mapping = NewPlanarMapping2D(tp.FindVector("v1", Vector{1, 0, 0}),
+			tp.FindVector("v2", Vector{0, 1, 0}),
+			tp.FindFloat("udelta", 0.0), tp.FindFloat("vdelta", 0.0))
+	} else {
+		Error("2D texture mapping \"%s\" unknown", maptype)
+		mapping = NewUVMapping2D(1, 1, 0, 0)
+	}
+	return NewDotsTextureFloat(mapping, tp.GetFloatTexture("inside", 1.0), tp.GetFloatTexture("outside", 0.0))
 }
+
 func CreateDotsSpectrumTexture(tex2world *Transform, tp *TextureParams) *DotsTextureSpectrum {
-	return nil
+	// Initialize 2D texture mapping _map_ from _tp_
+	var mapping TextureMapping2D
+	maptype := tp.FindString("mapping", "uv")
+	if strings.Compare(maptype, "uv") == 0 {
+		su := tp.FindFloat("uscale", 1.0)
+		sv := tp.FindFloat("vscale", 1.0)
+		du := tp.FindFloat("udelta", 0.0)
+		dv := tp.FindFloat("vdelta", 0.0)
+		mapping = NewUVMapping2D(su, sv, du, dv)
+	} else if strings.Compare(maptype, "spherical") == 0 {
+		mapping = NewSphericalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "cylindrical") == 0 {
+		mapping = NewCylindricalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "planar") == 0 {
+		mapping = NewPlanarMapping2D(tp.FindVector("v1", Vector{1, 0, 0}),
+			tp.FindVector("v2", Vector{0, 1, 0}),
+			tp.FindFloat("udelta", 0.0), tp.FindFloat("vdelta", 0.0))
+	} else {
+		Error("2D texture mapping \"%s\" unknown", maptype)
+		mapping = NewUVMapping2D(1, 1, 0, 0)
+	}
+	return NewDotsTextureSpectrum(mapping, tp.GetSpectrumTexture("inside", *CreateSpectrum1(1.0)), tp.GetSpectrumTexture("outside", *CreateSpectrum1(0.0)))
 }
 
-func (t *FBmTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-	return 0.0
+func NewFBmTextureFloat(oct int, roughness float64, mapping TextureMapping3D) *FBmTextureFloat {
+	return &FBmTextureFloat{roughness, oct, mapping}
+}
+func (tex *FBmTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	P, dpdx, dpdy := tex.mapping.Map(dg)
+	return FBm(P, dpdx, dpdy, tex.omega, tex.octaves)
 }
 
-func (t *FBmTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
-	return *CreateSpectrum1(0.0)
+func NewFBmTextureSpectrum(oct int, roughness float64, mapping TextureMapping3D) *FBmTextureSpectrum {
+	return &FBmTextureSpectrum{roughness, oct, mapping}
+}
+func (tex *FBmTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
+	P, dpdx, dpdy := tex.mapping.Map(dg)
+	return *CreateSpectrum1(FBm(P, dpdx, dpdy, tex.omega, tex.octaves))
 }
 
 func CreateFBmFloatTexture(tex2world *Transform, tp *TextureParams) *FBmTextureFloat {
-	return nil
+	// Initialize 3D texture mapping _map_ from _tp_
+	mapping := NewIdentityMapping3D(tex2world)
+	return NewFBmTextureFloat(tp.FindInt("octaves", 8), tp.FindFloat("roughness", 0.5), mapping)
 }
 func CreateFBmSpectrumTexture(tex2world *Transform, tp *TextureParams) *FBmTextureSpectrum {
+	// Initialize 3D texture mapping _map_ from _tp_
+	mapping := NewIdentityMapping3D(tex2world)
+	return NewFBmTextureSpectrum(tp.FindInt("octaves", 8), tp.FindFloat("roughness", 0.5), mapping)
+}
+
+func NewImageTextureFloat(mapping TextureMapping2D, filename string, trilinear bool, maxanisotropy float64, wrap WrapMode, scale, gamma float64) *ImageTextureFloat {
 	return nil
 }
 
@@ -479,139 +855,260 @@ func (t *ImageTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
 	return 0.0
 }
 
+func NewImageTextureSpectrum(mapping TextureMapping2D, filename string, trilinear bool, maxanisotropy float64, wrap WrapMode, scale, gamma float64) *ImageTextureSpectrum {
+	return nil
+}
+
 func (t *ImageTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
 	return *CreateSpectrum1(0.0)
 }
 
 func CreateImageFloatTexture(tex2world *Transform, tp *TextureParams) *ImageTextureFloat {
-    // Initialize 2D texture mapping _map_ from _tp_
-    var mapping *TextureMapping2D
-    maptype := tp.FindString("mapping", "uv");
-    if strings.Compare(maptype, "uv") == 0 {
-        su := tp.FindFloat("uscale", 1.0)
-        sv := tp.FindFloat("vscale", 1.0)
-        du := tp.FindFloat("udelta", 0.0)
-        dv := tp.FindFloat("vdelta", 0.0)
-        mapping = NewUVMapping2D(su, sv, du, dv)
-    } else if strings.Compare(maptype, "spherical") == 0 { 
-    	mapping = NewSphericalMapping2D(Inverse(tex2world)) 
-    } else if strings.Compare(maptype, "cylindrical") == 0 {
-   		mapping = NewCylindricalMapping2D(Inverse(tex2world))
-    } else if (maptype == "planar") == 0 {
-        mapping = NewPlanarMapping2D(tp.FindVector("v1", CreateVector(1,0,0)),
-            tp.FindVector("v2", CreateVector(0,1,0)),
-            tp.FindFloat("udelta", 0.0), tp.FindFloat("vdelta", 0.0))
-    } else {
-        Error("2D texture mapping \"%s\" unknown", maptype)
-        mapping = NewUVMapping2D()
-    }
+	// Initialize 2D texture mapping _map_ from _tp_
+	var mapping TextureMapping2D
+	maptype := tp.FindString("mapping", "uv")
+	if strings.Compare(maptype, "uv") == 0 {
+		su := tp.FindFloat("uscale", 1.0)
+		sv := tp.FindFloat("vscale", 1.0)
+		du := tp.FindFloat("udelta", 0.0)
+		dv := tp.FindFloat("vdelta", 0.0)
+		mapping = NewUVMapping2D(su, sv, du, dv)
+	} else if strings.Compare(maptype, "spherical") == 0 {
+		mapping = NewSphericalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "cylindrical") == 0 {
+		mapping = NewCylindricalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "planar") == 0 {
+		mapping = NewPlanarMapping2D(tp.FindVector("v1", Vector{1, 0, 0}),
+			tp.FindVector("v2", Vector{0, 1, 0}),
+			tp.FindFloat("udelta", 0.0), tp.FindFloat("vdelta", 0.0))
+	} else {
+		Error("2D texture mapping \"%s\" unknown", maptype)
+		mapping = NewUVMapping2D(1.0, 1.0, 0.0, 0.0)
+	}
 
-    // Initialize _ImageTexture_ parameters
-    maxAniso := tp.FindFloat("maxanisotropy", 8.0)
-    trilerp := tp.FindBool("trilinear", false)
-    wrap := tp.FindString("wrap", "repeat")
-    wrapMode := TEXTURE_REPEAT
-    if strings.Compare(wrap, "black") == 0 { 
-    	wrapMode = TEXTURE_BLACK
-    } else if strings.Compare(wrap, "clamp") == 0 { 
-    	wrapMode = TEXTURE_CLAMP
-	}    	
-     scale := tp.FindFloat("scale", 1.0)
-     gamma := tp.FindFloat("gamma", 1.0)
-    return CreateImageTextureFloat(mapping, tp.FindFilename("filename"),
-        trilerp, maxAniso, wrapMode, scale, gamma)
+	// Initialize _ImageTexture_ parameters
+	maxAniso := tp.FindFloat("maxanisotropy", 8.0)
+	trilerp := tp.FindBool("trilinear", false)
+	wrap := tp.FindString("wrap", "repeat")
+	wrapMode := TEXTURE_REPEAT
+	if strings.Compare(wrap, "black") == 0 {
+		wrapMode = TEXTURE_BLACK
+	} else if strings.Compare(wrap, "clamp") == 0 {
+		wrapMode = TEXTURE_CLAMP
+	}
+	scale := tp.FindFloat("scale", 1.0)
+	gamma := tp.FindFloat("gamma", 1.0)
+	return NewImageTextureFloat(mapping, tp.FindFilename("filename", ""),
+		trilerp, maxAniso, wrapMode, scale, gamma)
 }
 
 func CreateImageSpectrumTexture(tex2world *Transform, tp *TextureParams) *ImageTextureSpectrum {
-	return nil
+	// Initialize 2D texture mapping _map_ from _tp_
+	var mapping TextureMapping2D
+	maptype := tp.FindString("mapping", "uv")
+	if strings.Compare(maptype, "uv") == 0 {
+		su := tp.FindFloat("uscale", 1.0)
+		sv := tp.FindFloat("vscale", 1.0)
+		du := tp.FindFloat("udelta", 0.0)
+		dv := tp.FindFloat("vdelta", 0.0)
+		mapping = NewUVMapping2D(su, sv, du, dv)
+	} else if strings.Compare(maptype, "spherical") == 0 {
+		mapping = NewSphericalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "cylindrical") == 0 {
+		mapping = NewCylindricalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "planar") == 0 {
+		mapping = NewPlanarMapping2D(tp.FindVector("v1", Vector{1, 0, 0}),
+			tp.FindVector("v2", Vector{0, 1, 0}),
+			tp.FindFloat("udelta", 0.0), tp.FindFloat("vdelta", 0.0))
+	} else {
+		Error("2D texture mapping \"%s\" unknown", maptype)
+		mapping = NewUVMapping2D(1.0, 1.0, 0.0, 0.0)
+	}
+
+	// Initialize _ImageTexture_ parameters
+	maxAniso := tp.FindFloat("maxanisotropy", 8.0)
+	trilerp := tp.FindBool("trilinear", false)
+	wrap := tp.FindString("wrap", "repeat")
+	wrapMode := TEXTURE_REPEAT
+	if strings.Compare(wrap, "black") == 0 {
+		wrapMode = TEXTURE_BLACK
+	} else if strings.Compare(wrap, "clamp") == 0 {
+		wrapMode = TEXTURE_CLAMP
+	}
+	scale := tp.FindFloat("scale", 1.0)
+	gamma := tp.FindFloat("gamma", 1.0)
+	return NewImageTextureSpectrum(mapping, tp.FindFilename("filename", ""),
+		trilerp, maxAniso, wrapMode, scale, gamma)
 }
 
+func NewMarbleTextureFloat(oct int, roughness, scale, variation float64, mapping TextureMapping3D) *MarbleTextureFloat {
+	return &MarbleTextureFloat{mapping, oct, roughness, scale, variation}
+}
 func (t *MarbleTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
 	return 0.0
 }
 
-func (t *MarbleTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
-	return *CreateSpectrum1(0.0)
+const (
+	MARBLE_NC   = 9
+	MARBLE_NSEG = MARBLE_NC - 3
+)
+
+var marbleColors [MARBLE_NC][3]float64 = [MARBLE_NC][3]float64{{.58, .58, .6}, {.58, .58, .6}, {.58, .58, .6},
+	{.5, .5, .5}, {.6, .59, .58}, {.58, .58, .6},
+	{.58, .58, .6}, {.2, .2, .33}, {.58, .58, .6}}
+
+func NewMarbleTextureSpectrum(oct int, roughness, scale, variation float64, mapping TextureMapping3D) *MarbleTextureSpectrum {
+	return &MarbleTextureSpectrum{mapping, oct, roughness, scale, variation}
+}
+func (tex *MarbleTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
+	P, dpdx, dpdy := tex.mapping.Map(dg)
+	P = P.Scale(tex.scale)
+
+	marble := P.y + tex.variation*FBm(P, dpdx.Scale(tex.scale), dpdy.Scale(tex.scale), tex.omega, tex.octaves)
+	t := 0.5 + 0.5*math.Sin(marble)
+
+	// Evaluate marble spline at _t_
+	first := Floor2Int(t * MARBLE_NSEG)
+	t = (t*MARBLE_NSEG - float64(first))
+	c0 := CreateSpectrum(marbleColors[first])
+	c1 := CreateSpectrum(marbleColors[first+1])
+	c2 := CreateSpectrum(marbleColors[first+2])
+	c3 := CreateSpectrum(marbleColors[first+3])
+	// Bezier spline evaluated with de Castilejau's algorithm
+	s0 := c0.Scale(1.0 - t).Add(c1.Scale(t))
+	s1 := c1.Scale(1.0 - t).Add(c2.Scale(t))
+	s2 := c2.Scale(1.0 - t).Add(c3.Scale(t))
+	s0 = s0.Scale(1.0 - t).Add(s1.Scale(t))
+	s1 = s1.Scale(1.0 - t).Add(s2.Scale(t))
+	// Extra scale of 1.5 to increase variation among colors
+	return *(s0.Scale(1.0 - t).Add(s1.Scale(t))).Scale(1.5)
 }
 
 func CreateMarbleFloatTexture(tex2world *Transform, tp *TextureParams) *MarbleTextureFloat {
 	return nil
 }
 func CreateMarbleSpectrumTexture(tex2world *Transform, tp *TextureParams) *MarbleTextureSpectrum {
-	return nil
+	// Initialize 3D texture mapping _map_ from _tp_
+	mapping := NewIdentityMapping3D(tex2world)
+	return NewMarbleTextureSpectrum(tp.FindInt("octaves", 8), tp.FindFloat("roughness", 0.5), tp.FindFloat("scale", 1.0),
+		tp.FindFloat("variation", 0.2), mapping)
 }
 
-func (t *MixTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-	return 0.0
+func (tex *MixTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	t1, t2 := tex.tex1.Evaluate(dg), tex.tex2.Evaluate(dg)
+	amt := tex.amount.Evaluate(dg)
+	return (1.0-amt)*t1 + amt*t2
 }
 
-func (t *MixTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
-	return *CreateSpectrum1(0.0)
+func (tex *MixTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
+	t1, t2 := tex.tex1.Evaluate(dg), tex.tex2.Evaluate(dg)
+	amt := tex.amount.Evaluate(dg)
+	return *t1.Scale(1.0 - amt).Add(t2.Scale(amt))
 }
 
 func CreateMixFloatTexture(tex2world *Transform, tp *TextureParams) *MixTextureFloat {
-	return nil
+	return &MixTextureFloat{tp.GetFloatTexture("tex1", 0.0), tp.GetFloatTexture("tex2", 1.0), tp.GetFloatTexture("amount", 0.5)}
 }
 func CreateMixSpectrumTexture(tex2world *Transform, tp *TextureParams) *MixTextureSpectrum {
-	return nil
+	return &MixTextureSpectrum{tp.GetSpectrumTexture("tex1", *CreateSpectrum1(0.0)), tp.GetSpectrumTexture("tex2", *CreateSpectrum1(1.0)), tp.GetFloatTexture("amount", 0.50)}
 }
 
-func (t *ScaleTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-	return 0.0
+func (tex *ScaleTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	return tex.tex1.Evaluate(dg) * tex.tex2.Evaluate(dg)
 }
 
-func (t *ScaleTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
-	return *CreateSpectrum1(0.0)
+func (tex *ScaleTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
+	t1, t2 := tex.tex1.Evaluate(dg), tex.tex2.Evaluate(dg)
+	return *t1.Mult(&t2)
 }
 
 func CreateScaleFloatTexture(tex2world *Transform, tp *TextureParams) *ScaleTextureFloat {
-	return nil
+	return &ScaleTextureFloat{tp.GetFloatTexture("tex1", 1.0), tp.GetFloatTexture("tex2", 1.0)}
 }
 func CreateScaleSpectrumTexture(tex2world *Transform, tp *TextureParams) *ScaleTextureSpectrum {
-	return nil
+	return &ScaleTextureSpectrum{tp.GetSpectrumTexture("tex1", *CreateSpectrum1(1.0)), tp.GetSpectrumTexture("tex2", *CreateSpectrum1(1.0))}
 }
 
-func (t *UVTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+func (tex *UVTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
 	return 0.0
 }
 
-func (t *UVTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
-	return *CreateSpectrum1(0.0)
+func (tex *UVTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
+	s, t, _, _, _, _ := tex.mapping.Map(dg)
+	rgb := [3]float64{s - float64(Floor2Int(s)), t - float64(Floor2Int(t)), 0.0}
+	return *CreateSpectrum(rgb)
 }
 
 func CreateUVFloatTexture(tex2world *Transform, tp *TextureParams) *UVTextureFloat {
 	return nil
 }
 func CreateUVSpectrumTexture(tex2world *Transform, tp *TextureParams) *UVTextureSpectrum {
-	return nil
+	// Initialize 2D texture mapping _map_ from _tp_
+	var mapping TextureMapping2D
+	maptype := tp.FindString("mapping", "uv")
+	if strings.Compare(maptype, "uv") == 0 {
+		su := tp.FindFloat("uscale", 1.0)
+		sv := tp.FindFloat("vscale", 1.0)
+		du := tp.FindFloat("udelta", 0.0)
+		dv := tp.FindFloat("vdelta", 0.0)
+		mapping = NewUVMapping2D(su, sv, du, dv)
+	} else if strings.Compare(maptype, "spherical") == 0 {
+		mapping = NewSphericalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "cylindrical") == 0 {
+		mapping = NewCylindricalMapping2D(InverseTransform(tex2world))
+	} else if strings.Compare(maptype, "planar") == 0 {
+		mapping = NewPlanarMapping2D(tp.FindVector("v1", Vector{1, 0, 0}),
+			tp.FindVector("v2", Vector{0, 1, 0}),
+			tp.FindFloat("udelta", 0.0), tp.FindFloat("vdelta", 0.0))
+	} else {
+		Error("2D texture mapping \"%s\" unknown", maptype)
+		mapping = NewUVMapping2D(1.0, 1.0, 0.0, 0.0)
+	}
+	return &UVTextureSpectrum{mapping}
 }
 
-func (t *WindyTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-	return 0.0
+func (tex *WindyTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	P, dpdx, dpdy := tex.mapping.Map(dg)
+	windStrength := FBm(P.Scale(0.1), dpdx.Scale(0.1), dpdy.Scale(0.1), 0.5, 3)
+	waveHeight := FBm(P, dpdx, dpdy, 0.5, 6)
+	return math.Abs(windStrength) * waveHeight
 }
 
-func (t *WindyTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
-	return *CreateSpectrum1(0.0)
+func (tex *WindyTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
+	P, dpdx, dpdy := tex.mapping.Map(dg)
+	windStrength := FBm(P.Scale(0.1), dpdx.Scale(0.1), dpdy.Scale(0.1), 0.5, 3)
+	waveHeight := FBm(P, dpdx, dpdy, 0.5, 6)
+	return *CreateSpectrum1(math.Abs(windStrength) * waveHeight)
 }
 
 func CreateWindyFloatTexture(tex2world *Transform, tp *TextureParams) *WindyTextureFloat {
-	return nil
+	// Initialize 3D texture mapping _map_ from _tp_
+	mapping := NewIdentityMapping3D(tex2world)
+	return &WindyTextureFloat{mapping}
 }
 func CreateWindySpectrumTexture(tex2world *Transform, tp *TextureParams) *WindyTextureSpectrum {
-	return nil
+	// Initialize 3D texture mapping _map_ from _tp_
+	mapping := NewIdentityMapping3D(tex2world)
+	return &WindyTextureSpectrum{mapping}
 }
 
-func (t *WrinkledTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-	return 0.0
+func (tex *WrinkledTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+	P, dpdx, dpdy := tex.mapping.Map(dg)
+	return Turbulence(P, dpdx, dpdy, tex.omega, tex.octaves)
 }
 
-func (t *WrinkledTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
-	return *CreateSpectrum1(0.0)
+func (tex *WrinkledTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
+	P, dpdx, dpdy := tex.mapping.Map(dg)
+	return *CreateSpectrum1(Turbulence(P, dpdx, dpdy, tex.omega, tex.octaves))
 }
 
 func CreateWrinkledFloatTexture(tex2world *Transform, tp *TextureParams) *WrinkledTextureFloat {
-	return nil
+	// Initialize 3D texture mapping _map_ from _tp_
+	mapping := NewIdentityMapping3D(tex2world)
+	return &WrinkledTextureFloat{tp.FindInt("octaves", 8), tp.FindFloat("roughness", 0.5), mapping}
 }
 func CreateWrinkledSpectrumTexture(tex2world *Transform, tp *TextureParams) *WrinkledTextureSpectrum {
-	return nil
+	// Initialize 3D texture mapping _map_ from _tp_
+	mapping := NewIdentityMapping3D(tex2world)
+	return &WrinkledTextureSpectrum{tp.FindInt("octaves", 8), tp.FindFloat("roughness", 0.5), mapping}
 }

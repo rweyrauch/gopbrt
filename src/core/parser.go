@@ -7,8 +7,8 @@ package core
 
 import (
 	"os"
-	"strings"
 	"path/filepath"
+	"strings"
 )
 
 type Object interface{}
@@ -34,7 +34,7 @@ func (ps *ParamSet) FindStringParam(name, defval string) string {
 		}
 	}
 	return value
-} 
+}
 
 func (ps *ParamSet) FindFilenameParam(name, defval string) string {
 	filename := ps.FindStringParam(name, "")
@@ -42,7 +42,7 @@ func (ps *ParamSet) FindFilenameParam(name, defval string) string {
 		return defval
 	}
 	return filepath.Clean(filename)
-} 
+}
 
 func (ps *ParamSet) FindTextureParam(name string) string {
 	if ps == nil {
@@ -60,7 +60,7 @@ func (ps *ParamSet) FindTextureParam(name string) string {
 		}
 	}
 	return value
-} 
+}
 
 func (ps *ParamSet) FindFloatParam(name string, defval float64) float64 {
 	if ps == nil {
@@ -72,12 +72,12 @@ func (ps *ParamSet) FindFloatParam(name string, defval float64) float64 {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
 				if val, ok := values[0].(float64); ok {
-					value = val					
+					value = val
 				}
 			}
 		}
 	}
-	return value	
+	return value
 }
 
 func (ps *ParamSet) FindFloatArrayParam(name string) []float64 {
@@ -98,7 +98,7 @@ func (ps *ParamSet) FindFloatArrayParam(name string) []float64 {
 			}
 		}
 	}
-	return value	
+	return value
 }
 
 func (ps *ParamSet) FindIntParam(name string, defval int) int {
@@ -111,12 +111,12 @@ func (ps *ParamSet) FindIntParam(name string, defval int) int {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
 				if val, ok := values[0].(float64); ok {
-					value = int(val)					
+					value = int(val)
 				}
 			}
 		}
 	}
-	return value	
+	return value
 }
 
 func (ps *ParamSet) FindIntArrayParam(name string) []int {
@@ -137,7 +137,7 @@ func (ps *ParamSet) FindIntArrayParam(name string) []int {
 			}
 		}
 	}
-	return value	
+	return value
 }
 
 func (ps *ParamSet) FindBoolParam(name string, defval bool) bool {
@@ -155,7 +155,7 @@ func (ps *ParamSet) FindBoolParam(name string, defval bool) bool {
 			}
 		}
 	}
-	return value	
+	return value
 }
 
 func (ps *ParamSet) FindPointParam(name string, defval Point) Point {
@@ -167,7 +167,7 @@ func (ps *ParamSet) FindPointParam(name string, defval Point) Point {
 	for i, p := range ps.tokens {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
-                if len(values) == 3 {
+				if len(values) == 3 {
 					if v, ok := values[i*3+0].(float64); ok {
 						value.x = v
 					}
@@ -181,7 +181,7 @@ func (ps *ParamSet) FindPointParam(name string, defval Point) Point {
 			}
 		}
 	}
-	return value	
+	return value
 }
 
 func (ps *ParamSet) FindPointArrayParam(name string) []Point {
@@ -193,7 +193,7 @@ func (ps *ParamSet) FindPointArrayParam(name string) []Point {
 	for i, p := range ps.tokens {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
-                numPoints := len(values)/3
+				numPoints := len(values) / 3
 				array = make([]Point, numPoints, numPoints)
 				for i, _ := range array {
 					if v, ok := values[i*3+0].(float64); ok {
@@ -209,7 +209,7 @@ func (ps *ParamSet) FindPointArrayParam(name string) []Point {
 			}
 		}
 	}
-	return array	
+	return array
 }
 
 func (ps *ParamSet) FindVectorParam(name string, defval Vector) Vector {
@@ -221,7 +221,7 @@ func (ps *ParamSet) FindVectorParam(name string, defval Vector) Vector {
 	for i, p := range ps.tokens {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
-                if len(values) == 3 {
+				if len(values) == 3 {
 					if v, ok := values[i*3+0].(float64); ok {
 						value.x = v
 					}
@@ -235,7 +235,7 @@ func (ps *ParamSet) FindVectorParam(name string, defval Vector) Vector {
 			}
 		}
 	}
-	return value	
+	return value
 }
 
 func (ps *ParamSet) FindVectorArrayParam(name string) []Vector {
@@ -247,7 +247,7 @@ func (ps *ParamSet) FindVectorArrayParam(name string) []Vector {
 	for i, p := range ps.tokens {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
-                numVectors := len(values)/3
+				numVectors := len(values) / 3
 				array = make([]Vector, numVectors, numVectors)
 				for i, _ := range array {
 					if v, ok := values[i*3+0].(float64); ok {
@@ -263,7 +263,7 @@ func (ps *ParamSet) FindVectorArrayParam(name string) []Vector {
 			}
 		}
 	}
-	return array	
+	return array
 }
 
 func (ps *ParamSet) FindNormalParam(name string, defval Normal) Normal {
@@ -275,7 +275,7 @@ func (ps *ParamSet) FindNormalParam(name string, defval Normal) Normal {
 	for i, p := range ps.tokens {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
-                if len(values) == 3 {
+				if len(values) == 3 {
 					if v, ok := values[i*3+0].(float64); ok {
 						value.x = v
 					}
@@ -289,7 +289,7 @@ func (ps *ParamSet) FindNormalParam(name string, defval Normal) Normal {
 			}
 		}
 	}
-	return value	
+	return value
 }
 
 func (ps *ParamSet) FindNormalArrayParam(name string) []Normal {
@@ -301,7 +301,7 @@ func (ps *ParamSet) FindNormalArrayParam(name string) []Normal {
 	for i, p := range ps.tokens {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
-                numNormals := len(values)/3
+				numNormals := len(values) / 3
 				array = make([]Normal, numNormals, numNormals)
 				for i, _ := range array {
 					if v, ok := values[i*3+0].(float64); ok {
@@ -317,7 +317,7 @@ func (ps *ParamSet) FindNormalArrayParam(name string) []Normal {
 			}
 		}
 	}
-	return array	
+	return array
 }
 
 func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
@@ -329,7 +329,7 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 	for i, p := range ps.tokens {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
-                if len(values) == 3 {
+				if len(values) == 3 {
 					if v, ok := values[i*3+0].(float64); ok {
 						value.c[0] = v
 					}
@@ -343,45 +343,77 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 			}
 		}
 	}
-	return value	
+	return value
 }
 
 type TextureParams struct {
-	floatTextures        map[string]TextureFloat
-	spectrumTextures     map[string]TextureSpectrum
-    geomParams, materialParams *ParamSet	
+	floatTextures              map[string]TextureFloat
+	spectrumTextures           map[string]TextureSpectrum
+	geomParams, materialParams *ParamSet
 }
 
 func CreateTextureParams(gp, mp *ParamSet, tf map[string]TextureFloat, ts map[string]TextureSpectrum) *TextureParams {
-    return &TextureParams{tf, ts, gp, mp}
+	return &TextureParams{tf, ts, gp, mp}
 }
 
 func (tp *TextureParams) FindFloat(name string, defval float64) float64 {
-	return tp.geomParams.FindFloatParam(name, tp.materialParams.FindFloatParam(name, defval))	
+	return tp.geomParams.FindFloatParam(name, tp.materialParams.FindFloatParam(name, defval))
 }
 func (tp *TextureParams) FindString(name string, defval string) string {
-	return tp.geomParams.FindStringParam(name, tp.materialParams.FindStringParam(name, defval))	
+	return tp.geomParams.FindStringParam(name, tp.materialParams.FindStringParam(name, defval))
 }
 func (tp *TextureParams) FindFilename(name string, defval string) string {
-	return tp.geomParams.FindFilenameParam(name, tp.materialParams.FindFilenameParam(name, defval))	
+	return tp.geomParams.FindFilenameParam(name, tp.materialParams.FindFilenameParam(name, defval))
 }
 func (tp *TextureParams) FindInt(name string, defval int) int {
-	return tp.geomParams.FindIntParam(name, tp.materialParams.FindIntParam(name, defval))	
+	return tp.geomParams.FindIntParam(name, tp.materialParams.FindIntParam(name, defval))
 }
 func (tp *TextureParams) FindBool(name string, defval bool) bool {
-	return tp.geomParams.FindBoolParam(name, tp.materialParams.FindBoolParam(name, defval))	
+	return tp.geomParams.FindBoolParam(name, tp.materialParams.FindBoolParam(name, defval))
 }
 func (tp *TextureParams) FindPoint(name string, defval Point) Point {
-	return tp.geomParams.FindPointParam(name, tp.materialParams.FindPointParam(name, defval))	
+	return tp.geomParams.FindPointParam(name, tp.materialParams.FindPointParam(name, defval))
 }
 func (tp *TextureParams) FindVector(name string, defval Vector) Vector {
-	return tp.geomParams.FindVectorParam(name, tp.materialParams.FindVectorParam(name, defval))	
+	return tp.geomParams.FindVectorParam(name, tp.materialParams.FindVectorParam(name, defval))
 }
 func (tp *TextureParams) FindNormal(name string, defval Normal) Normal {
-	return tp.geomParams.FindNormalParam(name, tp.materialParams.FindNormalParam(name, defval))	
+	return tp.geomParams.FindNormalParam(name, tp.materialParams.FindNormalParam(name, defval))
 }
 func (tp *TextureParams) FindSpectrum(name string, defval Spectrum) Spectrum {
-	return tp.geomParams.FindSpectrumParam(name, tp.materialParams.FindSpectrumParam(name, defval))	
+	return tp.geomParams.FindSpectrumParam(name, tp.materialParams.FindSpectrumParam(name, defval))
+}
+
+func (tp *TextureParams) GetFloatTexture(name string, defval float64) TextureFloat {
+	texname := tp.geomParams.FindTextureParam(name)
+	if len(texname) == 0 {
+		texname = tp.materialParams.FindTextureParam(name)
+	}
+	if len(texname) == 0 {
+		if tp.floatTextures[texname] != nil {
+			return tp.floatTextures[name]
+		} else {
+			Error("Couldn't find float texture named \"%s\" for parameter \"%s\"", texname, name)
+		}
+	}
+	val := tp.geomParams.FindFloatParam(name, tp.materialParams.FindFloatParam(name, defval))
+	return NewConstantTextureFloat(val)
+}
+
+func (tp *TextureParams) GetSpectrumTexture(name string, defval Spectrum) TextureSpectrum {
+	texname := tp.geomParams.FindTextureParam(name)
+	if len(texname) == 0 {
+		texname = tp.materialParams.FindTextureParam(name)
+	}
+	if len(texname) == 0 {
+		if tp.spectrumTextures[texname] != nil {
+			return tp.spectrumTextures[texname]
+		} else {
+			Error("Couldn't find spectrum texture named \"%s\" for parameter \"%s\"", texname, name)
+		}
+	}
+	val := tp.geomParams.FindSpectrumParam(name, tp.materialParams.FindSpectrumParam(name, defval))
+	return NewConstantTextureSpectrum(val)
 }
 
 func extractFloatParam(parm []Object) (float64, bool) {
