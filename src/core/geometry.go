@@ -40,6 +40,7 @@ type (
 
 const (
 	INFINITY = math.MaxFloat64
+	INFINITYF = math.MaxFloat32
 )
 
 func CreateVector(x, y, z float64) *Vector {

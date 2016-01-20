@@ -244,7 +244,7 @@ func UniformSampleAllLights(scene *Scene, renderer *Renderer,
 				rayEpsilon, time, bsdf, rng, lightSample, bsdfSample,
 				BxDFType(BSDF_ALL^BSDF_SPECULAR)))
 		}
-		L = L.Add(Ld.InvScale(1.0 / float64(nSamples)))
+		L = L.Add(Ld.InvScale(1.0 / float32(nSamples)))
 	}
 	return L
 }
@@ -433,7 +433,7 @@ func ComputeLightSamplingCDF(scene *Scene) *Distribution1D {
 	nLights := len(scene.lights)
 	lightPower := make([]float64, nLights, nLights)
 	for i, light := range scene.lights {
-		lightPower[i] = light.Power(scene).Y()
+		lightPower[i] = float64(light.Power(scene).Y())
 	}
 	return CreateDistribution1D(lightPower)
 }

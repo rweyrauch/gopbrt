@@ -212,10 +212,10 @@ func FrDiel(cosi, cost float64, etai, etat *Spectrum) *Spectrum {
 }
 
 func FrCond(cosi float64, eta, k *Spectrum) *Spectrum {
-	tmp := eta.Mult(eta).Add(k.Mult(k)).Scale(cosi * cosi) // (eta*eta + k*k) * cosi*cosi
-	etaScaled := eta.Scale(2.0 * cosi)
+	tmp := eta.Mult(eta).Add(k.Mult(k)).Scale(float32(cosi * cosi)) // (eta*eta + k*k) * cosi*cosi
+	etaScaled := eta.Scale(2.0 * float32(cosi))
 	oneSpec := CreateSpectrum1(1.0)
-	cosSpec := CreateSpectrum1(cosi * cosi)
+	cosSpec := CreateSpectrum1(float32(cosi * cosi))
 
 	//Rparl2 = (tmp - (2.0 * eta * cosi) + 1) / (tmp + (2.0 * eta * cosi) + 1)
 	Rparl2 := tmp.Sub(etaScaled).Add(oneSpec).Divide(tmp.Add(etaScaled).Add(oneSpec))

@@ -8,12 +8,13 @@ import (
 	"path/filepath"
 	"os"
 	"math"
+	"github.com/rweyrauch/gopbrt/src/tinyexr"
 )
 
 func ReadImage(name string) (pixels []Spectrum, xSize, ySize int) {
 	ext := strings.ToLower(filepath.Ext(name))
 	if strings.Compare(ext, ".exr") == 0 {
-		Warning("EXR file load not implemented.")				
+		return readImageExr(name)				
 	} else if strings.Compare(ext, ".pfm") == 0 {
 		Warning("PFM file load not implemented.")						
 	} else if strings.Compare(ext, ".tga") == 0 {
@@ -26,7 +27,7 @@ func ReadImage(name string) (pixels []Spectrum, xSize, ySize int) {
     return ret, 1, 1
 }
 
-func WriteImage(name string, pixels, alpha []float64, XRes, YRes, totalXRes, totalYRes, xOffset, yOffset int) {
+func WriteImage(name string, pixels, alpha []float32, XRes, YRes, totalXRes, totalYRes, xOffset, yOffset int) {
 	ext := strings.ToLower(filepath.Ext(name))
 	if strings.Compare(ext, ".exr") == 0 {
 		Warning("EXR file save not implemented.")	
@@ -41,12 +42,12 @@ func WriteImage(name string, pixels, alpha []float64, XRes, YRes, totalXRes, tot
 }
 
 
-func writeImagePng(filename string, pixels []float64, xres, yres int) {
+func writeImagePng(filename string, pixels []float32, xres, yres int) {
 	outImage := image.NewNRGBA(image.Rect(0, 0, xres, yres))
 	
-	to_byte := func (v float64) uint8 {
+	to_byte := func (v float32) uint8 {
 		// apply gamma and convert to 0..255
-		return uint8(Clamp(255.0 * math.Pow(v, 1.0/2.2), 0.0, 255.0))
+		return uint8(Clamp(255.0 * math.Pow(float64(v), 1.0/2.2), 0.0, 255.0))
 	}
 	
 	for y := 0; y < yres; y++ {
@@ -67,4 +68,29 @@ func writeImagePng(filename string, pixels []float64, xres, yres int) {
     }
     png.Encode(f, outImage)
 	
+}
+
+func readImageExr(filename string) (image []Spectrum, width, height int) {
+	var planarRGBA []float32
+	var channels int
+	width, height, channels, planarRGBA = tinyexr.ReadImageEXR(filename)
+	if planarRGBA != nil {
+		Debug("Read EXR image (%dx%dx%d)", width, height, channels)
+		image = make([]Spectrum, width * height, width * height)
+		if channels == 3 || channels == 4 {
+			for c := 0; c < 3; c++ { // ignore 4th channel
+				chanStart := c * width * height			
+				for i, _ := range image {
+					image[i].c[c] = planarRGBA[i + chanStart]
+				}
+			}
+		} else { // channels == 1 || channels == 2 (ignore second channel)
+			for i, _ := range image {
+				image[i].c[0] = planarRGBA[i]
+				image[i].c[1] = planarRGBA[i]
+				image[i].c[2] = planarRGBA[i]		
+			}
+		}
+	}
+	return image, width, height
 }

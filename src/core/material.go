@@ -22,7 +22,7 @@ func Bump(texture TextureFloat, dg, dgs *DifferentialGeometry) *DifferentialGeom
 	dgEval.u = dgs.u + du
 	dgEval.nn = NormalizeNormal(CreateNormalFromVector(CrossVector(dgs.dpdu, dgs.dpdv)).Add(dgs.dndu.Scale(du)))
 
-	uDisplace := texture.Evaluate(&dgEval)
+	uDisplace := float64(texture.Evaluate(&dgEval))
 
 	// Shift _dgEval_ _dv_ in the $v$ direction
 	dv := 0.5 * (math.Abs(dgs.dvdx) + math.Abs(dgs.dvdy))
@@ -33,8 +33,8 @@ func Bump(texture TextureFloat, dg, dgs *DifferentialGeometry) *DifferentialGeom
 	dgEval.u = dgs.u
 	dgEval.v = dgs.v + dv
 	dgEval.nn = NormalizeNormal(CreateNormalFromVector(CrossVector(dgs.dpdu, dgs.dpdv)).Add(dgs.dndv.Scale(dv)))
-	vDisplace := texture.Evaluate(&dgEval)
-	displace := texture.Evaluate(dgs)
+	vDisplace := float64(texture.Evaluate(&dgEval))
+	displace := float64(texture.Evaluate(dgs))
 
 	// Compute bump-mapped differential geometry
 	dgBump := *dgs

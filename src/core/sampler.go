@@ -257,12 +257,12 @@ func (s *AdaptiveSampler) needsSupersampling(samples []Sample, rays []RayDiffere
 		// Compare contrast of sample differences to threshold
 		Lavg := 0.0
 		for i := 0; i < count; i++ {
-			Lavg += Ls[i].Y()
+			Lavg += float64(Ls[i].Y())
 		}
 		Lavg /= float64(count)
 		maxContrast := 0.5
 		for i := 0; i < count; i++ {
-			if math.Abs(Ls[i].Y()-Lavg)/Lavg > maxContrast {
+			if math.Abs(float64(Ls[i].Y())-Lavg)/Lavg > maxContrast {
 				return true
 			}
 		}

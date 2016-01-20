@@ -331,13 +331,13 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) == 3 {
 					if v, ok := values[i*3+0].(float64); ok {
-						value.c[0] = v
+						value.c[0] = float32(v)
 					}
 					if v, ok := values[i*3+1].(float64); ok {
-						value.c[1] = v
+						value.c[1] = float32(v)
 					}
 					if v, ok := values[i*3+2].(float64); ok {
-						value.c[2] = v
+						value.c[2] = float32(v)
 					}
 				}
 			}
@@ -397,7 +397,7 @@ func (tp *TextureParams) GetFloatTexture(name string, defval float64) TextureFlo
 		}
 	}
 	val := tp.geomParams.FindFloatParam(name, tp.materialParams.FindFloatParam(name, defval))
-	return NewConstantTextureFloat(val)
+	return NewConstantTextureFloat(float32(val))
 }
 
 func (tp *TextureParams) GetSpectrumTexture(name string, defval Spectrum) TextureSpectrum {

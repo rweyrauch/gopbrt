@@ -17,7 +17,7 @@ type WrapMode int
 
 type ResampleWeight struct {
 	firstTexel int
-	weight     [4]float64
+	weight     [4]float32
 }
 
 type MIPMapData struct {
@@ -28,7 +28,7 @@ type MIPMapData struct {
 }
 type MIPMapFloat struct {
 	MIPMapData
-	pyramid      [][]float64
+	pyramid      [][]float32
 	pyramidSizes [][2]int
 }
 
@@ -41,24 +41,24 @@ type MIPMapSpectrum struct {
 func init() {
 	// Initialize EWA filter weights if needed
 	if weightLut == nil {
-		weightLut = make([]float64, WEIGHT_LUT_SIZE, WEIGHT_LUT_SIZE)
+		weightLut = make([]float32, WEIGHT_LUT_SIZE, WEIGHT_LUT_SIZE)
 		for i := 0; i < WEIGHT_LUT_SIZE; i++ {
 			alpha := 2.0
 			r2 := float64(i) / float64(WEIGHT_LUT_SIZE-1)
-			weightLut[i] = math.Exp(-alpha*r2) - math.Exp(-alpha)
+			weightLut[i] = float32(math.Exp(-alpha*r2) - math.Exp(-alpha))
 		}
 	}
 }
 
-var weightLut []float64
+var weightLut []float32
 
-func NewMIPMapFloat(sres, tres int, img []float64, doTri bool, maxAniso float64, wrap WrapMode) *MIPMapFloat {
+func NewMIPMapFloat(sres, tres int, img []float32, doTri bool, maxAniso float64, wrap WrapMode) *MIPMapFloat {
 	mip := new(MIPMapFloat)
 	mip.doTrilinear = doTri
 	mip.maxAnisotropy = maxAniso
 	mip.wrapMode = wrap
 
-	var resampledImage []float64
+	var resampledImage []float32
 
 	if !IsPowerOf2(sres) || !IsPowerOf2(tres) {
 		// Resample image to power-of-two resolution
@@ -66,7 +66,7 @@ func NewMIPMapFloat(sres, tres int, img []float64, doTri bool, maxAniso float64,
 
 		// Resample image in $s$ direction
 		sWeights := resampleWeights(sres, sPow2)
-		resampledImage = make([]float64, sPow2*tPow2, sPow2*tPow2)
+		resampledImage = make([]float32, sPow2*tPow2, sPow2*tPow2)
 
 		// Apply _sWeights_ to zoom in $s$ direction
 		for t := 0; t < tres; t++ {
@@ -89,7 +89,7 @@ func NewMIPMapFloat(sres, tres int, img []float64, doTri bool, maxAniso float64,
 
 		// Resample image in $t$ direction
 		tWeights := resampleWeights(tres, tPow2)
-		workData := make([]float64, tPow2, tPow2)
+		workData := make([]float32, tPow2, tPow2)
 		for s := 0; s < sPow2; s++ {
 			for t := 0; t < tPow2; t++ {
 				workData[t] = 0.0
@@ -119,11 +119,11 @@ func NewMIPMapFloat(sres, tres int, img []float64, doTri bool, maxAniso float64,
 	mip.height = tres
 	// Initialize levels of MIPMap from image
 	mip.nLevels = 1 + Log2Int(float64(Maxi(sres, tres)))
-	mip.pyramid = make([][]float64, mip.nLevels, mip.nLevels)
+	mip.pyramid = make([][]float32, mip.nLevels, mip.nLevels)
 	mip.pyramidSizes = make([][2]int, mip.nLevels, mip.nLevels)
 
 	// Initialize most detailed level of MIPMap
-	mip.pyramid[0] = make([]float64, sres*tres, sres*tres)
+	mip.pyramid[0] = make([]float32, sres*tres, sres*tres)
 	copy(mip.pyramid[0], img)
 	mip.pyramidSizes[0] = [2]int{sres, tres}
 
@@ -133,7 +133,7 @@ func NewMIPMapFloat(sres, tres int, img []float64, doTri bool, maxAniso float64,
 		// Initialize $i$th MIPMap level from $i-1$st level
 		sRes = Maxi(1, sRes/2)
 		tRes = Maxi(1, tRes/2)
-		mip.pyramid[i] = make([]float64, sRes*tRes, sRes*tRes)
+		mip.pyramid[i] = make([]float32, sRes*tRes, sRes*tRes)
 		mip.pyramidSizes[i] = [2]int{sRes, tRes}
 
 		// Filter four texels from finer level of pyramid
@@ -148,7 +148,7 @@ func NewMIPMapFloat(sres, tres int, img []float64, doTri bool, maxAniso float64,
 	return mip
 }
 
-func (mip *MIPMapFloat) Texel(level, s, t int) float64 {
+func (mip *MIPMapFloat) Texel(level, s, t int) float32 {
 	//Assert(level < nLevels);
 	l := mip.pyramid[level]
 	// Compute texel $(s,t)$ accounting for boundary conditions
@@ -171,7 +171,7 @@ func (mip *MIPMapFloat) Texel(level, s, t int) float64 {
 	return l[s+t*mip.pyramidSizes[level][0]]
 }
 
-func (mip *MIPMapFloat) Lookup(s, t, width float64) float64 {
+func (mip *MIPMapFloat) Lookup(s, t, width float64) float32 {
 	// Compute MIPMap level for trilinear filtering
 	level := float64(mip.nLevels-1) + math.Log2(math.Max(width, 1.0e-8))
 
@@ -183,11 +183,11 @@ func (mip *MIPMapFloat) Lookup(s, t, width float64) float64 {
 		return mip.Texel(mip.nLevels-1, 0, 0)
 	} else {
 		iLevel := Floor2Int(level)
-		delta := level - float64(iLevel)
+		delta := float32(level) - float32(iLevel)
 		return (1.0-delta)*mip.triangle(iLevel, s, t) + delta*mip.triangle(iLevel+1, s, t)
 	}
 }
-func (mip *MIPMapFloat) LookupEwa(s, t, ds0, dt0, ds1, dt1 float64) float64 {
+func (mip *MIPMapFloat) LookupEwa(s, t, ds0, dt0, ds1, dt1 float64) float32 {
 	if mip.doTrilinear {
 		//PBRT_STARTED_TRILINEAR_TEXTURE_LOOKUP(s, t);
 		val := mip.Lookup(s, t, 2.0*math.Max(math.Max(math.Abs(ds0), math.Abs(dt0)), math.Max(math.Abs(ds1), math.Abs(dt1))))
@@ -222,25 +222,25 @@ func (mip *MIPMapFloat) LookupEwa(s, t, ds0, dt0, ds1, dt1 float64) float64 {
 	lod := math.Max(0.0, float64(mip.nLevels)-1.0+math.Log2(minorLength))
 	ilod := Floor2Int(lod)
 	//PBRT_MIPMAP_EWA_FILTER(const_cast<MIPMap<T> *>(this), s, t, ds0, ds1, dt0, dt1, minorLength, majorLength, lod, nLevels);
-	d := lod - float64(ilod)
+	d := float32(lod) - float32(ilod)
 	val := (1.0-d)*mip.ewa(ilod, s, t, ds0, dt0, ds1, dt1) + d*mip.ewa(ilod+1, s, t, ds0, dt0, ds1, dt1)
 	//PBRT_FINISHED_EWA_TEXTURE_LOOKUP();
 	return val
 }
 
-func (mip *MIPMapFloat) triangle(level int, s, t float64) float64 {
+func (mip *MIPMapFloat) triangle(level int, s, t float64) float32 {
 	level = Clampi(level, 0, mip.nLevels-1)
 	s = s*float64(mip.pyramidSizes[level][0]) - 0.5
 	t = t*float64(mip.pyramidSizes[level][1]) - 0.5
 	s0, t0 := Floor2Int(s), Floor2Int(t)
-	ds, dt := s-float64(s0), t-float64(t0)
+	ds, dt := float32(s)-float32(s0), float32(t)-float32(t0)
 	return (1.0-ds)*(1.0-dt)*mip.Texel(level, s0, t0) +
 		(1.0-ds)*dt*mip.Texel(level, s0, t0+1) +
 		ds*(1.0-dt)*mip.Texel(level, s0+1, t0) +
 		ds*dt*mip.Texel(level, s0+1, t0+1)
 }
 
-func (mip *MIPMapFloat) ewa(level int, s, t, ds0, dt0, ds1, dt1 float64) float64 {
+func (mip *MIPMapFloat) ewa(level int, s, t, ds0, dt0, ds1, dt1 float64) float32 {
 	if level >= mip.nLevels {
 		return mip.Texel(mip.nLevels-1, 0, 0)
 	}
@@ -282,15 +282,15 @@ func (mip *MIPMapFloat) ewa(level int, s, t, ds0, dt0, ds1, dt1 float64) float64
 			r2 := A*ss*ss + B*ss*tt + C*tt*tt
 			if r2 < 1.0 {
 				weight := weightLut[Mini(Float2Int(r2*WEIGHT_LUT_SIZE), WEIGHT_LUT_SIZE-1)]
-				sum += mip.Texel(level, is, it) * weight
-				sumWts += weight
+				sum += float64(mip.Texel(level, is, it) * weight)
+				sumWts += float64(weight)
 			}
 		}
 	}
-	return sum / sumWts
+	return float32(sum / sumWts)
 }
 
-func (mip *MIPMapFloat) clamp(v float64) float64 { return Clamp(v, 0.0, INFINITY) }
+func (mip *MIPMapFloat) clamp(v float32) float32 { return float32(Clamp(float64(v), 0.0, INFINITYF)) }
 
 func resampleWeights(oldres, newres int) []ResampleWeight {
 	//Assert(newres >= oldres);
@@ -302,7 +302,7 @@ func resampleWeights(oldres, newres int) []ResampleWeight {
 		wt[i].firstTexel = Floor2Int((center - filterwidth) + 0.5)
 		for j := 0; j < 4; j++ {
 			pos := float64(wt[i].firstTexel+j) + 0.5
-			wt[i].weight[j] = Lanczos((pos-center)/filterwidth, 2.0)
+			wt[i].weight[j] = float32(Lanczos((pos-center)/filterwidth, 2.0))
 		}
 
 		// Normalize filter weights for texel resampling
@@ -443,7 +443,7 @@ func (mip *MIPMapSpectrum) Lookup(s, t, width float64) Spectrum {
 		return *mip.Texel(mip.nLevels-1, 0, 0)
 	} else {
 		iLevel := Floor2Int(level)
-		delta := level - float64(iLevel)
+		delta := float32(level) - float32(iLevel)
 		return *mip.triangle(iLevel, s, t).Scale(1.0 - delta).Add(mip.triangle(iLevel+1, s, t).Scale(delta))
 	}
 }
@@ -482,20 +482,20 @@ func (mip *MIPMapSpectrum) LookupEwa(s, t, ds0, dt0, ds1, dt1 float64) Spectrum 
 	lod := math.Max(0.0, float64(mip.nLevels)-1.0+math.Log2(minorLength))
 	ilod := Floor2Int(lod)
 	//PBRT_MIPMAP_EWA_FILTER(const_cast<MIPMap<T> *>(this), s, t, ds0, ds1, dt0, dt1, minorLength, majorLength, lod, nLevels);
-	d := lod - float64(ilod)
+	d := float32(lod) - float32(ilod)
 	val := *mip.ewa(ilod, s, t, ds0, dt0, ds1, dt1).Scale(1.0 - d).Add(mip.ewa(ilod+1, s, t, ds0, dt0, ds1, dt1).Scale(d))
 	//PBRT_FINISHED_EWA_TEXTURE_LOOKUP();
 	return val
 }
 
-func (mip *MIPMapSpectrum) clamp(v Spectrum) Spectrum { return *v.Clamp(0.0, INFINITY) }
+func (mip *MIPMapSpectrum) clamp(v Spectrum) Spectrum { return *v.Clamp(0.0, INFINITYF) }
 
 func (mip *MIPMapSpectrum) triangle(level int, s, t float64) *Spectrum {
 	level = Clampi(level, 0, mip.nLevels-1)
 	s = s*float64(mip.pyramidSizes[level][0]) - 0.5
 	t = t*float64(mip.pyramidSizes[level][1]) - 0.5
 	s0, t0 := Floor2Int(s), Floor2Int(t)
-	ds, dt := s-float64(s0), t-float64(t0)
+	ds, dt := float32(s)-float32(s0), float32(t)-float32(t0)
 	return mip.Texel(level, s0, t0).Scale((1.0 - ds) * (1.0 - dt)).Add(mip.Texel(level, s0, t0+1).Scale((1.0 - ds) * dt)).Add(mip.Texel(level, s0+1, t0).Scale(ds * (1.0 - dt))).Add(mip.Texel(level, s0+1, t0+1).Scale(ds * dt))
 }
 
@@ -542,9 +542,9 @@ func (mip *MIPMapSpectrum) ewa(level int, s, t, ds0, dt0, ds1, dt1 float64) *Spe
 			if r2 < 1.0 {
 				weight := weightLut[Mini(Float2Int(r2*WEIGHT_LUT_SIZE), WEIGHT_LUT_SIZE-1)]
 				sum = *sum.Add(mip.Texel(level, is, it).Scale(weight))
-				sumWts += weight
+				sumWts += float64(weight)
 			}
 		}
 	}
-	return sum.InvScale(sumWts)
+	return sum.InvScale(float32(sumWts))
 }
