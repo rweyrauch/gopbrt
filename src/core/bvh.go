@@ -112,9 +112,12 @@ func CreateBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 	bvh := new(BVHAccel)
 	bvh.primitiveId = GeneratePrimitiveId()
 	bvh.maxPrimsInNode = Mini(255, maxPrims)
+	bvh.primitives = make([]Primitive, 0, 256)
+	Debug("Incoming BVH prims: %d", len(prims))
 	for _, p := range prims {
 		bvh.primitives = p.FullyRefine(bvh.primitives)
 	}
+	Debug("Refined BVH prims: %d", len(bvh.primitives))
 	if strings.Compare(sm, "sah") == 0 {
 		bvh.splitMethod = SPLIT_SAH
 	} else if strings.Compare(sm, "middle") == 0 {
@@ -146,15 +149,15 @@ func CreateBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 	var buildArena *MemoryArena = nil
 	orderedPrims := make([]Primitive, 0, len(bvh.primitives))
 	root, totalNodes := bvh.recursiveBuild(buildArena, buildData, 0, len(bvh.primitives), orderedPrims)
-	bvh.primitives, orderedPrims = orderedPrims, bvh.primitives
-	Info("BVH created with %d nodes for %d(%d) primitives", totalNodes, len(bvh.primitives), len(orderedPrims))
+	copy(bvh.primitives, orderedPrims)
+	Info("BVH created with %d nodes for %d primitives", totalNodes, len(bvh.primitives))
 
 	// Compute representation of depth-first traversal of BVH tree
 	bvh.nodes = make([]LinearBVHNode, totalNodes, totalNodes)
 	var offset int = 0
-	offset, _ = bvh.flattenBVHTree(root, offset)
+	_, offset = bvh.flattenBVHTree(root, offset)
 	if offset != totalNodes {
-		Severe("Incorrect number of BVH detected.")
+		Severe("Incorrect number of BVH detected.  Expected: %d  Got: %d", totalNodes, offset)
 	}
 	//PBRT_BVH_FINISHED_CONSTRUCTION(bvh)
 
@@ -171,13 +174,13 @@ func (bvh *BVHAccel) flattenBVHTree(node *BVHBuildNode, offset int) (myOffset, n
 		linearNode.offset = node.firstPrimOffset
 		linearNode.nPrimitives = node.nPrimitives
 	} else {
-		// Creater interior flattened BVH node
+		// Create interior flattened BVH node
 		linearNode.axis = node.splitAxis
 		linearNode.nPrimitives = 0
-		bvh.flattenBVHTree(node.children[0], nextOffset)
+		_, nextOffset = bvh.flattenBVHTree(node.children[0], nextOffset)
 		linearNode.offset, nextOffset = bvh.flattenBVHTree(node.children[1], nextOffset)
 	}
-	return myOffset, offset
+	return myOffset, nextOffset
 }
 
 func (bvh *BVHAccel) WorldBound() *BBox {
