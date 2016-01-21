@@ -8,15 +8,15 @@ type Intersection struct {
 	rayEpsilon                   float64
 }
 
-func GetBSDF(ray *RayDifferential, arena *MemoryArena) *BSDF {
+func (isect *Intersection) GetBSDF(ray *RayDifferential, arena *MemoryArena) *BSDF {
 	// TODO: implement this
 	return nil
 }
-func GetBSSRDF(ray *RayDifferential, arena *MemoryArena) *BSSRDF {
+func (isect *Intersection) GetBSSRDF(ray *RayDifferential, arena *MemoryArena) *BSSRDF {
 	// TODO: implement this
 	return nil
 }
-func Le(wo *Vector) *Spectrum {
+func (isect *Intersection) Le(wo *Vector) *Spectrum {
 	// TODO: implement this
 	return nil
 }

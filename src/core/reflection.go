@@ -7,7 +7,7 @@ import (
 type BxDFType uint32
 
 const (
-	BSDF_REFLECTION       = 1 << 0
+	BSDF_REFLECTION     BxDFType  = 1 << 0
 	BSDF_TRANSMISSION     = 1 << 1
 	BSDF_DIFFUSE          = 1 << 2
 	BSDF_GLOSSY           = 1 << 3
@@ -41,23 +41,68 @@ func CreateBSDFSample(sample *Sample, offsets *BSDFSampleOffsets, num int) *BSDF
 
 type BxDF interface {
 	F(wo, wi *Vector) *Spectrum
-	Sample_f(wo, wi *Vector, u1, u2 float64) (*Spectrum, float64)
-	Rho(wo, nSamples int, samples []float64) *Spectrum
+	Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64)
+	Rho(wo *Vector, nSamples int, samples []float64) *Spectrum
 	Rho2(nSamples int, samples1, samples2 []float64) *Spectrum
 	Pdf(wi, wo *Vector) float64
 }
+type BxDFData struct {
+	bxdftype BxDFType
+}
+
+func BxDFSample_f(bxdf BxDF, wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
+    // Cosine-sample the hemisphere, flipping the direction if necessary
+    wi = CosineSampleHemisphere(u1, u2);
+    if wo.z < 0.0 { wi.z *= -1.0 }
+    pdf = BxDFPdf(wo, wi)
+    return wi, bxdf.F(wo, wi), pdf
+}
+
+func BxDFrho(bxdf BxDF, w *Vector, nSamples int, samples []float64) *Spectrum {
+    r := CreateSpectrum1(0.0)
+    for i := 0; i < nSamples; i++ {
+        // Estimate one term of $\rho_\roman{hd}$
+        wi, f, pdf := bxdf.Sample_f(w, samples[2*i], samples[2*i+1])
+        if pdf > 0.0 { 
+			r = r.Add(f.Scale(float32(AbsCosTheta(wi) / pdf)))
+		}
+    }
+    return r.Scale(1.0 / float32(nSamples))
+}
+
+func BxDFrho2(bxdf BxDF, nSamples int, samples1, samples2 []float64) *Spectrum {
+    r := CreateSpectrum1(0.0)
+    for i := 0; i < nSamples; i++ {
+        wo := UniformSampleHemisphere(samples1[2*i], samples1[2*i+1])
+        pdf_o := 1.0 / 2.0 * math.Pi
+        wi, f, pdf_i := bxdf.Sample_f(wo, samples2[2*i], samples2[2*i+1])
+        if pdf_i > 0.0 {
+            r = r.Add(f.Scale(float32(AbsCosTheta(wi) * AbsCosTheta(wo) / (pdf_o * pdf_i))))
+		}
+	}
+    return r.Scale(1.0 / float32(nSamples) * float32(math.Pi))
+}
+
+func BxDFPdf(wi, wo *Vector) float64 {
+    if SameHemisphere(wo, wi) { 
+		return AbsCosTheta(wi) / math.Pi
+	} else {
+		 return 0.0
+	 }
+}
 
 type BRDFToBTDF struct { // BxDF
+	BxDFData
 	brdf BxDF
 }
 
 func (b *BRDFToBTDF) F(wo, wi *Vector) *Spectrum {
 	return nil
 }
-func (b *BRDFToBTDF) Sample_f(wo, wi *Vector, u1, u2 float64) (*Spectrum, float64) {
-	return nil, 0.0
+func (b *BRDFToBTDF) Sample_f(wo *Vector, u1, u2 float64) (*Vector, *Spectrum, float64) {
+	return nil, nil, 0.0
 }
-func (b *BRDFToBTDF) Rho(wo, nSamples int, samples []float64) *Spectrum {
+func (b *BRDFToBTDF) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
 	return nil
 }
 func (b *BRDFToBTDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
@@ -68,6 +113,7 @@ func (b *BRDFToBTDF) Pdf(wi, wo *Vector) float64 {
 }
 
 type ScaledBxDF struct { // BxDF
+	BxDFData
 	bxdf BxDF
 	s    Spectrum
 }
@@ -75,10 +121,10 @@ type ScaledBxDF struct { // BxDF
 func (b *ScaledBxDF) F(wo, wi *Vector) *Spectrum {
 	return nil
 }
-func (b *ScaledBxDF) Sample_f(wo, wi *Vector, u1, u2 float64) (*Spectrum, float64) {
-	return nil, 0.0
+func (b *ScaledBxDF) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
+	return nil, nil, 0.0
 }
-func (b *ScaledBxDF) Rho(wo, nSamples int, samples []float64) *Spectrum {
+func (b *ScaledBxDF) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
 	return nil
 }
 func (b *ScaledBxDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
@@ -139,22 +185,26 @@ func (bsdf *BSDF) rho2(wo *Vector, rng *RNG, flags BxDFType, sqrtSamples int) *S
 }
 
 type SpecularReflection struct { // BxDF
-	R       *Spectrum
+	BxDFData
+	R       Spectrum
 	fresnel Fresnel
 }
 
 type SpecularTransmission struct { // BxDF
-	T          *Spectrum
+	BxDFData
+	T          Spectrum
 	etai, etat float64
 	fresnel    *FresnelDielectric
 }
 
 type Lambertian struct { // BxDF
-	R *Spectrum
+	BxDFData
+	R Spectrum
 }
 
 type OrenNayar struct { // BxDF
-	R    *Spectrum
+	BxDFData
+	R    Spectrum
 	A, B float64
 }
 
@@ -165,7 +215,8 @@ type MicrofacetDistribution interface {
 }
 
 type Microfacet struct { // BxDF
-	R            *Spectrum
+	BxDFData
+	R            Spectrum
 	distribution MicrofacetDistribution
 	fresnel      Fresnel
 }
@@ -179,21 +230,23 @@ type Anisotropic struct { // MicrofacetDistribution
 }
 
 type FresnelBlend struct { // BxDF
-	Rd, Rs       *Spectrum
+	BxDFData
+	Rd, Rs       Spectrum
 	distribution MicrofacetDistribution
 }
 
 type RegularHalfangleBRDF struct { // BxDF
+	BxDFData
 	brdf                    []float64
 	nThetaH, nThetaD, nPhiD int
 }
 
 type BSSRDF struct {
 	e             float64
-	sig_a, sigp_s *Spectrum
+	sig_a, sigp_s Spectrum
 }
 
-func CreateBSSRDF(sa, sps *Spectrum, et float64) *BSSRDF {
+func CreateBSSRDF(sa, sps Spectrum, et float64) *BSSRDF {
 	return &BSSRDF{et, sa, sps}
 }
 
@@ -278,4 +331,81 @@ func SinPhi(w *Vector) float64 {
 
 func SameHemisphere(w, wp *Vector) bool {
 	return w.z*wp.z > 0.0
+}
+
+func NewLambertian(reflectance Spectrum) *Lambertian {
+	b := new(Lambertian)
+	b.bxdftype = BSDF_REFLECTION | BSDF_DIFFUSE
+	b.R = reflectance
+	return b
+}
+func (b *Lambertian) F(wo, wi *Vector) *Spectrum {
+	return b.R.Scale(float32(1.0 / math.Pi))
+}
+
+func (b *Lambertian) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
+	return BxDFSample_f(b, wo, u1, u2)
+}
+
+func (b *Lambertian) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
+	return BxDFrho(b, wo, nSamples, samples)
+}
+
+func (b *Lambertian) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
+	return BxDFrho2(b, nSamples, samples1, samples2)
+}
+
+func (b *Lambertian) Pdf(wi, wo *Vector) float64 {
+	return BxDFPdf(wi, wo)
+}
+
+func NewOrenNayar(reflectance Spectrum, sig float64) *OrenNayar {
+	on := new(OrenNayar)
+	on.bxdftype = BSDF_REFLECTION | BSDF_DIFFUSE
+	on.R = reflectance
+	sigma := Radians(sig)
+	sigma2 := sigma * sigma
+	on.A = 1.0 - (sigma2 / (2.0 * (sigma2 + 0.33)))
+	on.B = 0.45 * sigma2 / (sigma2 + 0.09)
+	return on
+}
+
+func (b *OrenNayar) F(wo, wi *Vector) *Spectrum {
+     sinthetai := SinTheta(wi)
+     sinthetao := SinTheta(wo)
+    // Compute cosine term of Oren-Nayar model
+     maxcos := 0.0
+    if sinthetai > 1.0e-4 && sinthetao > 1.0e-4 {
+        sinphii, cosphii := SinPhi(wi), CosPhi(wi)
+        sinphio, cosphio := SinPhi(wo), CosPhi(wo)
+        dcos := cosphii * cosphio + sinphii * sinphio
+        maxcos = math.Max(0.0, dcos)
+    }
+
+    // Compute sine and tangent terms of Oren-Nayar model
+    var sinalpha, tanbeta float64
+    if AbsCosTheta(wi) > AbsCosTheta(wo) {
+        sinalpha = sinthetao
+        tanbeta = sinthetai / AbsCosTheta(wi)
+    } else {
+        sinalpha = sinthetai
+        tanbeta = sinthetao / AbsCosTheta(wo)
+    }
+    return b.R.Scale(float32((b.A + b.B * maxcos * sinalpha * tanbeta) / math.Pi))
+}
+
+func (b *OrenNayar) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
+	return BxDFSample_f(b, wo, u1, u2)
+}
+
+func (b *OrenNayar) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
+	return BxDFrho(b, wo, nSamples, samples)
+}
+
+func (b *OrenNayar) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
+	return BxDFrho2(b, nSamples, samples1, samples2)
+}
+
+func (b *OrenNayar) Pdf(wi, wo *Vector) float64 {
+	return BxDFPdf(wi, wo)
 }

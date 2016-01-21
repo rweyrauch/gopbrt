@@ -41,7 +41,6 @@ func WriteImage(name string, pixels, alpha []float32, XRes, YRes, totalXRes, tot
 	Error("Can't determine image file type from suffix of filename \"%s\"", name)
 }
 
-
 func writeImagePng(filename string, pixels []float32, xres, yres int) {
 	outImage := image.NewNRGBA(image.Rect(0, 0, xres, yres))
 	

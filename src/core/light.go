@@ -190,6 +190,15 @@ func CreateInfiniteLight(light2world *Transform, paramSet *ParamSet) *InfiniteAr
 	return nil
 }
 
+func NewPointLight(light2world *Transform, intensity *Spectrum) *PointLight {
+	light := new(PointLight)
+	light.nSamples = 1
+	light.LightToWorld = light2world
+	light.WorldToLight = InverseTransform(light2world)
+	light.lightPos = *PointTransform(light2world, CreatePoint(0,0,0))
+	light.Intensity = *intensity
+	return light
+}
 
 func (l *PointLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64) (s *Spectrum, wi *Vector, pdf float64, vis *VisibilityTester) { return nil, nil, 0.0, nil }
 func (l *PointLight) Power(scene *Scene) *Spectrum { return nil }
@@ -200,7 +209,11 @@ func (l *PointLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float
 func (l *PointLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {}
 
 func CreatePointLight(light2world *Transform, paramSet *ParamSet) *PointLight {
-	return nil
+    I := paramSet.FindSpectrumParam("I", *CreateSpectrum1(1.0))
+    sc := paramSet.FindSpectrumParam("scale", *CreateSpectrum1(1.0))
+    P := paramSet.FindPointParam("from", *CreatePoint(0,0,0))
+    l2w := TranslateTransform(CreateVector(P.x, P.y, P.z)).MultTransform(light2world)
+    return NewPointLight(l2w, I.Mult(&sc))
 }
 
 func (l *ProjectionLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64) (s *Spectrum, wi *Vector, pdf float64, vis *VisibilityTester) { return nil, nil, 0.0, nil }

@@ -416,6 +416,22 @@ func (tp *TextureParams) GetSpectrumTexture(name string, defval Spectrum) Textur
 	return NewConstantTextureSpectrum(val)
 }
 
+func (tp *TextureParams) GetFloatTextureOrNil(name string) TextureFloat {
+	texname := tp.geomParams.FindTextureParam(name)
+	if len(texname) == 0 {
+		texname = tp.materialParams.FindTextureParam(name)
+	}
+	if len(texname) == 0 {
+		return nil
+	}
+	if tp.floatTextures[texname] != nil {
+		return tp.floatTextures[texname]
+	} else {
+		Error("Couldn't find float texture named \"%s\" for parameter \"%s\"", texname, name)
+		return nil
+	}
+}
+
 func ParseFile(filename string) bool {
 	fi, err := os.Open(filename)
 	defer fi.Close()

@@ -52,71 +52,71 @@ func Bump(texture TextureFloat, dg, dgs *DifferentialGeometry) *DifferentialGeom
 
 type (
 	GlassMaterial struct {
-		Kr, Kt         *TextureSpectrum
-		index, bumpMap *TextureFloat
+		Kr, Kt         TextureSpectrum
+		index, bumpMap TextureFloat
 	}
 
 	KdSubsurfaceMaterial struct {
-		Kd, Kr                     *TextureSpectrum
-		meanfreepath, eta, bumpMap *TextureFloat
+		Kd, Kr                     TextureSpectrum
+		meanfreepath, eta, bumpMap TextureFloat
 	}
 
 	MatteMaterial struct {
-		Kd             *TextureSpectrum
-		sigma, bumpMap *TextureFloat
+		Kd             TextureSpectrum
+		sigma, bumpMap TextureFloat
 	}
 
 	MeasuredMaterial struct {
 		//thetaPhiData *KdTreeIrregIsotropBRDFSample
 		regularHalfangleData    []float64
 		nThetaH, nThetaD, nPhiD uint32
-		bumpMap                 *TextureFloat
+		bumpMap                 TextureFloat
 	}
 
 	MetalMaterial struct {
-		eta, k             *TextureSpectrum
-		roughness, bumpMap *TextureFloat
+		eta, k             TextureSpectrum
+		roughness, bumpMap TextureFloat
 	}
 
 	MirrorMaterial struct {
-		Kr      *TextureSpectrum
-		bumpMap *TextureFloat
+		Kr      TextureSpectrum
+		bumpMap TextureFloat
 	}
 
 	MixMaterial struct {
 		m1, m2 Material
-		scale  *TextureSpectrum
+		scale  TextureSpectrum
 	}
 
 	PlasticMaterial struct {
-		Kd, Ks             *TextureSpectrum
-		roughness, bumpMap *TextureFloat
+		Kd, Ks             TextureSpectrum
+		roughness, bumpMap TextureFloat
 	}
 
 	ShinyMetalMaterial struct {
-		Ks, Kr             *TextureSpectrum
-		roughness, bumpMap *TextureFloat
+		Ks, Kr             TextureSpectrum
+		roughness, bumpMap TextureFloat
 	}
 
 	SubstrateMaterial struct {
-		Kd, Ks          *TextureSpectrum
-		nu, nv, bumpMap *TextureFloat
+		Kd, Ks          TextureSpectrum
+		nu, nv, bumpMap TextureFloat
 	}
 
 	SubsurfaceMaterial struct {
 		scale                      float64
-		Kr, sigma_a, sigma_prims_s *TextureSpectrum
-		eta, bumpMap               *TextureFloat
+		Kr, sigma_a, sigma_prims_s TextureSpectrum
+		eta, bumpMap               TextureFloat
 	}
 
 	TranslucentMaterial struct {
-		Kd, Ks, reflect, transmit *TextureSpectrum
-		roughness, bumpMap        *TextureFloat
+		Kd, Ks, reflect, transmit TextureSpectrum
+		roughness, bumpMap        TextureFloat
 	}
 
 	UberMaterial struct {
-		Kd, Ks, Kr, Kt, opacity *TextureSpectrum
-		roughness, eta, bumpMap *TextureFloat
+		Kd, Ks, Kr, Kt, opacity TextureSpectrum
+		roughness, eta, bumpMap TextureFloat
 	}
 )
 
@@ -141,11 +141,35 @@ func (m *KdSubsurfaceMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *M
 }
 
 func CreateMatteMaterial(xform *Transform, mp *TextureParams) *MatteMaterial {
-	return nil
+    Kd := mp.GetSpectrumTexture("Kd", *CreateSpectrum1(0.5))
+    sigma := mp.GetFloatTexture("sigma", 0.0)
+    bumpMap := mp.GetFloatTextureOrNil("bumpmap")
+    return &MatteMaterial{Kd, sigma, bumpMap}
 }
-func (m *MatteMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
-	return nil
+func (m *MatteMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
+    // Allocate _BSDF_, possibly doing bump mapping with _bumpMap_
+    var dgs *DifferentialGeometry
+    if m.bumpMap != nil {
+        dgs = Bump(m.bumpMap, dgGeom, dgShading)
+	} else {
+        dgs = dgShading
+	}
+    bsdf := CreateBSDF(dgs, dgGeom.nn, 1)
+
+    // Evaluate textures for _MatteMaterial_ material and allocate BRDF
+    kd := m.Kd.Evaluate(dgs)
+    r := kd.Clamp(0.0, 1.0)
+    sig := Clamp(float64(m.sigma.Evaluate(dgs)), 0.0, 90.0)
+    if !r.IsBlack() {
+        if (sig == 0) {
+            bsdf.Add(NewLambertian(*r))
+        } else {
+            bsdf.Add(NewOrenNayar(*r, sig))
+		}
+    }
+    return bsdf
 }
+
 func (m *MatteMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
 }

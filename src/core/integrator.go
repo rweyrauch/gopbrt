@@ -12,13 +12,13 @@ const (
 
 type (
 	Integrator interface {
-		Preprocess(scene *Scene, camera *Camera, enderer *Renderer)
+		Preprocess(scene *Scene, camera *Camera, renderer Renderer)
 		RequestSamples(sampler *Sampler, sample *Sample, scene *Scene)
 	}
 
 	SurfaceIntegrator interface {
 		Integrator
-		Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+		Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 			sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum
 	}
 
@@ -131,76 +131,104 @@ type (
 	}
 )
 
-func (i *AmbientOcclusionIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *AmbientOcclusionIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *AmbientOcclusionIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *AmbientOcclusionIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+func (i *AmbientOcclusionIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
 
-func (i *DiffusePRTIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *DiffusePRTIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *DiffusePRTIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *DiffusePRTIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+func (i *DiffusePRTIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
 
-func (i *DipoleSubsurfaceIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *DipoleSubsurfaceIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *DipoleSubsurfaceIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *DipoleSubsurfaceIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+func (i *DipoleSubsurfaceIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
 
-func (i *DirectLightingIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *DirectLightingIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *DirectLightingIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *DirectLightingIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+func (i *DirectLightingIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
 
-func (i *GlossyPRTIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *GlossyPRTIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *GlossyPRTIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *GlossyPRTIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+func (i *GlossyPRTIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
-func (i *IGIIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *IGIIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *IGIIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *IGIIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+func (i *IGIIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
-func (i *IrradianceCacheIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *IrradianceCacheIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *IrradianceCacheIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *IrradianceCacheIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+func (i *IrradianceCacheIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
 
-func (i *PathIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *PathIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *PathIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *PathIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+func (i *PathIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
-func (i *PhotonIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *PhotonIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *PhotonIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *PhotonIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+func (i *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
-func (i *UseRadianceProbes) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *UseRadianceProbes) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *UseRadianceProbes) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *UseRadianceProbes) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+func (i *UseRadianceProbes) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
-func (i *WhittedIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *WhittedIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *WhittedIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *WhittedIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, isect *Intersection,
+func (i *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	return nil
+    L := CreateSpectrum1(0.0)
+    // Compute emitted and reflected light at ray intersection point
+
+    // Evaluate BSDF at hit point
+    bsdf := isect.GetBSDF(ray, arena)
+
+    // Initialize common variables for Whitted integrator
+    p := bsdf.dgShading.p
+    n := bsdf.dgShading.nn
+    wo := ray.dir.Negate()
+
+    // Compute emitted light if ray hit an area light source
+    L = L.Add(isect.Le(wo))
+
+    // Add contribution of each light source
+    for i := 0; i < len(scene.lights); i++ {
+        Li, wi, pdf, visibility := scene.lights[i].Sample_L(p, isect.rayEpsilon, CreateLightSampleRandom(rng), ray.time)
+        if Li.IsBlack() || pdf == 0.0 { continue }
+        f := bsdf.f(wo, wi, BSDF_ALL)
+        if !f.IsBlack() && visibility.Unoccluded(scene) {
+            L = L.Add(f.Mult(Li.Scale(float32(AbsDotVectorNormal(wi, n))).Mult(visibility.Transmittance(scene, renderer, sample, rng, arena).Scale(float32(1.0 / pdf)))))
+		}
+    }
+    if ray.depth + 1 < i.maxDepth {
+        // Trace rays for specular reflection and refraction
+        L = L.Add(SpecularReflect(ray, bsdf, rng, isect, renderer, scene, sample, arena))
+        L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))
+    }
+    return L
 }
 
 func CreateAmbientOcclusionIntegrator(params *ParamSet) *AmbientOcclusionIntegrator      { return nil }
@@ -213,9 +241,12 @@ func CreateIrradianceCacheIntegrator(params *ParamSet) *IrradianceCacheIntegrato
 func CreatePathSurfaceIntegrator(params *ParamSet) *PathIntegrator                       { return nil }
 func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator                { return nil }
 func CreateRadianceProbesSurfaceIntegrator(params *ParamSet) *UseRadianceProbes          { return nil }
-func CreateWhittedSurfaceIntegrator(params *ParamSet) *WhittedIntegrator                 { return nil }
+func CreateWhittedSurfaceIntegrator(params *ParamSet) *WhittedIntegrator                 { 
+	maxDepth := params.FindIntParam("maxdepth", 5)
+	return &WhittedIntegrator{maxDepth}
+	 }
 
-func UniformSampleAllLights(scene *Scene, renderer *Renderer,
+func UniformSampleAllLights(scene *Scene, renderer Renderer,
 	arena *MemoryArena, p *Point, n *Normal, wo *Vector,
 	rayEpsilon, time float64, bsdf *BSDF, sample *Sample, rng *RNG,
 	lightSampleOffsets []LightSampleOffsets,
@@ -249,7 +280,7 @@ func UniformSampleAllLights(scene *Scene, renderer *Renderer,
 	return L
 }
 
-func UniformSampleOneLight(scene *Scene, renderer *Renderer,
+func UniformSampleOneLight(scene *Scene, renderer Renderer,
 	arena *MemoryArena, p *Point, n *Normal, wo *Vector,
 	rayEpsilon, time float64, bsdf *BSDF,
 	sample *Sample, rng *RNG, lightNumOffset int,
@@ -286,7 +317,7 @@ func UniformSampleOneLight(scene *Scene, renderer *Renderer,
 	*/
 }
 
-func EstimateDirect(scene *Scene, renderer *Renderer,
+func EstimateDirect(scene *Scene, renderer Renderer,
 	arena *MemoryArena, light Light, p *Point,
 	n *Normal, wo *Vector, rayEpsilon, time float64, bsdf *BSDF,
 	rng *RNG, lightSample *LightSample, bsdfSample *BSDFSample,
@@ -345,7 +376,7 @@ func EstimateDirect(scene *Scene, renderer *Renderer,
 }
 
 func SpecularReflect(ray *RayDifferential, bsdf *BSDF, rng *RNG,
-	isect *Intersection, renderer *Renderer, scene *Scene,
+	isect *Intersection, renderer Renderer, scene *Scene,
 	sample *Sample, arena *MemoryArena) *Spectrum {
 	L := CreateSpectrum1(0.0)
 	/*
@@ -383,7 +414,7 @@ func SpecularReflect(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 }
 
 func SpecularTransmit(ray *RayDifferential, bsdf *BSDF, rng *RNG,
-	isect *Intersection, renderer *Renderer, scene *Scene,
+	isect *Intersection, renderer Renderer, scene *Scene,
 	sample *Sample, arena *MemoryArena) *Spectrum {
 
 	L := CreateSpectrum1(0.0)

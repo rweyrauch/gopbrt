@@ -1,12 +1,14 @@
 package tinyexr 
 
 /*
-#include "tinyexr.h"
 #include <stdlib.h>
+#include <string.h>
+#include "tinyexr.h"
 */
 import "C"
 import "unsafe"
 import "fmt"
+import "reflect"
 
 const (
  TINYEXR_PIXELTYPE_UINT = 0
@@ -75,8 +77,9 @@ func ReadImageEXR(filename string) (width, height, channels int, planarRGBA []fl
 	channels = int(exrImage.num_channels)
 	totalValues := width * height * channels
 	
-	planarRGBA = make([]float32, totalValues, totalValues)  
-
+	planarRGBA = make([]float32, totalValues, totalValues)
+	sliceHeader := (*reflect.SliceHeader)(unsafe.Pointer(&planarRGBA))
+	C.memcpy(unsafe.Pointer(sliceHeader.Data), unsafe.Pointer(exrImage.images), C.size_t(4 * totalValues))
 
 	return width, height, channels, planarRGBA
 }

@@ -115,8 +115,8 @@ func CreateAggregateVolume(regions []VolumeRegion) *AggregateVolume { return nil
 
 type VolumeIntegrator interface {
 	Integrator
-	Li(scene *Scene, renderer *Renderer, ray *RayDifferential, sample *Sample, rng *RNG, transmittance *Spectrum, arena *MemoryArena) *Spectrum
-	Transmittance(scene *Scene, renderer *Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum
+	Li(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, transmittance *Spectrum, arena *MemoryArena) *Spectrum
+	Transmittance(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum
 }
 
 type (
@@ -131,21 +131,21 @@ type (
 	}
 )
 
-func (i *EmissionIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *EmissionIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *EmissionIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *EmissionIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, sample *Sample, rng *RNG, transmittance *Spectrum, arena *MemoryArena) *Spectrum {
+func (i *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, transmittance *Spectrum, arena *MemoryArena) *Spectrum {
 	return nil
 }
-func (i *EmissionIntegrator) Transmittance(scene *Scene, renderer *Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+func (i *EmissionIntegrator) Transmittance(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
 
-func (i *SingleScatteringIntegrator) Preprocess(scene *Scene, camera *Camera, renderer *Renderer)   {}
+func (i *SingleScatteringIntegrator) Preprocess(scene *Scene, camera *Camera, renderer Renderer)   {}
 func (i *SingleScatteringIntegrator) RequestSamples(sampler *Sampler, sample *Sample, scene *Scene) {}
-func (i *SingleScatteringIntegrator) Li(scene *Scene, renderer *Renderer, ray *RayDifferential, sample *Sample, rng *RNG, transmittance *Spectrum, arena *MemoryArena) *Spectrum {
+func (i *SingleScatteringIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, transmittance *Spectrum, arena *MemoryArena) *Spectrum {
 	return nil
 }
-func (i *SingleScatteringIntegrator) Transmittance(scene *Scene, renderer *Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+func (i *SingleScatteringIntegrator) Transmittance(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	return nil
 }
 

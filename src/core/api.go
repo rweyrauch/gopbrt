@@ -253,10 +253,8 @@ func MakeMaterial(name string, mtl2world *Transform, mp *TextureParams) Material
 	} else if strings.Compare(name, "mirror") == 0 {
 		material = CreateMirrorMaterial(mtl2world, mp)
 	} else if strings.Compare(name, "mix") == 0 {
-		// TODO: implement this
-		//string m1 = mp.FindString("namedmaterial1", "")
-		//string m2 = mp.FindString("namedmaterial2", "")
-		var m1, m2 string
+		m1 := mp.FindString("namedmaterial1", "")
+		m2 := mp.FindString("namedmaterial2", "")
 		mat1 := graphicsState.namedMaterials[m1]
 		mat2 := graphicsState.namedMaterials[m2]
 		if mat1 == nil {
