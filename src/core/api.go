@@ -1050,7 +1050,7 @@ func (ro *RenderOptions) MakeRenderer() Renderer {
 		if strings.Compare(ro.RendererName, "sampler") != 0 {
 			Warning("Renderer type \"%s\" unknown.  Using \"sampler\".", ro.RendererName)
 		}
-		var visIds bool // = RendererParams.FindOneBool("visualizeobjectids", false);
+		visIds := ro.RendererParams.FindBoolParam("visualizeobjectids", false)
 		//RendererParams.ReportUnused();
 		sampler := MakeSampler(ro.SamplerName, ro.SamplerParams, camera.Film(), camera)
 		if sampler == nil {
@@ -1065,7 +1065,7 @@ func (ro *RenderOptions) MakeRenderer() Renderer {
 		if volumeIntegrator == nil {
 			Severe("Unable to create volume integrator.")
 		}
-		renderer = CreateSamplerRenderer(sampler, camera, surfaceIntegrator, volumeIntegrator, visIds)
+		renderer = NewSamplerRenderer(sampler, camera, surfaceIntegrator, volumeIntegrator, visIds)
 		// Warn if no light sources are defined
 		if len(ro.lights) == 0 {
 			Warning("No light sources defined in scene;  possibly rendering a black image.")

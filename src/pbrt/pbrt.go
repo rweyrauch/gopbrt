@@ -11,7 +11,7 @@ func main() {
 	var filenames []string
 
 	flag.IntVar(&options.NumCores, "ncores", 1, "Number of cores to use.")
-	flag.StringVar(&options.ImageFile, "outfile", "output.png", "Output image file.")
+	flag.StringVar(&options.ImageFile, "outfile", "", "Output image file.")
 	flag.BoolVar(&options.QuickRender, "quick", false, "Quick render mode.")
 	flag.BoolVar(&options.Quiet, "quiet", false, "Quiet mode.")
 	flag.BoolVar(&options.Verbose, "verbose", false, "Verbose mode.")

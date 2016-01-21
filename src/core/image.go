@@ -164,7 +164,7 @@ func (f *ImageFilm) UpdateDisplay(x0, y0, x1, y1 int, splatScale float32) {
 func (f *ImageFilm) WriteImage(splatScale float32) {
 	// Convert image to RGB and compute final pixel values
 	nPix := f.xPixelCount * f.yPixelCount
-	rgb := make([]float32, 0, 3*nPix)
+	rgb := make([]float32, 3*nPix, 3*nPix)
 
 	offset := 0
 	for y := 0; y < f.yPixelCount; y++ {
@@ -196,8 +196,7 @@ func (f *ImageFilm) WriteImage(splatScale float32) {
 	}
 
 	// Write RGB image
-	// ::WriteImage(filename, rgb, NULL, xPixelCount, yPixelCount,
-	//              xResolution, yResolution, xPixelStart, yPixelStart);
+	WriteImage(f.filename, rgb, nil, f.xPixelCount, f.yPixelCount, f.xResolution, f.yResolution, f.xPixelStart, f.yPixelStart)
 }
 
 func (f *ImageFilm) XResolution() int {

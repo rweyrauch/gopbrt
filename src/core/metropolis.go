@@ -155,7 +155,7 @@ func (r *MetropolisRenderer) Render(scene *Scene) {
     //PBRT_MLT_FINISHED_RENDERING();	
 }
 
-func (r *MetropolisRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena, isect *Intersection, T *Spectrum) *Spectrum { return nil }
+func (r *MetropolisRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li *Spectrum, isect *Intersection, T *Spectrum) { return nil, nil, nil }
 func (r *MetropolisRenderer) Transmittance(scene *Scene, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum { return nil }
 
 func CreateMetropolisRenderer(params *ParamSet, camera Camera) *MetropolisRenderer { 

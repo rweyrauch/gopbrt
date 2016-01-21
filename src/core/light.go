@@ -108,7 +108,7 @@ type (
 	
 	InfiniteAreaLight struct {
 		LightData
-		//radianceMap *MIPMapSpectrum
+		radianceMap *MIPMapSpectrum
 		distribution *Distribution2D
 	}
 	
@@ -122,7 +122,7 @@ type (
 		LightData
 		lightPos Point
 		Intensity Spectrum
-		//mipmap *MIPMapSpectrum
+		mipmap *MIPMapSpectrum
 	}
 	
 	PointLight struct {
@@ -133,7 +133,7 @@ type (
 	
 	ProjectionLight struct {
 		LightData
-		//projectionMap *MIPMapSpectrum
+		projectionMap *MIPMapSpectrum
 		lightPos Point
 		Intensity Spectrum
 		lightProjection *Transform

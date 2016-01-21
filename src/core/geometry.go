@@ -293,6 +293,7 @@ func CreateRay(origin *Point, direction *Vector, start, end, t float64, d int) *
 func CreateChildRay(origin *Point, direction *Vector, parent *Ray, start, end float64) *Ray {
 	return &Ray{*origin, *direction, start, end, parent.time, parent.depth + 1}
 }
+
 func (r *Ray) PointAt(t float64) *Point {
 	return r.origin.Add(r.dir.Scale(t))
 }
@@ -310,6 +311,10 @@ func CreateChildRayDifferential(origin *Point, direction *Vector, parent *Ray, s
 func CreateRayDifferentialFromRay(ray *Ray) *RayDifferential {
 	return &RayDifferential{Ray{ray.origin, ray.dir, ray.mint, ray.maxt, ray.time, ray.depth}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
 }
+func CreateRayFromRayDifferential(ray *RayDifferential) *Ray {
+	return &Ray{ray.origin, ray.dir, ray.mint, ray.maxt, ray.time, ray.depth}
+}
+
 func (r *RayDifferential) ScaleDifferentials(s float64) {
 	r.rxOrigin = *r.origin.Add(r.rxOrigin.Sub(&r.origin).Scale(s))
 	r.ryOrigin = *r.origin.Add(r.ryOrigin.Sub(&r.origin).Scale(s))

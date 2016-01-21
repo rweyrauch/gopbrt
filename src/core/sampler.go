@@ -55,8 +55,11 @@ type Sample struct {
 }
 
 func NewSample(sampler Sampler, surf SurfaceIntegrator, vol VolumeIntegrator, scene *Scene) *Sample {
-	// TODO: implement this
-	return nil
+	sample := new(Sample)
+    if surf != nil { surf.RequestSamples(sampler, sample, scene) }
+    if vol != nil { vol.RequestSamples(sampler, sample, scene) }
+    sample.allocateSampleMemory()
+	return sample
 }
 
 func (s *Sample) Add1D(n int) int {
@@ -69,9 +72,36 @@ func (s *Sample) Add2D(n int) int {
 	return len(s.n2D)
 }
 
-func (s *Sample) Duplicate(count int) *Sample {
-	// TODO: implement this
-	return nil
+func (s *Sample) Duplicate(count int) []Sample {
+    ret := make([]Sample, count, count)
+    for i := 0; i < count; i++ {
+        ret[i].n1D = make([]int, len(s.n1D), len(s.n1D))
+        copy(ret[i].n1D, s.n1D)
+        ret[i].n2D = make([]int, len(s.n2D), len(s.n2D))
+        copy(ret[i].n2D, s.n2D)
+        ret[i].allocateSampleMemory()
+    }
+    return ret
+}
+
+func (s *Sample) allocateSampleMemory() {
+    // Allocate storage for sample pointers
+    s.oneD = nil
+    if len(s.n1D) > 0 {
+		s.oneD = make([][]float64, len(s.n1D), len(s.n1D))
+	}
+	s.twoD = nil
+	if len(s.n2D) > 0 {
+		s.twoD = make([][]float64, len(s.n2D), len(s.n2D))
+	}
+	
+    // Allocate storage for sample values
+    for i, n := range s.n1D {
+		s.oneD[i] = make([]float64, n, n)
+ 	}
+    for i, n := range s.n2D {
+        s.twoD[i] = make([]float64, 2 * n, 2 * n)
+	}
 }
 
 const (

@@ -18,7 +18,7 @@ func CreateScene(accel Primitive, lights []Light, vr VolumeRegion) *Scene {
     }
     return scene
 }
-func (s *Scene) Intersect(ray *Ray) (hit bool,  isect *Intersection) {
+func (s *Scene) Intersect(ray *Ray) (hit bool, isect *Intersection) {
 	return s.aggregate.Intersect(ray)
 }
 
