@@ -50,15 +50,15 @@ func (r *MetropolisRenderer) Render(scene *Scene) {
     if len(scene.lights) > 0 {
         x0, x1, y0, y1 := r.camera.Film().GetPixelExtent()
         t0, t1 := r.camera.ShutterOpen(), r.camera.ShutterClose()
-        lightDistribution := ComputeLightSamplingCDF(scene)
+        //lightDistribution := ComputeLightSamplingCDF(scene)
 
         if r.directLighting != nil {
             //PBRT_MLT_STARTED_DIRECTLIGHTING();
             // Compute direct lighting before Metropolis light transport
             if r.nDirectPixelSamples > 0 {        	
-                sampler := NewLDSampler(x0, x1, y0, y1, r.nDirectPixelSamples, t0, t1)
+                sampler := NewLDSampler(x0, x1, y0, y1, r.nDirectPixelSamples, t0, t1)  
+                _ = NewSample(sampler, r.directLighting, nil, scene)
                 /*
-                Sample *sample = new Sample(&sampler, directLighting, NULL, scene);
                 vector<Task *> directTasks;
                 int nDirectTasks = max(32 * NumSystemCores(),
                                  (r.camera.film.XResolution() * r.camera.film.YResolution()) / (16*16))
@@ -112,18 +112,18 @@ func (r *MetropolisRenderer) Render(scene *Scene) {
         contribOffset := rng.RandomFloat() * sumI
         rng.Seed(0)
         sumI = 0.0
-        /*
-        MLTSample initialSample(maxDepth);
+        
+        //MLTSample initialSample(maxDepth);
         for i := 0; i < r.nBootstrap; i++ {
-             x := Lerp(rng.RandomFloat(), x0, x1)
-             y := Lerp(rng.RandomFloat(), y0, y1)
-            r.LargeStep(rng, &initialSample, r.maxDepth, x, y, t0, t1, r.bidirectional)
-            sumI += bootstrapI[i]
+             //x := Lerp(rng.RandomFloat(), float64(x0), float64(x1))
+             //y := Lerp(rng.RandomFloat(), float64(y0), float64(y1))
+            //r.LargeStep(rng, &initialSample, r.maxDepth, x, y, t0, t1, r.bidirectional)
+            //sumI += bootstrapI[i]
             if sumI > contribOffset {
                 break
             }    
         }
-		*/
+		
         // Launch tasks to generate Metropolis samples
          nTasks := r.largeStepsPerPixel
         largeStepRate := r.nPixelSamples / r.largeStepsPerPixel

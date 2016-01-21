@@ -49,6 +49,9 @@ func CreateVector(x, y, z float64) *Vector {
 func CreateVectorFromNormal(n *Normal) *Vector {
 	return &Vector{n.x, n.y, n.z}
 }
+func CreateVectorFromPoint(p *Point) *Vector {
+	return &Vector{p.x, p.y, p.z}
+}
 func (v *Vector) Negate() *Vector {
 	return &Vector{-v.x, -v.y, -v.z}
 }

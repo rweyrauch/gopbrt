@@ -54,7 +54,7 @@ type Sample struct {
 	twoD     [][]float64
 }
 
-func CreateSample(sampler Sampler, surf SurfaceIntegrator, vol VolumeIntegrator, scene Scene) *Sample {
+func NewSample(sampler Sampler, surf SurfaceIntegrator, vol VolumeIntegrator, scene *Scene) *Sample {
 	// TODO: implement this
 	return nil
 }
