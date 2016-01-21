@@ -90,9 +90,9 @@ func (ps *ParamSet) FindFloatArrayParam(name string) []float64 {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
 				value = make([]float64, len(values), len(values))
-				for i, vs := range values {
+				for ii, vs := range values {
 					if v, ok := vs.(float64); ok {
-						value[i] = v
+						value[ii] = v
 					}
 				}
 			}
@@ -129,9 +129,9 @@ func (ps *ParamSet) FindIntArrayParam(name string) []int {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
 				value = make([]int, len(values), len(values))
-				for i, vs := range values {
+				for ii, vs := range values {
 					if v, ok := vs.(float64); ok {
-						value[i] = int(v)
+						value[ii] = int(v)
 					}
 				}
 			}
@@ -168,13 +168,13 @@ func (ps *ParamSet) FindPointParam(name string, defval Point) Point {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) == 3 {
-					if v, ok := values[i*3+0].(float64); ok {
+					if v, ok := values[0].(float64); ok {
 						value.x = v
 					}
-					if v, ok := values[i*3+1].(float64); ok {
+					if v, ok := values[1].(float64); ok {
 						value.y = v
 					}
-					if v, ok := values[i*3+2].(float64); ok {
+					if v, ok := values[2].(float64); ok {
 						value.z = v
 					}
 				}
@@ -195,15 +195,15 @@ func (ps *ParamSet) FindPointArrayParam(name string) []Point {
 			if values, ok := ps.params[i].([]Object); ok {
 				numPoints := len(values) / 3
 				array = make([]Point, numPoints, numPoints)
-				for i, _ := range array {
-					if v, ok := values[i*3+0].(float64); ok {
-						array[i].x = v
+				for ii, _ := range array {
+					if v, ok := values[ii*3+0].(float64); ok {
+						array[ii].x = v
 					}
-					if v, ok := values[i*3+1].(float64); ok {
-						array[i].y = v
+					if v, ok := values[ii*3+1].(float64); ok {
+						array[ii].y = v
 					}
-					if v, ok := values[i*3+2].(float64); ok {
-						array[i].z = v
+					if v, ok := values[ii*3+2].(float64); ok {
+						array[ii].z = v
 					}
 				}
 			}
@@ -222,13 +222,13 @@ func (ps *ParamSet) FindVectorParam(name string, defval Vector) Vector {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) == 3 {
-					if v, ok := values[i*3+0].(float64); ok {
+					if v, ok := values[0].(float64); ok {
 						value.x = v
 					}
-					if v, ok := values[i*3+1].(float64); ok {
+					if v, ok := values[1].(float64); ok {
 						value.y = v
 					}
-					if v, ok := values[i*3+2].(float64); ok {
+					if v, ok := values[2].(float64); ok {
 						value.z = v
 					}
 				}
@@ -249,15 +249,15 @@ func (ps *ParamSet) FindVectorArrayParam(name string) []Vector {
 			if values, ok := ps.params[i].([]Object); ok {
 				numVectors := len(values) / 3
 				array = make([]Vector, numVectors, numVectors)
-				for i, _ := range array {
-					if v, ok := values[i*3+0].(float64); ok {
-						array[i].x = v
+				for ii, _ := range array {
+					if v, ok := values[ii*3+0].(float64); ok {
+						array[ii].x = v
 					}
-					if v, ok := values[i*3+1].(float64); ok {
-						array[i].y = v
+					if v, ok := values[ii*3+1].(float64); ok {
+						array[ii].y = v
 					}
-					if v, ok := values[i*3+2].(float64); ok {
-						array[i].z = v
+					if v, ok := values[ii*3+2].(float64); ok {
+						array[ii].z = v
 					}
 				}
 			}
@@ -276,13 +276,13 @@ func (ps *ParamSet) FindNormalParam(name string, defval Normal) Normal {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) == 3 {
-					if v, ok := values[i*3+0].(float64); ok {
+					if v, ok := values[0].(float64); ok {
 						value.x = v
 					}
-					if v, ok := values[i*3+1].(float64); ok {
+					if v, ok := values[1].(float64); ok {
 						value.y = v
 					}
-					if v, ok := values[i*3+2].(float64); ok {
+					if v, ok := values[2].(float64); ok {
 						value.z = v
 					}
 				}
@@ -303,15 +303,15 @@ func (ps *ParamSet) FindNormalArrayParam(name string) []Normal {
 			if values, ok := ps.params[i].([]Object); ok {
 				numNormals := len(values) / 3
 				array = make([]Normal, numNormals, numNormals)
-				for i, _ := range array {
-					if v, ok := values[i*3+0].(float64); ok {
-						array[i].x = v
+				for ii, _ := range array {
+					if v, ok := values[ii*3+0].(float64); ok {
+						array[ii].x = v
 					}
-					if v, ok := values[i*3+1].(float64); ok {
-						array[i].y = v
+					if v, ok := values[ii*3+1].(float64); ok {
+						array[ii].y = v
 					}
-					if v, ok := values[i*3+2].(float64); ok {
-						array[i].z = v
+					if v, ok := values[ii*3+2].(float64); ok {
+						array[ii].z = v
 					}
 				}
 			}
