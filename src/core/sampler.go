@@ -44,24 +44,24 @@ func (s *SamplerData) computeSubWindow(num, count int) (xstart, xend, ystart, ye
 	return xstart, xend, ystart, yend
 }
 
-type CameraSample struct {
+type Sample struct {
 	imageX, imageY float64
 	lensU, lensV   float64
 	time           float64
-}
-
-type Sample struct {
-	CameraSample
-	n1D, n2D []int
-	oneD     [][]float64
-	twoD     [][]float64
+	n1D, n2D       []int
+	oneD           [][]float64
+	twoD           [][]float64
 }
 
 func NewSample(sampler Sampler, surf SurfaceIntegrator, vol VolumeIntegrator, scene *Scene) *Sample {
 	sample := new(Sample)
-    if surf != nil { surf.RequestSamples(sampler, sample, scene) }
-    if vol != nil { vol.RequestSamples(sampler, sample, scene) }
-    sample.allocateSampleMemory()
+	if surf != nil {
+		surf.RequestSamples(sampler, sample, scene)
+	}
+	if vol != nil {
+		vol.RequestSamples(sampler, sample, scene)
+	}
+	sample.allocateSampleMemory()
 	return sample
 }
 
@@ -76,34 +76,34 @@ func (s *Sample) Add2D(n int) int {
 }
 
 func (s *Sample) Duplicate(count int) []Sample {
-    ret := make([]Sample, count, count)
-    for i := 0; i < count; i++ {
-        ret[i].n1D = make([]int, len(s.n1D), len(s.n1D))
-        copy(ret[i].n1D, s.n1D)
-        ret[i].n2D = make([]int, len(s.n2D), len(s.n2D))
-        copy(ret[i].n2D, s.n2D)
-        ret[i].allocateSampleMemory()
-    }
-    return ret
+	ret := make([]Sample, count, count)
+	for i := 0; i < count; i++ {
+		ret[i].n1D = make([]int, len(s.n1D), len(s.n1D))
+		copy(ret[i].n1D, s.n1D)
+		ret[i].n2D = make([]int, len(s.n2D), len(s.n2D))
+		copy(ret[i].n2D, s.n2D)
+		ret[i].allocateSampleMemory()
+	}
+	return ret
 }
 
 func (s *Sample) allocateSampleMemory() {
-    // Allocate storage for sample pointers
-    s.oneD = nil
-    if len(s.n1D) > 0 {
+	// Allocate storage for sample pointers
+	s.oneD = nil
+	if len(s.n1D) > 0 {
 		s.oneD = make([][]float64, len(s.n1D), len(s.n1D))
 	}
 	s.twoD = nil
 	if len(s.n2D) > 0 {
 		s.twoD = make([][]float64, len(s.n2D), len(s.n2D))
 	}
-	
-    // Allocate storage for sample values
-    for i, n := range s.n1D {
+
+	// Allocate storage for sample values
+	for i, n := range s.n1D {
 		s.oneD[i] = make([]float64, n, n)
- 	}
-    for i, n := range s.n2D {
-        s.twoD[i] = make([]float64, 2 * n, 2 * n)
+	}
+	for i, n := range s.n2D {
+		s.twoD[i] = make([]float64, 2*n, 2*n)
 	}
 }
 
@@ -274,8 +274,10 @@ func (s *AdaptiveSampler) GetSubSampler(num, count int) Sampler {
 func (s *AdaptiveSampler) RoundSize(size int) int {
 	return int(RoundUpPow2(uint32(size)))
 }
-func (s *AdaptiveSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
-func (s *AdaptiveSampler) SamplesPerPixel() int { return s.samplesPerPixel }
+func (s *AdaptiveSampler) PixelRegion() (xstart, xend, ystart, yend int) {
+	return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd
+}
+func (s *AdaptiveSampler) SamplesPerPixel() int                  { return s.samplesPerPixel }
 func (s *AdaptiveSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
 
 func (s *AdaptiveSampler) needsSupersampling(samples []Sample, rays []RayDifferential, Ls []Spectrum, isects []Intersection, count int) bool {
@@ -403,9 +405,13 @@ func (s *BestCandidateSampler) GetSubSampler(num, count int) Sampler {
 func (s *BestCandidateSampler) RoundSize(size int) int {
 	return int(RoundUpPow2(uint32(size)))
 }
-func (s *BestCandidateSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
+func (s *BestCandidateSampler) PixelRegion() (xstart, xend, ystart, yend int) {
+	return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd
+}
 func (s *BestCandidateSampler) SamplesPerPixel() int { return s.samplesPerPixel }
-func (s *BestCandidateSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
+func (s *BestCandidateSampler) ShutterTimes() (sopen, sclose float64) {
+	return s.shutterOpen, s.shutterClose
+}
 
 func NewHaltonSampler(xstart, xend, ystart, yend, ps int, sopen, sclose float64) *HaltonSampler {
 	sampler := new(HaltonSampler)
@@ -465,8 +471,10 @@ func (s *HaltonSampler) GetSubSampler(num, count int) Sampler {
 	return NewHaltonSampler(x0, x1, y0, y1, s.samplesPerPixel, s.shutterOpen, s.shutterClose)
 }
 func (s *HaltonSampler) RoundSize(size int) int { return size }
-func (s *HaltonSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
-func (s *HaltonSampler) SamplesPerPixel() int { return s.samplesPerPixel }
+func (s *HaltonSampler) PixelRegion() (xstart, xend, ystart, yend int) {
+	return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd
+}
+func (s *HaltonSampler) SamplesPerPixel() int                  { return s.samplesPerPixel }
 func (s *HaltonSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
 
 func NewLDSampler(xstart, xend, ystart, yend, ps int, sopen, sclose float64) *LDSampler {
@@ -519,8 +527,10 @@ func (s *LDSampler) GetSubSampler(num, count int) Sampler {
 
 }
 func (s *LDSampler) RoundSize(size int) int { return int(RoundUpPow2(uint32(size))) }
-func (s *LDSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
-func (s *LDSampler) SamplesPerPixel() int { return s.samplesPerPixel }
+func (s *LDSampler) PixelRegion() (xstart, xend, ystart, yend int) {
+	return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd
+}
+func (s *LDSampler) SamplesPerPixel() int                  { return s.samplesPerPixel }
 func (s *LDSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
 
 func NewRandomSampler(xstart, xend, ystart, yend, ns int, sopen, sclose float64) *RandomSampler {
@@ -626,8 +636,10 @@ func (s *RandomSampler) GetSubSampler(num, count int) Sampler {
 }
 
 func (s *RandomSampler) RoundSize(size int) int { return size }
-func (s *RandomSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
-func (s *RandomSampler) SamplesPerPixel() int { return s.samplesPerPixel }
+func (s *RandomSampler) PixelRegion() (xstart, xend, ystart, yend int) {
+	return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd
+}
+func (s *RandomSampler) SamplesPerPixel() int                  { return s.samplesPerPixel }
 func (s *RandomSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
 
 func NewStratifiedSampler(xstart, xend, ystart, yend, xsamp, ysamp int, jitter bool, sopen, sclose float64) *StratifiedSampler {
@@ -712,9 +724,13 @@ func (s *StratifiedSampler) GetSubSampler(num, count int) Sampler {
 }
 
 func (s *StratifiedSampler) RoundSize(size int) int { return size }
-func (s *StratifiedSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
+func (s *StratifiedSampler) PixelRegion() (xstart, xend, ystart, yend int) {
+	return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd
+}
 func (s *StratifiedSampler) SamplesPerPixel() int { return s.samplesPerPixel }
-func (s *StratifiedSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
+func (s *StratifiedSampler) ShutterTimes() (sopen, sclose float64) {
+	return s.shutterOpen, s.shutterClose
+}
 
 func CreateAdaptiveSampler(params *ParamSet, film Film, camera Camera) *AdaptiveSampler {
 	// Initialize common sampler parameters

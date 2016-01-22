@@ -63,7 +63,7 @@ func (f *ImageFilm) pixelAt(x, y int) *imagePixel {
 	return &f.pixels[y*f.xPixelCount+x]
 }
 
-func (f *ImageFilm) AddSample(sample *CameraSample, L *Spectrum) {
+func (f *ImageFilm) AddSample(sample *Sample, L *Spectrum) {
 	// Compute sample's raster extent
 	dimageX := sample.imageX - 0.5
 	dimageY := sample.imageY - 0.5
@@ -119,7 +119,7 @@ func (f *ImageFilm) AddSample(sample *CameraSample, L *Spectrum) {
 	}
 }
 
-func (f *ImageFilm) Splat(sample *CameraSample, L *Spectrum) {
+func (f *ImageFilm) Splat(sample *Sample, L *Spectrum) {
 	if L.HasNaNs() {
 		Warning("ImageFilm ignoring splatted spectrum with NaN values.")
 		return
@@ -212,7 +212,9 @@ func CreateImageFilmFromParams(params *ParamSet, filter Filter) *ImageFilm {
 	yres := params.FindIntParam("yresolution", 480)
 	openwin := params.FindBoolParam("display", false)
 	crop := params.FindFloatArrayParam("cropwindow")
-    if crop == nil { crop = []float64{0, 1, 0, 1} }
+	if crop == nil {
+		crop = []float64{0, 1, 0, 1}
+	}
 	if len(options.ImageFile) != 0 {
 		if len(filename) != 0 {
 			Warning("Output filename supplied on command line, \"%s\", ignored due to filename provided in scene description file, \"%s\".",
@@ -228,6 +230,6 @@ func CreateImageFilmFromParams(params *ParamSet, filter Filter) *ImageFilm {
 		xres = Maxi(1, xres/4)
 		yres = Maxi(1, yres/4)
 	}
-	
+
 	return CreateImageFilm(xres, yres, filter, crop, filename, openwin)
 }

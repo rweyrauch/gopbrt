@@ -12,6 +12,7 @@ const (
 type Distribution1D struct {
 	dfunc, cdf []float64
 	dfuncInt   float64
+	count      int
 }
 
 type Distribution2D struct {
@@ -34,26 +35,26 @@ func (ph *PermutedHalton) Sample(n int, out []float64) {
 	*/
 }
 
-func CreateDistribution1D(f []float64) *Distribution1D {
+func NewDistribution1D(f []float64) *Distribution1D {
 	nd := new(Distribution1D)
-	n := len(f)
-	nd.dfunc = make([]float64, n, n)
+	nd.count = len(f)
+	nd.dfunc = make([]float64, nd.count, nd.count)
 	_ = copy(nd.dfunc, f[0:])
-	nd.cdf = make([]float64, n+1, n+1)
+	nd.cdf = make([]float64, nd.count+1, nd.count+1)
 	// Compute integral of step function at $x_i$
 	nd.cdf[0] = 0.0
 	for i, df := range nd.dfunc {
-		nd.cdf[i+1] = nd.cdf[i] + df/float64(n)
+		nd.cdf[i+1] = nd.cdf[i] + df/float64(nd.count)
 	}
 
 	// Transform step function integral into CDF
-	nd.dfuncInt = nd.cdf[n]
+	nd.dfuncInt = nd.cdf[nd.count]
 	if nd.dfuncInt == 0.0 {
-		for i := 1; i < n+1; i++ {
-			nd.cdf[i] = float64(i) / float64(n)
+		for i := 1; i < nd.count+1; i++ {
+			nd.cdf[i] = float64(i) / float64(nd.count)
 		}
 	} else {
-		for i := 1; i < n+1; i++ {
+		for i := 1; i < nd.count+1; i++ {
 			nd.cdf[i] /= nd.dfuncInt
 		}
 	}
@@ -536,22 +537,41 @@ func UniformSampleTriangle(u1, u2 float64) (u, v float64) {
 	return u, v
 }
 
-func CreateDistribution2D(dfunc []float64, nu, nv int) *Distribution2D {
+func NewDistribution2D(dfunc []float64, nu, nv int) *Distribution2D {
 	d := new(Distribution2D)
 	d.pConditionalV = make([]*Distribution1D, 0, nv)
-	/*
-		    for v := 0; v < nv; v++ {
-		        // Compute conditional sampling distribution for $\tilde{v}$
-		        d.pConditionalV = append(d.pConditionalV, CreateDistribution1D(dfunc[v*nu:], nu))
-		    }
-		    // Compute marginal sampling distribution $p[\tilde{v}]$
-		    marginalFunc := make([]float64, nv, nv)
-		    for v := 0; v < nv; v++ {
-		        marginalFunc[v] = d.pConditionalV[v].dfuncInt
-			}
-		    d.pMarginal = CreateDistribution1D(marginalFunc, nv)
-	*/
+
+	for v := 0; v < nv; v++ {
+		// Compute conditional sampling distribution for $\tilde{v}$
+		d.pConditionalV = append(d.pConditionalV, NewDistribution1D(dfunc[v*nu:v*nu+nu]))
+	}
+	// Compute marginal sampling distribution $p[\tilde{v}]$
+	marginalFunc := make([]float64, nv, nv)
+	for v := 0; v < nv; v++ {
+		marginalFunc[v] = d.pConditionalV[v].dfuncInt
+	}
+	d.pMarginal = NewDistribution1D(marginalFunc)
+
 	return d
+}
+
+func (d *Distribution2D) SampleContinuous(u0, u1 float64) (uv [2]float64, pdf float64) {
+	var pdfs [2]float64
+	var v int
+	uv[1], pdfs[1], v = d.pMarginal.SampleContinuous(u1)
+	uv[0], pdfs[0], _ = d.pConditionalV[v].SampleContinuous(u0)
+	pdf = pdfs[0] * pdfs[1]
+	return uv, pdf
+}
+
+func (d *Distribution2D) Pdf(u, v float64) float64 {
+	iu := Clampi(Float2Int(u*float64(d.pConditionalV[0].count)), 0, d.pConditionalV[0].count-1)
+	iv := Clampi(Float2Int(v*float64(d.pMarginal.count)), 0, d.pMarginal.count-1)
+	if d.pConditionalV[iv].dfuncInt*d.pMarginal.dfuncInt == 0.0 {
+		return 0.0
+	}
+	return (d.pConditionalV[iv].dfunc[iu] * d.pMarginal.dfunc[iv]) /
+		(d.pConditionalV[iv].dfuncInt * d.pMarginal.dfuncInt)
 }
 
 func UniformConePdf(cosThetaMax float64) float64 {

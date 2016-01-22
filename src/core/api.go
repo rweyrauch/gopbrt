@@ -18,11 +18,12 @@ const (
 type TransformSet struct {
 	t [MAX_TRANSFORMS]*Transform
 }
+
 func CreateTransformSet() *TransformSet {
 	ts := new(TransformSet)
 	ts.t[0] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
 	ts.t[1] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
-	return ts 
+	return ts
 }
 func (ts *TransformSet) get(i int) *Transform {
 	return ts.t[i]
@@ -50,6 +51,7 @@ type TransformCache struct {
 	cache map[Transform]TransformPair
 	arena *MemoryArena
 }
+
 func CreateTransformCache() *TransformCache {
 	tc := new(TransformCache)
 	tc.cache = make(map[Transform]TransformPair, 4)
@@ -61,7 +63,7 @@ func (tc *TransformCache) Lookup(t *Transform) (tCache, tInvCache *Transform) {
 	if tpair.first == nil && tpair.second == nil {
 		tinv := InverseTransform(t)
 		tpair.first = t
-		tpair.second = tinv		
+		tpair.second = tinv
 		tc.cache[*t] = tpair
 	}
 	return tpair.first, tpair.second
@@ -159,38 +161,37 @@ var (
 
 func init() {
 	curTransform = new(TransformSet)
-	curTransform.t[0], _ = CreateTransform(CreateIdentityMatrix4x4())	
-	curTransform.t[1], _ = CreateTransform(CreateIdentityMatrix4x4())	
-	
+	curTransform.t[0], _ = CreateTransform(CreateIdentityMatrix4x4())
+	curTransform.t[1], _ = CreateTransform(CreateIdentityMatrix4x4())
+
 	namedCoordinateSystems = make(map[string]*TransformSet, 4)
 	pushedGraphicsStates = make([]*GraphicsState, 0, 8)
 	pushedTransforms = make([]*TransformSet, 0, 8)
 	pushedActiveTransformBits = make([]uint32, 0, 8)
-	
+
 	transformCache = CreateTransformCache()
 }
-
 
 // API "Macros"
 func VERIFY_INITIALIZED(funcname string) {
 	Debug("Trace: %s", funcname)
 	if currentApiState == STATE_UNINITIALIZED {
-    	Error("pbrtInit() must be before calling \"%s()\".  Ignoring.", funcname)
+		Error("pbrtInit() must be before calling \"%s()\".  Ignoring.", funcname)
 	}
 }
 
 func VERIFY_OPTIONS(funcname string) {
 	VERIFY_INITIALIZED(funcname)
 	if currentApiState == STATE_WORLD_BLOCK {
-    	Error("Options cannot be set inside world block; \"%s\" not allowed.  Ignoring.", funcname)
-    }
+		Error("Options cannot be set inside world block; \"%s\" not allowed.  Ignoring.", funcname)
+	}
 }
- 
+
 func VERIFY_WORLD(funcname string) {
 	VERIFY_INITIALIZED(funcname)
 	if currentApiState == STATE_OPTIONS_BLOCK {
-    	Error("Scene description must be inside world block; \"%s\" not allowed. Ignoring.", funcname)
-    }
+		Error("Scene description must be inside world block; \"%s\" not allowed. Ignoring.", funcname)
+	}
 }
 
 func FOR_ACTIVE_TRANSFORMS(action func(ndx uint)) {
@@ -204,8 +205,8 @@ func FOR_ACTIVE_TRANSFORMS(action func(ndx uint)) {
 
 func WARN_IF_ANIMATED_TRANSFORM(funcname string) {
 	if curTransform.isAnimated() {
-         Warning("Animated transformations set; ignoring for \"%s\" and using the start transform only", funcname)
-    }
+		Warning("Animated transformations set; ignoring for \"%s\" and using the start transform only", funcname)
+	}
 }
 
 // Object Creation Function Definitions
@@ -558,31 +559,31 @@ func PbrtCleanup() {
 }
 
 func PbrtIdentity() {
-    VERIFY_INITIALIZED("Identity")
+	VERIFY_INITIALIZED("Identity")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) { curTransform.t[i] = new(Transform) })
 }
 
 func PbrtTranslate(dx, dy, dz float64) {
-    VERIFY_INITIALIZED("Translate")
+	VERIFY_INITIALIZED("Translate")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) {
 		curTransform.t[i] = curTransform.t[i].MultTransform(TranslateTransform(&Vector{dx, dy, dz}))
 	})
 }
 
 func PbrtRotate(angle, ax, ay, az float64) {
-    VERIFY_INITIALIZED("Rotate")
+	VERIFY_INITIALIZED("Rotate")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) {
 		curTransform.t[i] = curTransform.t[i].MultTransform(RotateTransform(angle, &Vector{ax, ay, az}))
 	})
 }
 
 func PbrtScale(sx, sy, sz float64) {
-    VERIFY_INITIALIZED("Scale")
+	VERIFY_INITIALIZED("Scale")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) { curTransform.t[i] = curTransform.t[i].MultTransform(ScaleTransform(sx, sy, sz)) })
 }
 
 func PbrtLookAt(ex, ey, ez, lx, ly, lz, ux, uy, uz float64) {
-    VERIFY_INITIALIZED("LookAt")
+	VERIFY_INITIALIZED("LookAt")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) {
 		look, _ := LookAtTransform(&Point{ex, ey, ez}, &Point{lx, ly, lz}, &Vector{ux, uy, uz})
 		curTransform.t[i] = curTransform.t[i].MultTransform(look)
@@ -590,7 +591,7 @@ func PbrtLookAt(ex, ey, ez, lx, ly, lz, ux, uy, uz float64) {
 }
 
 func PbrtConcatTransform(transform Matrix4x4) {
-    VERIFY_INITIALIZED("ConcatTransform")
+	VERIFY_INITIALIZED("ConcatTransform")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) {
 		xform, _ := CreateTransform(&transform)
 		curTransform.t[i] = curTransform.t[i].MultTransform(xform)
@@ -598,17 +599,17 @@ func PbrtConcatTransform(transform Matrix4x4) {
 }
 
 func PbrtTransform(transform Matrix4x4) {
-    VERIFY_INITIALIZED("Transform")
+	VERIFY_INITIALIZED("Transform")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) { curTransform.t[i], _ = CreateTransform(&transform) })
 }
 
 func PbrtCoordinateSystem(name string) {
-    VERIFY_INITIALIZED("CoordinateSystem")
+	VERIFY_INITIALIZED("CoordinateSystem")
 	namedCoordinateSystems[name] = curTransform
 }
 
 func PbrtCoordSysTransform(name string) {
-    VERIFY_INITIALIZED("CoordSysTransform")
+	VERIFY_INITIALIZED("CoordSysTransform")
 	if namedCoordinateSystems[name] != nil {
 		curTransform = namedCoordinateSystems[name]
 	} else {
@@ -629,55 +630,55 @@ func PbrtActiveTransformStartTime() {
 }
 
 func PbrtTransformTimes(start, end float64) {
-    VERIFY_OPTIONS("TransformTimes")	
+	VERIFY_OPTIONS("TransformTimes")
 	renderOptions.transformStartTime = start
 	renderOptions.transformEndTime = end
 }
 
 func PbrtPixelFilter(name string, params *ParamSet) {
-    VERIFY_OPTIONS("PixelFilter")
+	VERIFY_OPTIONS("PixelFilter")
 	renderOptions.FilterName = name
 	renderOptions.FilterParams = params
 }
 
 func PbrtFilm(filmtype string, params *ParamSet) {
-    VERIFY_OPTIONS("Film")
+	VERIFY_OPTIONS("Film")
 	renderOptions.FilmParams = params
 	renderOptions.FilmName = filmtype
 }
 
 func PbrtSampler(name string, params *ParamSet) {
-    VERIFY_OPTIONS("Sampler")
+	VERIFY_OPTIONS("Sampler")
 	renderOptions.SamplerName = name
 	renderOptions.SamplerParams = params
 }
 
 func PbrtAccelerator(name string, params *ParamSet) {
-    VERIFY_OPTIONS("Accelerator")
+	VERIFY_OPTIONS("Accelerator")
 	renderOptions.AcceleratorName = name
 	renderOptions.AcceleratorParams = params
 }
 
 func PbrtSurfaceIntegrator(name string, params *ParamSet) {
-    VERIFY_OPTIONS("SurfaceIntegrator")
+	VERIFY_OPTIONS("SurfaceIntegrator")
 	renderOptions.SurfIntegratorName = name
 	renderOptions.SurfIntegratorParams = params
 }
 
 func PbrtVolumeIntegrator(name string, params *ParamSet) {
-    VERIFY_OPTIONS("VolumeIntegrator")
+	VERIFY_OPTIONS("VolumeIntegrator")
 	renderOptions.VolIntegratorName = name
 	renderOptions.VolIntegratorParams = params
 }
 
 func PbrtRenderer(name string, params *ParamSet) {
-    VERIFY_OPTIONS("Renderer")
+	VERIFY_OPTIONS("Renderer")
 	renderOptions.RendererName = name
 	renderOptions.RendererParams = params
 }
 
 func PbrtCamera(camtype string, cameraParams *ParamSet) {
-    VERIFY_OPTIONS("Camera")
+	VERIFY_OPTIONS("Camera")
 	renderOptions.CameraName = camtype
 	renderOptions.CameraParams = cameraParams
 	renderOptions.CameraToWorld = inverseTransformSet(curTransform)
@@ -685,7 +686,7 @@ func PbrtCamera(camtype string, cameraParams *ParamSet) {
 }
 
 func PbrtWorldBegin() {
-    VERIFY_OPTIONS("WorldBegin")
+	VERIFY_OPTIONS("WorldBegin")
 	currentApiState = STATE_WORLD_BLOCK
 	for i := 0; i < MAX_TRANSFORMS; i++ {
 		curTransform.t[i] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
@@ -695,14 +696,14 @@ func PbrtWorldBegin() {
 }
 
 func PbrtAttributeBegin() {
-    VERIFY_WORLD("AttributeBegin")
+	VERIFY_WORLD("AttributeBegin")
 	pushedGraphicsStates = append(pushedGraphicsStates, graphicsState)
 	pushedTransforms = append(pushedTransforms, curTransform)
 	pushedActiveTransformBits = append(pushedActiveTransformBits, activeTransformBits)
 }
 
 func PbrtAttributeEnd() {
-    VERIFY_WORLD("AttributeEnd")
+	VERIFY_WORLD("AttributeEnd")
 	if len(pushedGraphicsStates) == 0 {
 		Error("Unmatched pbrtAttributeEnd() encountered.  Ignoring it.")
 		return
@@ -717,13 +718,13 @@ func PbrtAttributeEnd() {
 }
 
 func PbrtTransformBegin() {
-    VERIFY_WORLD("TransformBegin")
+	VERIFY_WORLD("TransformBegin")
 	pushedTransforms = append(pushedTransforms, curTransform)
 	pushedActiveTransformBits = append(pushedActiveTransformBits, activeTransformBits)
 }
 
 func PbrtTransformEnd() {
-    VERIFY_WORLD("TransformEnd")
+	VERIFY_WORLD("TransformEnd")
 	if len(pushedTransforms) == 0 {
 		Error("Unmatched pbrtTransformEnd() encountered.  Ignoring it.")
 		return
@@ -736,7 +737,7 @@ func PbrtTransformEnd() {
 }
 
 func PbrtTexture(name string, textype string, texname string, params *ParamSet) {
-    VERIFY_WORLD("Texture")
+	VERIFY_WORLD("Texture")
 	tp := CreateTextureParams(params, params, graphicsState.floatTextures, graphicsState.spectrumTextures)
 	if strings.Compare(textype, "float") == 0 {
 		// Create _float_ texture and store in _floatTextures_
@@ -764,14 +765,14 @@ func PbrtTexture(name string, textype string, texname string, params *ParamSet) 
 }
 
 func PbrtMaterial(name string, params *ParamSet) {
-    VERIFY_WORLD("Material")
+	VERIFY_WORLD("Material")
 	graphicsState.material = name
 	graphicsState.materialParams = params
 	graphicsState.currentNamedMaterial = ""
 }
 
 func PbrtMakeNamedMaterial(name string, params *ParamSet) {
-    VERIFY_WORLD("MakeNamedMaterial")
+	VERIFY_WORLD("MakeNamedMaterial")
 	// error checking, warning if replace, what to use for transform?
 	mp := CreateTextureParams(params, graphicsState.materialParams, graphicsState.floatTextures, graphicsState.spectrumTextures)
 	matName := "" // = mp.FindString("type"); // TODO: extract texture type from params
@@ -787,12 +788,12 @@ func PbrtMakeNamedMaterial(name string, params *ParamSet) {
 }
 
 func PbrtNamedMaterial(name string) {
-    VERIFY_WORLD("NamedMaterial")
+	VERIFY_WORLD("NamedMaterial")
 	graphicsState.currentNamedMaterial = name
 }
 
 func PbrtLightSource(name string, params *ParamSet) {
-    VERIFY_WORLD("LightSource")
+	VERIFY_WORLD("LightSource")
 	WARN_IF_ANIMATED_TRANSFORM("LightSource")
 	lt := MakeLight(name, curTransform.t[0], params)
 	if lt == nil {
@@ -803,13 +804,13 @@ func PbrtLightSource(name string, params *ParamSet) {
 }
 
 func PbrtAreaLightSource(name string, params *ParamSet) {
-    VERIFY_WORLD("AreaLightSource")
+	VERIFY_WORLD("AreaLightSource")
 	graphicsState.areaLight = name
 	graphicsState.areaLightParams = params
 }
 
 func PbrtShape(name string, params *ParamSet) {
-    VERIFY_WORLD("Shape")
+	VERIFY_WORLD("Shape")
 	var area AreaLight
 	var prim Primitive
 	if !curTransform.isAnimated() {
@@ -881,12 +882,12 @@ func PbrtShape(name string, params *ParamSet) {
 }
 
 func PbrtReverseOrientation() {
-    VERIFY_WORLD("ReverseOrientation")	
+	VERIFY_WORLD("ReverseOrientation")
 	graphicsState.reverseOrientation = !graphicsState.reverseOrientation
 }
 
 func PbrtVolume(name string, params *ParamSet) {
-    VERIFY_WORLD("Volume")	
+	VERIFY_WORLD("Volume")
 	WARN_IF_ANIMATED_TRANSFORM("Volume")
 	vr := MakeVolumeRegion(name, curTransform.t[0], params)
 	if vr != nil {
@@ -895,7 +896,7 @@ func PbrtVolume(name string, params *ParamSet) {
 }
 
 func PbrtObjectBegin(name string) {
-    VERIFY_WORLD("ObjectBegin")	
+	VERIFY_WORLD("ObjectBegin")
 	PbrtAttributeBegin()
 	if renderOptions.currentInstance != nil {
 		Error("ObjectBegin called inside of instance definition")
@@ -905,7 +906,7 @@ func PbrtObjectBegin(name string) {
 }
 
 func PbrtObjectEnd() {
-    VERIFY_WORLD("ObjectEnd")	
+	VERIFY_WORLD("ObjectEnd")
 	if renderOptions.currentInstance == nil {
 		Error("ObjectEnd called outside of instance definition")
 	}
@@ -914,7 +915,7 @@ func PbrtObjectEnd() {
 }
 
 func PbrtObjectInstance(name string) {
-    VERIFY_WORLD("ObjectInstance")	
+	VERIFY_WORLD("ObjectInstance")
 	// Object instance error checking
 	if renderOptions.currentInstance != nil {
 		Error("ObjectInstance can't be called inside instance definition")
@@ -951,7 +952,7 @@ func PbrtObjectInstance(name string) {
 }
 
 func PbrtWorldEnd() {
-    VERIFY_WORLD("WorldEnd")
+	VERIFY_WORLD("WorldEnd")
 	// Ensure there are no pushed graphics states
 	if len(pushedGraphicsStates) != 0 {
 		Warning("Missing end to pbrtAttributeBegin()")

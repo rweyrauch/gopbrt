@@ -505,23 +505,49 @@ func (t *AnimatedTransform) Interpolate(time float64) *Transform {
 }
 
 func VectorAnimatedTransform(t *AnimatedTransform, time float64, v *Vector) *Vector {
-	// TODO: implement this
-	return nil
+    if !t.actuallyAnimated || time <= t.startTime {
+        return VectorTransform(t.startTransform, v)
+    } else if time >= t.endTime {
+        return VectorTransform(t.endTransform, v)
+	}        
+    tt := t.Interpolate(time)
+    return VectorTransform(tt, v)
 }
 
 func PointAnimatedTransform(t *AnimatedTransform, time float64, p *Point) *Point {
-	// TODO: implement this
-	return nil
+    if !t.actuallyAnimated || time <= t.startTime {
+        return PointTransform(t.startTransform, p)
+    } else if time >= t.endTime {
+        return PointTransform(t.endTransform, p)
+	}        
+    tt := t.Interpolate(time)
+    return PointTransform(tt, p)
 }
 
-func RayAnimatedTransform(t *AnimatedTransform, r *Ray) *Ray {
-	// TODO: implement this
-	return nil
+func RayAnimatedTransform(t *AnimatedTransform, r *Ray) (tr *Ray) {
+    if !t.actuallyAnimated || r.time <= t.startTime {
+        tr = RayTransform(t.startTransform, r)
+    } else if r.time >= t.endTime {
+        tr = RayTransform(t.endTransform, r)
+    } else {
+		tt := t.Interpolate(r.time)
+        tr = RayTransform(tt, r)
+    }
+    tr.time = r.time
+    return tr
 }
 
-func RayDifferentialAnimatedTransform(t *AnimatedTransform, r *RayDifferential) *RayDifferential {
-	// TODO: implement this
-	return nil
+func RayDifferentialAnimatedTransform(t *AnimatedTransform, r *RayDifferential) (tr *RayDifferential) {
+    if !t.actuallyAnimated || r.time <= t.startTime {
+        tr = RayDifferentialTransform(t.startTransform, r)
+    } else if r.time >= t.endTime {
+        tr = RayDifferentialTransform(t.endTransform, r)
+    } else {
+		tt := t.Interpolate(r.time)
+        tr = RayDifferentialTransform(tt, r)
+    }
+    tr.time = r.time
+    return tr
 }
 
 func MotionBoundsAnimatedTransform(t *AnimatedTransform, b *BBox, useInverse bool) *BBox {

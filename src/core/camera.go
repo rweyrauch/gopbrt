@@ -5,8 +5,8 @@ import (
 )
 
 type Camera interface {
-	GenerateRay(sample *CameraSample) (ray *Ray, weight float64)
-	GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64)
+	GenerateRay(sample *Sample) (ray *Ray, weight float64)
+	GenerateRayDifferential(sample *Sample) (ray *RayDifferential, weight float64)
     CameraToWorld() *AnimatedTransform
     ShutterOpen() float64
     ShutterClose() float64
@@ -19,7 +19,7 @@ type CameraCore struct {
 	film                      Film
 }
 
-func GenerateRayDifferential(camera Camera, sample *CameraSample) (rd *RayDifferential, weight float64) {
+func GenerateRayDifferential(camera Camera, sample *Sample) (rd *RayDifferential, weight float64) {
 	ray, wt := camera.GenerateRay(sample)
 	rd = CreateRayDifferentialFromRay(ray)
 	// Find ray after shifting one pixel in the $x$ direction
@@ -94,7 +94,7 @@ func NewPerspectiveCamera(cam2world *AnimatedTransform, screenWindow [4]float64,
 	return camera
 }
 
-func (c *PerspectiveCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight float64) {
+func (c *PerspectiveCamera) GenerateRay(sample *Sample) (ray *Ray, weight float64) {
     // Generate raster and camera samples
     Pras := CreatePoint(sample.imageX, sample.imageY, 0)
     Pcamera := PointTransform(c.rasterToCamera, Pras)
@@ -120,7 +120,7 @@ func (c *PerspectiveCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight 
     return ray, 1.0
 }
 
-func (c *PerspectiveCamera) GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {
+func (c *PerspectiveCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferential, weight float64) {
    // Generate raster and camera samples
     Pras := CreatePoint(sample.imageX, sample.imageY, 0)
     Pcamera := PointTransform(c.rasterToCamera, Pras)
@@ -194,7 +194,7 @@ func NewEnvironmentCamera(cam2world *AnimatedTransform, screenWindow [4]float64,
 	return camera
 }
 
-func (c *EnvironmentCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight float64) {
+func (c *EnvironmentCamera) GenerateRay(sample *Sample) (ray *Ray, weight float64) {
     // Compute environment camera ray direction
     theta := math.Pi * sample.imageY / float64(c.film.YResolution())
     phi := 2 * math.Pi * sample.imageX / float64(c.film.XResolution())
@@ -205,7 +205,7 @@ func (c *EnvironmentCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight 
     return ray, 1.0
 }
 
-func (c *EnvironmentCamera) GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {
+func (c *EnvironmentCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferential, weight float64) {
 	return nil, 0.0
 }
 
@@ -241,7 +241,7 @@ func NewOrthoCamera(cam2world *AnimatedTransform, screenWindow [4]float64, shutt
 	return camera
 }
 
-func (c *OrthoCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight float64) { 
+func (c *OrthoCamera) GenerateRay(sample *Sample) (ray *Ray, weight float64) { 
     // Generate raster and camera samples
     Pras := CreatePoint(sample.imageX, sample.imageY, 0)
     Pcamera := PointTransform(c.rasterToCamera, Pras)
@@ -267,7 +267,7 @@ func (c *OrthoCamera) GenerateRay(sample *CameraSample) (ray *Ray, weight float6
     return ray, 1.0
 }
 	
-func (c *OrthoCamera) GenerateRayDifferential(sample *CameraSample) (ray *RayDifferential, weight float64) {
+func (c *OrthoCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferential, weight float64) {
     // Compute main orthographic viewing ray
 
     // Generate raster and camera samples

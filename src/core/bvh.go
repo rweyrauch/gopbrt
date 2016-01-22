@@ -1,8 +1,8 @@
 package core
 
 import (
-	"strings"
 	"sort"
+	"strings"
 )
 
 const (
@@ -191,33 +191,36 @@ func (bvh *BVHAccel) WorldBound() *BBox {
 	}
 }
 
-func partition(buildData []BVHPrimitiveInfo, first, last int, comp func (info *BVHPrimitiveInfo) bool) int {
- 	if first == last { return first }
- 	first++
- 	part := first
-    if first == last {
-    	if comp(&buildData[part]) {
-    		return first
-    	} else {
-    		return part
-    	}
+func partition(buildData []BVHPrimitiveInfo, first, last int, comp func(info *BVHPrimitiveInfo) bool) int {
+	if first == last {
+		return first
 	}
-    for (first != last) {
-        if comp(&buildData[part]) {
-            part++
-        } else if comp(&buildData[first]) {
-        	buildData[part], buildData[first] = buildData[first], buildData[part]
-            part++
-        }
-        first++
-    } 
-    return part	
+	first++
+	part := first
+	if first == last {
+		if comp(&buildData[part]) {
+			return first
+		} else {
+			return part
+		}
+	}
+	for first != last {
+		if comp(&buildData[part]) {
+			part++
+		} else if comp(&buildData[first]) {
+			buildData[part], buildData[first] = buildData[first], buildData[part]
+			part++
+		}
+		first++
+	}
+	return part
 }
 
 type bvhInfoSorter struct {
 	buildData []BVHPrimitiveInfo
-	by func (info0, info1 *BVHPrimitiveInfo) bool
+	by        func(info0, info1 *BVHPrimitiveInfo) bool
 }
+
 func (s *bvhInfoSorter) Len() int {
 	return len(s.buildData)
 }
@@ -227,13 +230,16 @@ func (s *bvhInfoSorter) Swap(i, j int) {
 func (s *bvhInfoSorter) Less(i, j int) bool {
 	return s.by(&s.buildData[i], &s.buildData[j])
 }
+
 type By func(i0, i1 *BVHPrimitiveInfo) bool
+
 func (by By) Sort(buildData []BVHPrimitiveInfo) {
 	infoSorter := &bvhInfoSorter{buildData, by}
 	sort.Sort(infoSorter)
 }
+
 // TODO: implement a real nth_element function rather than a full sort on the range
-func nth_element(buildData []BVHPrimitiveInfo, first, nth, last int, comp func (info0, info1 *BVHPrimitiveInfo) bool) {
+func nth_element(buildData []BVHPrimitiveInfo, first, nth, last int, comp func(info0, info1 *BVHPrimitiveInfo) bool) {
 	By(comp).Sort(buildData[first:last])
 }
 
@@ -298,7 +304,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 		case SPLIT_MIDDLE:
 			// Partition primitives through node's midpoint
 			pmid := 0.5 * (centroidBounds.pMin.At(dim) + centroidBounds.pMax.At(dim))
-			compareToMid := func (info *BVHPrimitiveInfo) bool {
+			compareToMid := func(info *BVHPrimitiveInfo) bool {
 				if info.centroid.At(dim) < pmid {
 					return true
 				} else {
@@ -311,7 +317,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 				// may fail to partition; in that case don't break and fall through
 				// to SPLIT_EQUAL_COUNTS
 				mid = (start + end) / 2
-				comparePoints := func (info0, info1 *BVHPrimitiveInfo) bool {
+				comparePoints := func(info0, info1 *BVHPrimitiveInfo) bool {
 					return info0.centroid.At(dim) < info0.centroid.At(dim)
 				}
 				nth_element(buildData, start, mid, end-1, comparePoints)
@@ -319,7 +325,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 		case SPLIT_EQUAL_COUNTS:
 			// Partition primitives into equally-sized subsets
 			mid = (start + end) / 2
-			comparePoints := func (info0, info1 *BVHPrimitiveInfo) bool {
+			comparePoints := func(info0, info1 *BVHPrimitiveInfo) bool {
 				return info0.centroid.At(dim) < info0.centroid.At(dim)
 			}
 			nth_element(buildData, start, mid, end-1, comparePoints)
@@ -329,7 +335,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 			if nPrimitives <= 4 {
 				// Partition primitives into equally-sized subsets
 				mid = (start + end) / 2
-				comparePoints := func (info0, info1 *BVHPrimitiveInfo) bool {
+				comparePoints := func(info0, info1 *BVHPrimitiveInfo) bool {
 					return info0.centroid.At(dim) < info0.centroid.At(dim)
 				}
 				nth_element(buildData, start, mid, end-1, comparePoints)
@@ -379,11 +385,13 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 
 				// Either create leaf or split primitives at selected SAH bucket
 				if nPrimitives > bvh.maxPrimsInNode || minCost < float64(nPrimitives) {
-					compareToBucket := func (info *BVHPrimitiveInfo) bool {
-   						b := int(float64(SAH_NUM_BUCKETS) * ((info.centroid.At(dim) - centroidBounds.pMin.At(dim)) / (centroidBounds.pMax.At(dim) - centroidBounds.pMin.At(dim))))
-    					if (b == SAH_NUM_BUCKETS) { b = SAH_NUM_BUCKETS-1 }
-    					//Assert(b >= 0 && b < SAH_NUM_BUCKETS);
-    					return b <= minCostSplit
+					compareToBucket := func(info *BVHPrimitiveInfo) bool {
+						b := int(float64(SAH_NUM_BUCKETS) * ((info.centroid.At(dim) - centroidBounds.pMin.At(dim)) / (centroidBounds.pMax.At(dim) - centroidBounds.pMin.At(dim))))
+						if b == SAH_NUM_BUCKETS {
+							b = SAH_NUM_BUCKETS - 1
+						}
+						//Assert(b >= 0 && b < SAH_NUM_BUCKETS);
+						return b <= minCostSplit
 					}
 					mid = partition(buildData, start, end-1, compareToBucket)
 				} else {

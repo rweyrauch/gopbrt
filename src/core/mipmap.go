@@ -431,23 +431,23 @@ func (mip *MIPMapSpectrum) Texel(level, s, t int) *Spectrum {
 	return &l[s+t*mip.pyramidSizes[level][0]]
 }
 
-func (mip *MIPMapSpectrum) Lookup(s, t, width float64) Spectrum {
+func (mip *MIPMapSpectrum) Lookup(s, t, width float64) *Spectrum {
 	// Compute MIPMap level for trilinear filtering
 	level := float64(mip.nLevels-1) + math.Log2(math.Max(width, 1.0e-8))
 
 	// Perform trilinear interpolation at appropriate MIPMap level
 	//PBRT_MIPMAP_TRILINEAR_FILTER(const_cast<MIPMap<T> *>(this), s, t, width, level, nLevels);
 	if level < 0 {
-		return *mip.triangle(0, s, t)
+		return mip.triangle(0, s, t)
 	} else if level >= float64(mip.nLevels-1) {
-		return *mip.Texel(mip.nLevels-1, 0, 0)
+		return mip.Texel(mip.nLevels-1, 0, 0)
 	} else {
 		iLevel := Floor2Int(level)
 		delta := float32(level) - float32(iLevel)
-		return *mip.triangle(iLevel, s, t).Scale(1.0 - delta).Add(mip.triangle(iLevel+1, s, t).Scale(delta))
+		return mip.triangle(iLevel, s, t).Scale(1.0 - delta).Add(mip.triangle(iLevel+1, s, t).Scale(delta))
 	}
 }
-func (mip *MIPMapSpectrum) LookupEwa(s, t, ds0, dt0, ds1, dt1 float64) Spectrum {
+func (mip *MIPMapSpectrum) LookupEwa(s, t, ds0, dt0, ds1, dt1 float64) *Spectrum {
 	if mip.doTrilinear {
 		//PBRT_STARTED_TRILINEAR_TEXTURE_LOOKUP(s, t);
 		val := mip.Lookup(s, t, 2.0*math.Max(math.Max(math.Abs(ds0), math.Abs(dt0)), math.Max(math.Abs(ds1), math.Abs(dt1))))
@@ -473,7 +473,7 @@ func (mip *MIPMapSpectrum) LookupEwa(s, t, ds0, dt0, ds1, dt1 float64) Spectrum 
 	if minorLength == 0.0 {
 		//PBRT_FINISHED_EWA_TEXTURE_LOOKUP();
 		//PBRT_STARTED_TRILINEAR_TEXTURE_LOOKUP(s, t);
-		val := *mip.triangle(0, s, t)
+		val := mip.triangle(0, s, t)
 		//PBRT_FINISHED_TRILINEAR_TEXTURE_LOOKUP();
 		return val
 	}
@@ -483,7 +483,7 @@ func (mip *MIPMapSpectrum) LookupEwa(s, t, ds0, dt0, ds1, dt1 float64) Spectrum 
 	ilod := Floor2Int(lod)
 	//PBRT_MIPMAP_EWA_FILTER(const_cast<MIPMap<T> *>(this), s, t, ds0, ds1, dt0, dt1, minorLength, majorLength, lod, nLevels);
 	d := float32(lod) - float32(ilod)
-	val := *mip.ewa(ilod, s, t, ds0, dt0, ds1, dt1).Scale(1.0 - d).Add(mip.ewa(ilod+1, s, t, ds0, dt0, ds1, dt1).Scale(d))
+	val := mip.ewa(ilod, s, t, ds0, dt0, ds1, dt1).Scale(1.0 - d).Add(mip.ewa(ilod+1, s, t, ds0, dt0, ds1, dt1).Scale(d))
 	//PBRT_FINISHED_EWA_TEXTURE_LOOKUP();
 	return val
 }
