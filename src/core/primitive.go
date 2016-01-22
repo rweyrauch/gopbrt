@@ -54,7 +54,7 @@ type GeometricPrimitive struct {
 	areaLight AreaLight
 }
 
-func CreateGeometricPrimitive(s Shape, mtl Material, arealight AreaLight) *GeometricPrimitive {
+func NewGeometricPrimitive(s Shape, mtl Material, arealight AreaLight) *GeometricPrimitive {
 	gp := new(GeometricPrimitive)
 	gp.primitiveId = GeneratePrimitiveId()
 	gp.shape = s
@@ -103,7 +103,7 @@ func (p *GeometricPrimitive) IntersectP(r *Ray) bool {
 func (p *GeometricPrimitive) Refine(refined []Primitive) []Primitive {
 	r := p.shape.Refine(nil)
 	for _, prim := range r {
-		gp := CreateGeometricPrimitive(prim, p.material, p.areaLight)
+		gp := NewGeometricPrimitive(prim, p.material, p.areaLight)
 		if refined == nil {
 			refined = make([]Primitive, 0, 2)
 		}
@@ -140,7 +140,7 @@ type TransformedPrimitive struct {
 	worldToPrimitive *AnimatedTransform
 }
 
-func CreateTransformedPrimitive(prim Primitive, worldToPrimitive *AnimatedTransform) *TransformedPrimitive {
+func NewTransformedPrimitive(prim Primitive, worldToPrimitive *AnimatedTransform) *TransformedPrimitive {
 	tp := new(TransformedPrimitive)
 	tp.primitiveId = GeneratePrimitiveId()
 	tp.primitive = prim

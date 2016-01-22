@@ -41,7 +41,7 @@ func (q1 *Quaternion) ToTransform() *Transform {
 	m.m[2][2] = 1.0 - 2.0*(xx+yy)
 
 	// Transpose since we are left-handed.  Ugh.
-	return CreateTransformExplicit(TransposeMatrix4x4(m), m)
+	return NewTransformExplicit(TransposeMatrix4x4(m), m)
 }
 func CreateQuaternionFromMatrix4x4(m *Matrix4x4) *Quaternion {
 	q := new(Quaternion)

@@ -200,7 +200,7 @@ func (i *WhittedIntegrator) Preprocess(scene *Scene, camera Camera, renderer Ren
 func (i *WhittedIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	L := CreateSpectrum1(0.0)
+	L := NewSpectrum1(0.0)
 	// Compute emitted and reflected light at ray intersection point
 
 	// Evaluate BSDF at hit point
@@ -255,14 +255,14 @@ func UniformSampleAllLights(scene *Scene, renderer Renderer,
 	lightSampleOffsets []LightSampleOffsets,
 	bsdfSampleOffsets []BSDFSampleOffsets) *Spectrum {
 
-	L := CreateSpectrum1(0.0)
+	L := NewSpectrum1(0.0)
 	for i, light := range scene.lights {
 		nSamples := 1
 		if lightSampleOffsets != nil {
 			nSamples = lightSampleOffsets[i].nSamples
 		}
 		// Estimate direct lighting from _light_ samples
-		Ld := CreateSpectrum1(0.0)
+		Ld := NewSpectrum1(0.0)
 		for j := 0; j < nSamples; j++ {
 			// Find light and BSDF sample values for direct lighting estimate
 			var lightSample *LightSample
@@ -290,7 +290,7 @@ func UniformSampleOneLight(scene *Scene, renderer Renderer,
 	lightSampleOffsets *LightSampleOffsets,
 	bsdfSampleOffsets *BSDFSampleOffsets) *Spectrum {
 
-	return CreateSpectrum1(0.0)
+	return NewSpectrum1(0.0)
 	/*
 	   // Randomly choose a single light to sample, _light_
 	   nLights := len(scene.lights)
@@ -325,7 +325,7 @@ func EstimateDirect(scene *Scene, renderer Renderer,
 	n *Normal, wo *Vector, rayEpsilon, time float64, bsdf *BSDF,
 	rng *RNG, lightSample *LightSample, bsdfSample *BSDFSample,
 	flags BxDFType) *Spectrum {
-	Ld := CreateSpectrum1(0.0)
+	Ld := NewSpectrum1(0.0)
 	/*
 	   // Sample light source with multiple importance sampling
 	   Li, wi, lightPdf, visibility := light.Sample_L(p, rayEpsilon, lightSample, time)
@@ -381,7 +381,7 @@ func EstimateDirect(scene *Scene, renderer Renderer,
 func SpecularReflect(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 	isect *Intersection, renderer Renderer, scene *Scene,
 	sample *Sample, arena *MemoryArena) *Spectrum {
-	L := CreateSpectrum1(0.0)
+	L := NewSpectrum1(0.0)
 	/*
 	   wo := -ray.d
 	   var wi Vector
@@ -420,7 +420,7 @@ func SpecularTransmit(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 	isect *Intersection, renderer Renderer, scene *Scene,
 	sample *Sample, arena *MemoryArena) *Spectrum {
 
-	L := CreateSpectrum1(0.0)
+	L := NewSpectrum1(0.0)
 	/*
 	   wo := -ray.d
 	   var Vector wi

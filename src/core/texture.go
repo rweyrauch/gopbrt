@@ -504,8 +504,8 @@ func CreateBilerpSpectrumTexture(tex2world *Transform, tp *TextureParams) *Biler
 		mapping = NewUVMapping2D(1, 1, 0, 0)
 	}
 	return NewBilerpTextureSpectrum(mapping,
-		tp.FindSpectrum("v00", *CreateSpectrum1(0)), tp.FindSpectrum("v01", *CreateSpectrum1(1)),
-		tp.FindSpectrum("v10", *CreateSpectrum1(0)), tp.FindSpectrum("v11", *CreateSpectrum1(1)))
+		tp.FindSpectrum("v00", *NewSpectrum1(0)), tp.FindSpectrum("v01", *NewSpectrum1(1)),
+		tp.FindSpectrum("v10", *NewSpectrum1(0)), tp.FindSpectrum("v11", *NewSpectrum1(1)))
 }
 
 func NewCheckerboard2DTextureFloat(mapping TextureMapping2D, tex1, tex2 TextureFloat, aamode string) *Checkerboard2DTextureFloat {
@@ -671,8 +671,8 @@ func CreateCheckerboardSpectrumTexture(tex2world *Transform, tp *TextureParams) 
 		Error("%d dimensional checkerboard texture not supported", dim)
 		return nil
 	}
-	tex1 := tp.GetSpectrumTexture("tex1", *CreateSpectrum1(1.0))
-	tex2 := tp.GetSpectrumTexture("tex2", *CreateSpectrum1(0.0))
+	tex1 := tp.GetSpectrumTexture("tex1", *NewSpectrum1(1.0))
+	tex2 := tp.GetSpectrumTexture("tex2", *NewSpectrum1(0.0))
 	if dim == 2 {
 		// Initialize 2D texture mapping _map_ from _tp_
 		var mapping TextureMapping2D
@@ -722,7 +722,7 @@ func CreateConstantFloatTexture(tex2world *Transform, tp *TextureParams) *Consta
 	return &ConstantTextureFloat{float32(tp.FindFloat("value", 1.0))}
 }
 func CreateConstantSpectrumTexture(tex2world *Transform, tp *TextureParams) *ConstantTextureSpectrum {
-	return &ConstantTextureSpectrum{tp.FindSpectrum("value", *CreateSpectrum1(1.0))}
+	return &ConstantTextureSpectrum{tp.FindSpectrum("value", *NewSpectrum1(1.0))}
 }
 
 func NewDotsTextureFloat(mapping TextureMapping2D, tex1, tex2 TextureFloat) *DotsTextureFloat {
@@ -817,7 +817,7 @@ func CreateDotsSpectrumTexture(tex2world *Transform, tp *TextureParams) *DotsTex
 		Error("2D texture mapping \"%s\" unknown", maptype)
 		mapping = NewUVMapping2D(1, 1, 0, 0)
 	}
-	return NewDotsTextureSpectrum(mapping, tp.GetSpectrumTexture("inside", *CreateSpectrum1(1.0)), tp.GetSpectrumTexture("outside", *CreateSpectrum1(0.0)))
+	return NewDotsTextureSpectrum(mapping, tp.GetSpectrumTexture("inside", *NewSpectrum1(1.0)), tp.GetSpectrumTexture("outside", *NewSpectrum1(0.0)))
 }
 
 func NewFBmTextureFloat(oct int, roughness float64, mapping TextureMapping3D) *FBmTextureFloat {
@@ -833,7 +833,7 @@ func NewFBmTextureSpectrum(oct int, roughness float64, mapping TextureMapping3D)
 }
 func (tex *FBmTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
 	P, dpdx, dpdy := tex.mapping.Map(dg)
-	return *CreateSpectrum1(float32(FBm(P, dpdx, dpdy, tex.omega, tex.octaves)))
+	return *NewSpectrum1(float32(FBm(P, dpdx, dpdy, tex.omega, tex.octaves)))
 }
 
 func CreateFBmFloatTexture(tex2world *Transform, tp *TextureParams) *FBmTextureFloat {
@@ -860,7 +860,7 @@ func NewImageTextureSpectrum(mapping TextureMapping2D, filename string, trilinea
 }
 
 func (t *ImageTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
-	return *CreateSpectrum1(0.0)
+	return *NewSpectrum1(0.0)
 }
 
 func CreateImageFloatTexture(tex2world *Transform, tp *TextureParams) *ImageTextureFloat {
@@ -970,10 +970,10 @@ func (tex *MarbleTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
 	// Evaluate marble spline at _t_
 	first := Floor2Int(float64(t) * MARBLE_NSEG)
 	t = (t*MARBLE_NSEG - float32(first))
-	c0 := CreateSpectrum(marbleColors[first])
-	c1 := CreateSpectrum(marbleColors[first+1])
-	c2 := CreateSpectrum(marbleColors[first+2])
-	c3 := CreateSpectrum(marbleColors[first+3])
+	c0 := NewSpectrum(marbleColors[first])
+	c1 := NewSpectrum(marbleColors[first+1])
+	c2 := NewSpectrum(marbleColors[first+2])
+	c3 := NewSpectrum(marbleColors[first+3])
 	// Bezier spline evaluated with de Castilejau's algorithm
 	s0 := c0.Scale(1.0 - t).Add(c1.Scale(t))
 	s1 := c1.Scale(1.0 - t).Add(c2.Scale(t))
@@ -1010,7 +1010,7 @@ func CreateMixFloatTexture(tex2world *Transform, tp *TextureParams) *MixTextureF
 	return &MixTextureFloat{tp.GetFloatTexture("tex1", 0.0), tp.GetFloatTexture("tex2", 1.0), tp.GetFloatTexture("amount", 0.5)}
 }
 func CreateMixSpectrumTexture(tex2world *Transform, tp *TextureParams) *MixTextureSpectrum {
-	return &MixTextureSpectrum{tp.GetSpectrumTexture("tex1", *CreateSpectrum1(0.0)), tp.GetSpectrumTexture("tex2", *CreateSpectrum1(1.0)), tp.GetFloatTexture("amount", 0.50)}
+	return &MixTextureSpectrum{tp.GetSpectrumTexture("tex1", *NewSpectrum1(0.0)), tp.GetSpectrumTexture("tex2", *NewSpectrum1(1.0)), tp.GetFloatTexture("amount", 0.50)}
 }
 
 func (tex *ScaleTextureFloat) Evaluate(dg *DifferentialGeometry) float32 {
@@ -1026,7 +1026,7 @@ func CreateScaleFloatTexture(tex2world *Transform, tp *TextureParams) *ScaleText
 	return &ScaleTextureFloat{tp.GetFloatTexture("tex1", 1.0), tp.GetFloatTexture("tex2", 1.0)}
 }
 func CreateScaleSpectrumTexture(tex2world *Transform, tp *TextureParams) *ScaleTextureSpectrum {
-	return &ScaleTextureSpectrum{tp.GetSpectrumTexture("tex1", *CreateSpectrum1(1.0)), tp.GetSpectrumTexture("tex2", *CreateSpectrum1(1.0))}
+	return &ScaleTextureSpectrum{tp.GetSpectrumTexture("tex1", *NewSpectrum1(1.0)), tp.GetSpectrumTexture("tex2", *NewSpectrum1(1.0))}
 }
 
 func (tex *UVTextureFloat) Evaluate(dg *DifferentialGeometry) float32 {
@@ -1036,7 +1036,7 @@ func (tex *UVTextureFloat) Evaluate(dg *DifferentialGeometry) float32 {
 func (tex *UVTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
 	s, t, _, _, _, _ := tex.mapping.Map(dg)
 	rgb := [3]float32{float32(s) - float32(Floor2Int(s)), float32(t) - float32(Floor2Int(t)), 0.0}
-	return *CreateSpectrum(rgb)
+	return *NewSpectrum(rgb)
 }
 
 func CreateUVFloatTexture(tex2world *Transform, tp *TextureParams) *UVTextureFloat {
@@ -1078,7 +1078,7 @@ func (tex *WindyTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
 	P, dpdx, dpdy := tex.mapping.Map(dg)
 	windStrength := FBm(P.Scale(0.1), dpdx.Scale(0.1), dpdy.Scale(0.1), 0.5, 3)
 	waveHeight := FBm(P, dpdx, dpdy, 0.5, 6)
-	return *CreateSpectrum1(float32(math.Abs(windStrength) * waveHeight))
+	return *NewSpectrum1(float32(math.Abs(windStrength) * waveHeight))
 }
 
 func CreateWindyFloatTexture(tex2world *Transform, tp *TextureParams) *WindyTextureFloat {
@@ -1099,7 +1099,7 @@ func (tex *WrinkledTextureFloat) Evaluate(dg *DifferentialGeometry) float32 {
 
 func (tex *WrinkledTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spectrum {
 	P, dpdx, dpdy := tex.mapping.Map(dg)
-	return *CreateSpectrum1(float32(Turbulence(P, dpdx, dpdy, tex.omega, tex.octaves)))
+	return *NewSpectrum1(float32(Turbulence(P, dpdx, dpdy, tex.omega, tex.octaves)))
 }
 
 func CreateWrinkledFloatTexture(tex2world *Transform, tp *TextureParams) *WrinkledTextureFloat {

@@ -141,7 +141,7 @@ func (m *KdSubsurfaceMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *M
 }
 
 func CreateMatteMaterial(xform *Transform, mp *TextureParams) *MatteMaterial {
-    Kd := mp.GetSpectrumTexture("Kd", *CreateSpectrum1(0.5))
+    Kd := mp.GetSpectrumTexture("Kd", *NewSpectrum1(0.5))
     sigma := mp.GetFloatTexture("sigma", 0.0)
     bumpMap := mp.GetFloatTextureOrNil("bumpmap")
     return &MatteMaterial{Kd, sigma, bumpMap}

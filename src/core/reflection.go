@@ -59,7 +59,7 @@ func BxDFSample_f(bxdf BxDF, wo *Vector, u1, u2 float64) (wi *Vector, f *Spectru
 }
 
 func BxDFrho(bxdf BxDF, w *Vector, nSamples int, samples []float64) *Spectrum {
-    r := CreateSpectrum1(0.0)
+    r := NewSpectrum1(0.0)
     for i := 0; i < nSamples; i++ {
         // Estimate one term of $\rho_\roman{hd}$
         wi, f, pdf := bxdf.Sample_f(w, samples[2*i], samples[2*i+1])
@@ -71,7 +71,7 @@ func BxDFrho(bxdf BxDF, w *Vector, nSamples int, samples []float64) *Spectrum {
 }
 
 func BxDFrho2(bxdf BxDF, nSamples int, samples1, samples2 []float64) *Spectrum {
-    r := CreateSpectrum1(0.0)
+    r := NewSpectrum1(0.0)
     for i := 0; i < nSamples; i++ {
         wo := UniformSampleHemisphere(samples1[2*i], samples1[2*i+1])
         pdf_o := 1.0 / 2.0 * math.Pi
@@ -267,8 +267,8 @@ func FrDiel(cosi, cost float64, etai, etat *Spectrum) *Spectrum {
 func FrCond(cosi float64, eta, k *Spectrum) *Spectrum {
 	tmp := eta.Mult(eta).Add(k.Mult(k)).Scale(float32(cosi * cosi)) // (eta*eta + k*k) * cosi*cosi
 	etaScaled := eta.Scale(2.0 * float32(cosi))
-	oneSpec := CreateSpectrum1(1.0)
-	cosSpec := CreateSpectrum1(float32(cosi * cosi))
+	oneSpec := NewSpectrum1(1.0)
+	cosSpec := NewSpectrum1(float32(cosi * cosi))
 
 	//Rparl2 = (tmp - (2.0 * eta * cosi) + 1) / (tmp + (2.0 * eta * cosi) + 1)
 	Rparl2 := tmp.Sub(etaScaled).Add(oneSpec).Divide(tmp.Add(etaScaled).Add(oneSpec))

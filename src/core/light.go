@@ -182,7 +182,7 @@ func (l *DistantLight) Power(scene *Scene) *Spectrum {
 }
 
 func (l *DistantLight) IsDeltaLight() bool                { return true }
-func (l *DistantLight) Le(ray *RayDifferential) *Spectrum { return CreateSpectrum1(0.0) }
+func (l *DistantLight) Le(ray *RayDifferential) *Spectrum { return NewSpectrum1(0.0) }
 func (l *DistantLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
 
 func (l *DistantLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (L *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
@@ -203,8 +203,8 @@ func (l *DistantLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Sc
 }
 
 func CreateDistantLight(light2world *Transform, paramSet *ParamSet) *DistantLight {
-	L := paramSet.FindSpectrumParam("L", *CreateSpectrum1(1.0))
-	sc := paramSet.FindSpectrumParam("scale", *CreateSpectrum1(1.0))
+	L := paramSet.FindSpectrumParam("L", *NewSpectrum1(1.0))
+	sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
 	from := paramSet.FindPointParam("from", *CreatePoint(0, 0, 0))
 	to := paramSet.FindPointParam("to", *CreatePoint(0, 0, 1))
 	dir := from.Sub(&to)
@@ -278,7 +278,7 @@ func (l *InfiniteAreaLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample
 	// Find $(u,v)$ sample coordinates in infinite light texture
 	uv, mapPdf := l.distribution.SampleContinuous(ls.uPos[0], ls.uPos[1])
 	if mapPdf == 0.0 {
-		return CreateSpectrum1(0.0), nil, 0.0
+		return NewSpectrum1(0.0), nil, 0.0
 	}
 
 	// Convert infinite light sample point to direction
@@ -334,7 +334,7 @@ func (l *InfiniteAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, tim
 	// Find $(u,v)$ sample coordinates in infinite light texture
 	uv, mapPdf := l.distribution.SampleContinuous(ls.uPos[0], ls.uPos[1])
 	if mapPdf == 0.0 {
-		return CreateSpectrum1(0.0), nil, nil, 0.0
+		return NewSpectrum1(0.0), nil, nil, 0.0
 	}
 
 	theta, phi := uv[1]*math.Pi, uv[0]*2.0*math.Pi
@@ -366,8 +366,8 @@ func (l *InfiniteAreaLight) SHProject(p *Point, pEpsilon float64, lmax int, scen
 }
 
 func CreateInfiniteLight(light2world *Transform, paramSet *ParamSet) *InfiniteAreaLight {
-	L := paramSet.FindSpectrumParam("L", *CreateSpectrum1(1.0))
-	sc := paramSet.FindSpectrumParam("scale", *CreateSpectrum1(1.0))
+	L := paramSet.FindSpectrumParam("L", *NewSpectrum1(1.0))
+	sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
 	texmap := paramSet.FindFilenameParam("mapname", "")
 	nSamples := paramSet.FindIntParam("nsamples", 1)
 	if options.QuickRender {
@@ -410,8 +410,8 @@ func (l *PointLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scen
 }
 
 func CreatePointLight(light2world *Transform, paramSet *ParamSet) *PointLight {
-	I := paramSet.FindSpectrumParam("I", *CreateSpectrum1(1.0))
-	sc := paramSet.FindSpectrumParam("scale", *CreateSpectrum1(1.0))
+	I := paramSet.FindSpectrumParam("I", *NewSpectrum1(1.0))
+	sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
 	P := paramSet.FindPointParam("from", *CreatePoint(0, 0, 0))
 	l2w := TranslateTransform(CreateVector(P.x, P.y, P.z)).MultTransform(light2world)
 	return NewPointLight(l2w, I.Mult(&sc))

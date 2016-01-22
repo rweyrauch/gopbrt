@@ -21,8 +21,8 @@ type TransformSet struct {
 
 func CreateTransformSet() *TransformSet {
 	ts := new(TransformSet)
-	ts.t[0] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
-	ts.t[1] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
+	ts.t[0] = NewTransformExplicit(NewIdentityMatrix4x4(), NewIdentityMatrix4x4())
+	ts.t[1] = NewTransformExplicit(NewIdentityMatrix4x4(), NewIdentityMatrix4x4())
 	return ts
 }
 func (ts *TransformSet) get(i int) *Transform {
@@ -161,8 +161,8 @@ var (
 
 func init() {
 	curTransform = new(TransformSet)
-	curTransform.t[0], _ = CreateTransform(CreateIdentityMatrix4x4())
-	curTransform.t[1], _ = CreateTransform(CreateIdentityMatrix4x4())
+	curTransform.t[0], _ = NewTransform(NewIdentityMatrix4x4())
+	curTransform.t[1], _ = NewTransform(NewIdentityMatrix4x4())
 
 	namedCoordinateSystems = make(map[string]*TransformSet, 4)
 	pushedGraphicsStates = make([]*GraphicsState, 0, 8)
@@ -468,7 +468,7 @@ func MakeCamera(name string, paramSet *ParamSet, cam2worldSet *TransformSet, tra
 	var cam2worldStart, cam2worldEnd *Transform
 	cam2worldStart, _ = transformCache.Lookup(cam2worldSet.get(0))
 	cam2worldEnd, _ = transformCache.Lookup(cam2worldSet.get(1))
-	animatedCam2World := CreateAnimatedTransform(cam2worldStart, transformStart, cam2worldEnd, transformEnd)
+	animatedCam2World := NewAnimatedTransform(cam2worldStart, transformStart, cam2worldEnd, transformEnd)
 	if strings.Compare(name, "perspective") == 0 {
 		camera = CreatePerspectiveCamera(paramSet, animatedCam2World, film)
 	} else if strings.Compare(name, "orthographic") == 0 {
@@ -593,14 +593,14 @@ func PbrtLookAt(ex, ey, ez, lx, ly, lz, ux, uy, uz float64) {
 func PbrtConcatTransform(transform Matrix4x4) {
 	VERIFY_INITIALIZED("ConcatTransform")
 	FOR_ACTIVE_TRANSFORMS(func(i uint) {
-		xform, _ := CreateTransform(&transform)
+		xform, _ := NewTransform(&transform)
 		curTransform.t[i] = curTransform.t[i].MultTransform(xform)
 	})
 }
 
 func PbrtTransform(transform Matrix4x4) {
 	VERIFY_INITIALIZED("Transform")
-	FOR_ACTIVE_TRANSFORMS(func(i uint) { curTransform.t[i], _ = CreateTransform(&transform) })
+	FOR_ACTIVE_TRANSFORMS(func(i uint) { curTransform.t[i], _ = NewTransform(&transform) })
 }
 
 func PbrtCoordinateSystem(name string) {
@@ -689,7 +689,7 @@ func PbrtWorldBegin() {
 	VERIFY_OPTIONS("WorldBegin")
 	currentApiState = STATE_WORLD_BLOCK
 	for i := 0; i < MAX_TRANSFORMS; i++ {
-		curTransform.t[i] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
+		curTransform.t[i] = NewTransformExplicit(NewIdentityMatrix4x4(), NewIdentityMatrix4x4())
 	}
 	activeTransformBits = ALL_TRANSFORMS_BITS
 	namedCoordinateSystems["world"] = curTransform
@@ -828,7 +828,7 @@ func PbrtShape(name string, params *ParamSet) {
 		if len(graphicsState.areaLight) != 0 {
 			area = MakeAreaLight(graphicsState.areaLight, curTransform.t[0], graphicsState.areaLightParams, shape)
 		}
-		prim = CreateGeometricPrimitive(shape, mtl, area)
+		prim = NewGeometricPrimitive(shape, mtl, area)
 	} else {
 		// Create primitive for animated shape
 
@@ -836,7 +836,7 @@ func PbrtShape(name string, params *ParamSet) {
 		if len(graphicsState.areaLight) != 0 {
 			Warning("Ignoring currently set area light when creating animated shape.")
 		}
-		identity, _ := transformCache.Lookup(CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4()))
+		identity, _ := transformCache.Lookup(NewTransformExplicit(NewIdentityMatrix4x4(), NewIdentityMatrix4x4()))
 		shape := MakeShape(name, identity, identity, graphicsState.reverseOrientation, params)
 		if shape == nil {
 			return
@@ -850,9 +850,9 @@ func PbrtShape(name string, params *ParamSet) {
 		var world2obj [2]*Transform
 		_, world2obj[0] = transformCache.Lookup(curTransform.t[0])
 		_, world2obj[1] = transformCache.Lookup(curTransform.t[1])
-		animatedWorldToObject := CreateAnimatedTransform(world2obj[0], renderOptions.transformStartTime, world2obj[1], renderOptions.transformEndTime)
+		animatedWorldToObject := NewAnimatedTransform(world2obj[0], renderOptions.transformStartTime, world2obj[1], renderOptions.transformEndTime)
 		var baseprim Primitive
-		baseprim = CreateGeometricPrimitive(shape, mtl, nil)
+		baseprim = NewGeometricPrimitive(shape, mtl, nil)
 		if !baseprim.CanIntersect() {
 			// Refine animated shape and create BVH if more than one shape created
 			refinedPrimitives := baseprim.FullyRefine(nil)
@@ -860,12 +860,12 @@ func PbrtShape(name string, params *ParamSet) {
 				return
 			}
 			if len(refinedPrimitives) > 1 {
-				baseprim = CreateBVHAccel(refinedPrimitives, 1, "sah")
+				baseprim = NewBVHAccel(refinedPrimitives, 1, "sah")
 			} else {
 				baseprim = refinedPrimitives[0]
 			}
 		}
-		prim = CreateTransformedPrimitive(baseprim, animatedWorldToObject)
+		prim = NewTransformedPrimitive(baseprim, animatedWorldToObject)
 	}
 	// Add primitive to scene or current instance
 	if renderOptions.currentInstance != nil {
@@ -945,9 +945,9 @@ func PbrtObjectInstance(name string) {
 	var world2instance [2]*Transform
 	world2instance[0], _ = transformCache.Lookup(curTransform.t[0])
 	world2instance[1], _ = transformCache.Lookup(curTransform.t[1])
-	animatedWorldToInstance := CreateAnimatedTransform(world2instance[0], renderOptions.transformStartTime,
+	animatedWorldToInstance := NewAnimatedTransform(world2instance[0], renderOptions.transformStartTime,
 		world2instance[1], renderOptions.transformEndTime)
-	prim := CreateTransformedPrimitive(in[0], animatedWorldToInstance)
+	prim := NewTransformedPrimitive(in[0], animatedWorldToInstance)
 	renderOptions.primitives = append(renderOptions.primitives, prim)
 }
 
@@ -980,7 +980,7 @@ func PbrtWorldEnd() {
 	currentApiState = STATE_OPTIONS_BLOCK
 	//ProbesPrint(stdout)
 	for i := 0; i < MAX_TRANSFORMS; i++ {
-		curTransform.t[i] = CreateTransformExplicit(CreateIdentityMatrix4x4(), CreateIdentityMatrix4x4())
+		curTransform.t[i] = NewTransformExplicit(NewIdentityMatrix4x4(), NewIdentityMatrix4x4())
 	}
 	activeTransformBits = ALL_TRANSFORMS_BITS
 	namedCoordinateSystems = make(map[string]*TransformSet)
@@ -1006,7 +1006,7 @@ func (ro *RenderOptions) MakeScene() *Scene {
 	if accelerator == nil {
 		Severe("Unable to create \"bvh\" accelerator.")
 	}
-	scene := CreateScene(accelerator, ro.lights, volumeRegion)
+	scene := NewScene(accelerator, ro.lights, volumeRegion)
 	// Erase primitives, lights, and volume regions from _RenderOptions_
 	ro.primitives = make([]Primitive, 0, 8)
 	ro.lights = make([]Light, 0, 2)

@@ -25,7 +25,7 @@ type ImageFilm struct {
 	filterTable [filterTableSize * filterTableSize]float64
 }
 
-func CreateImageFilm(xres, yres int, filter Filter, crop []float64, filename string, openWindow bool) *ImageFilm {
+func NewImageFilm(xres, yres int, filter Filter, crop []float64, filename string, openWindow bool) *ImageFilm {
 	film := new(ImageFilm)
 	film.xResolution = xres
 	film.yResolution = yres
@@ -231,5 +231,5 @@ func CreateImageFilmFromParams(params *ParamSet, filter Filter) *ImageFilm {
 		yres = Maxi(1, yres/4)
 	}
 
-	return CreateImageFilm(xres, yres, filter, crop, filename, openwin)
+	return NewImageFilm(xres, yres, filter, crop, filename, openwin)
 }

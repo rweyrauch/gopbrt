@@ -334,7 +334,7 @@ func NewMIPMapSpectrum(sres, tres int, img []Spectrum, doTri bool, maxAniso floa
 		for t := 0; t < tres; t++ {
 			for s := 0; s < sPow2; s++ {
 				// Compute texel $(s,t)$ in $s$-zoomed image
-				resampledImage[t*sPow2+s] = *CreateSpectrum1(0.0)
+				resampledImage[t*sPow2+s] = *NewSpectrum1(0.0)
 				for j := 0; j < 4; j++ {
 					origS := sWeights[s].firstTexel + j
 					if mip.wrapMode == TEXTURE_REPEAT {
@@ -354,7 +354,7 @@ func NewMIPMapSpectrum(sres, tres int, img []Spectrum, doTri bool, maxAniso floa
 		workData := make([]Spectrum, tPow2, tPow2)
 		for s := 0; s < sPow2; s++ {
 			for t := 0; t < tPow2; t++ {
-				workData[t] = *CreateSpectrum1(0.0)
+				workData[t] = *NewSpectrum1(0.0)
 				for j := 0; j < 4; j++ {
 					offset := tWeights[t].firstTexel + j
 					if mip.wrapMode == TEXTURE_REPEAT {
@@ -423,7 +423,7 @@ func (mip *MIPMapSpectrum) Texel(level, s, t int) *Spectrum {
 		{
 			if s < 0 || s >= mip.pyramidSizes[level][0] ||
 				t < 0 || t >= mip.pyramidSizes[level][1] {
-				return CreateSpectrum1(0.0)
+				return NewSpectrum1(0.0)
 			}
 		}
 	}
@@ -531,7 +531,7 @@ func (mip *MIPMapSpectrum) ewa(level int, s, t, ds0, dt0, ds1, dt1 float64) *Spe
 	t1 := Floor2Int(t + 2.0*invDet*vSqrt)
 
 	// Scan over ellipse bound and compute quadratic equation
-	sum := *CreateSpectrum1(0.0)
+	sum := *NewSpectrum1(0.0)
 	sumWts := 0.0
 	for it := t0; it <= t1; it++ {
 		tt := float64(it) - t

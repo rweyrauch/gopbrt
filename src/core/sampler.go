@@ -328,7 +328,7 @@ func NewBestCandidateSampler(xstart, xend, ystart, yend, ps int, sopen, sclose f
 	sampler.yTile = sampler.yTileStart
 	sampler.tableOffset = 0
 	// Update sample shifts
-	tileRng := CreateRNG(int64(sampler.xTile + (sampler.yTile << 8)))
+	tileRng := NewRNG(int64(sampler.xTile + (sampler.yTile << 8)))
 	for i := 0; i < 3; i++ {
 		sampler.sampleOffsets[i] = tileRng.RandomFloat()
 	}
@@ -351,7 +351,7 @@ again:
 		}
 
 		// Update sample shifts
-		tileRng := CreateRNG(int64(s.xTile + (s.yTile << 8)))
+		tileRng := NewRNG(int64(s.xTile + (s.yTile << 8)))
 		for i := 0; i < 3; i++ {
 			s.sampleOffsets[i] = tileRng.RandomFloat()
 		}
@@ -551,7 +551,7 @@ func NewRandomSampler(xstart, xend, ystart, yend, ns int, sopen, sclose float64)
 	sampler.lensSamples = make([]float64, 2*sampler.nSamples, 2*sampler.nSamples)  // (x,y)
 	sampler.timeSamples = make([]float64, sampler.nSamples, sampler.nSamples)      // t
 
-	rng := CreateRNG(int64(xstart + ystart*(xend-xstart)))
+	rng := NewRNG(int64(xstart + ystart*(xend-xstart)))
 	for i, _ := range sampler.imageSamples {
 		sampler.imageSamples[i] = rng.RandomFloat()
 	}

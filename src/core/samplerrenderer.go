@@ -64,7 +64,7 @@ func (r *SamplerRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample,
 	//Assert(ray.time == sample->time);
 	//Assert(!ray.HasNaNs());
 	// Allocate local variables for _isect_ and _T_ if needed
-	li = CreateSpectrum1(0.0)
+	li = NewSpectrum1(0.0)
 	var hit bool
 	// TODO: Must make RayBase an interface and define two structs (Ray, RayDifferential)
 	if hit, isect = scene.Intersect(CreateRayFromRayDifferential(ray)); hit {
@@ -123,7 +123,7 @@ func (t *samplerRendererTask) run() {
 
 	// Declare local variables used for rendering loop
 	var arena *MemoryArena
-	rng := CreateRNG(int64(t.taskNum))
+	rng := NewRNG(int64(t.taskNum))
 
 	// Allocate space for samples and intersections
 	maxSamples := sampler.MaximumSampleCount()
@@ -164,11 +164,11 @@ func (t *samplerRendererTask) run() {
 											Ls[i] = Spectrum::FromRGB(rgb);
 											Ls[i] /= 255.0
 										} else {
-											Ls[i] = *CreateSpectrum1(0.0)
+											Ls[i] = *NewSpectrum1(0.0)
 										}
 					*/
 				} else {
-					Ls[i] = *CreateSpectrum1(0.0)
+					Ls[i] = *NewSpectrum1(0.0)
 				}
 			} else {
 				if rayWeight > 0.0 {
@@ -178,20 +178,20 @@ func (t *samplerRendererTask) run() {
 					Ts[i] = *ts
 					Ls[i] = *Ls[i].Scale(float32(rayWeight))
 				} else {
-					Ls[i] = *CreateSpectrum1(0.0)
-					Ts[i] = *CreateSpectrum1(1.0)
+					Ls[i] = *NewSpectrum1(0.0)
+					Ts[i] = *NewSpectrum1(1.0)
 				}
 
 				// Issue warning if unexpected radiance value returned
 				if Ls[i].HasNaNs() {
 					Error("Not-a-number radiance value returned for image sample.  Setting to black.")
-					Ls[i] = *CreateSpectrum1(0.0)
+					Ls[i] = *NewSpectrum1(0.0)
 				} else if Ls[i].Y() < -1.0e-5 {
 					Error("Negative luminance value, %f, returned for image sample.  Setting to black.", Ls[i].Y())
-					Ls[i] = *CreateSpectrum1(0.0)
+					Ls[i] = *NewSpectrum1(0.0)
 					//} else if math.IsInf(Ls[i].Y(),0) {
 					//	Error("Infinite luminance value returned for image sample.  Setting to black.")
-					//	Ls[i] = *CreateSpectrum1(0.0)
+					//	Ls[i] = *NewSpectrum1(0.0)
 				}
 			}
 			//PBRT_FINISHED_CAMERA_RAY_INTEGRATION(&rays[i], &samples[i], &Ls[i]);

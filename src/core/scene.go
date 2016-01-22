@@ -7,7 +7,7 @@ type Scene struct {
 	bound        BBox
 }
 
-func CreateScene(accel Primitive, lights []Light, vr VolumeRegion) *Scene {
+func NewScene(accel Primitive, lights []Light, vr VolumeRegion) *Scene {
     scene := new(Scene)
     scene.aggregate = accel
     scene.lights = lights

@@ -23,7 +23,7 @@ func ReadImage(name string) (pixels []Spectrum, xSize, ySize int) {
 	
     Error("Unable to load image stored in format \"%s\" for filename \"%s\". Returning a constant grey image instead.", ext, name)
     ret := make([]Spectrum, 1, 1)
-    ret[0] = *CreateSpectrum1(0.5) 
+    ret[0] = *NewSpectrum1(0.5) 
     return ret, 1, 1
 }
 

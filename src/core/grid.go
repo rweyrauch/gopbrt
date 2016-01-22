@@ -264,7 +264,10 @@ func (g *GridAccel) IntersectP(ray *Ray) bool {
 }
 
 func (g *GridAccel) Refine(refined []Primitive) []Primitive     { return refined }
-func (g *GridAccel) FullyRefine(refined []Primitive) []Primitive { return refined }
+func (g *GridAccel) FullyRefine(refined []Primitive) []Primitive { 
+	return PrimitiveFullyRefine(g, refined) 
+}
+
 func (g *GridAccel) GetAreaLight() AreaLight                     { return nil }
 func (g *GridAccel) GetBSDF(dg *DifferentialGeometry, objectToWorld *Transform, arena *MemoryArena) *BSDF {
 	return nil

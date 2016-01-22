@@ -79,7 +79,7 @@ func (r *MetropolisRenderer) Render(scene *Scene) {
         }
         // Take initial set of samples to compute $b$
         //PBRT_MLT_STARTED_BOOTSTRAPPING(nBootstrap);
-        rng := CreateRNG(0)
+        rng := NewRNG(0)
         
         //var arena MemoryArena
         //vector<float> bootstrapI;

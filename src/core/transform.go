@@ -9,7 +9,7 @@ type Matrix4x4 struct {
 	m [4][4]float64
 }
 
-func CreateIdentityMatrix4x4() *Matrix4x4 {
+func NewIdentityMatrix4x4() *Matrix4x4 {
 	mat := new(Matrix4x4)
 	mat.m[0] = [4]float64{1.0, 0.0, 0.0, 0.0}
 	mat.m[1] = [4]float64{0, 1, 0, 0}
@@ -18,7 +18,7 @@ func CreateIdentityMatrix4x4() *Matrix4x4 {
 	return mat
 }
 
-func CreateMatrix4x4(t00, t01, t02, t03, t10, t11, t12, t13, t20, t21, t22, t23, t30, t31, t32, t33 float64) *Matrix4x4 {
+func NewMatrix4x4(t00, t01, t02, t03, t10, t11, t12, t13, t20, t21, t22, t23, t30, t31, t32, t33 float64) *Matrix4x4 {
 	mat := new(Matrix4x4)
 	mat.m[0] = [4]float64{t00, t01, t02, t03}
 	mat.m[1] = [4]float64{t10, t11, t12, t13}
@@ -60,7 +60,7 @@ func NotEqualMatrix4x4(m1, m2 *Matrix4x4) bool {
 }
 
 func TransposeMatrix4x4(m *Matrix4x4) *Matrix4x4 {
-	return CreateMatrix4x4(m.m[0][0], m.m[1][0], m.m[2][0], m.m[3][0],
+	return NewMatrix4x4(m.m[0][0], m.m[1][0], m.m[2][0], m.m[3][0],
 		m.m[0][1], m.m[1][1], m.m[2][1], m.m[3][1],
 		m.m[0][2], m.m[1][2], m.m[2][2], m.m[3][2],
 		m.m[0][3], m.m[1][3], m.m[2][3], m.m[3][3])
@@ -156,7 +156,7 @@ type Transform struct {
 	m, mInv *Matrix4x4
 }
 
-func CreateTransform(mat *Matrix4x4) (*Transform, error) {
+func NewTransform(mat *Matrix4x4) (*Transform, error) {
 	t := new(Transform)
 	t.m = mat
 	var err error
@@ -167,7 +167,7 @@ func CreateTransform(mat *Matrix4x4) (*Transform, error) {
 	return t, nil
 }
 
-func CreateTransformExplicit(mat, minv *Matrix4x4) *Transform {
+func NewTransformExplicit(mat, minv *Matrix4x4) *Transform {
 	return &Transform{mat, minv}
 }
 
@@ -289,11 +289,11 @@ func SwapsHandednessTransform(t *Transform) bool {
 }
 
 func TranslateTransform(delta *Vector) *Transform {
-	m := CreateMatrix4x4(1, 0, 0, delta.x,
+	m := NewMatrix4x4(1, 0, 0, delta.x,
 		0, 1, 0, delta.y,
 		0, 0, 1, delta.z,
 		0, 0, 0, 1)
-	minv := CreateMatrix4x4(1, 0, 0, -delta.x,
+	minv := NewMatrix4x4(1, 0, 0, -delta.x,
 		0, 1, 0, -delta.y,
 		0, 0, 1, -delta.z,
 		0, 0, 0, 1)
@@ -301,11 +301,11 @@ func TranslateTransform(delta *Vector) *Transform {
 }
 
 func ScaleTransform(x, y, z float64) *Transform {
-	m := CreateMatrix4x4(x, 0, 0, 0,
+	m := NewMatrix4x4(x, 0, 0, 0,
 		0, y, 0, 0,
 		0, 0, z, 0,
 		0, 0, 0, 1)
-	minv := CreateMatrix4x4(1.0/x, 0, 0, 0,
+	minv := NewMatrix4x4(1.0/x, 0, 0, 0,
 		0, 1.0/y, 0, 0,
 		0, 0, 1.0/z, 0,
 		0, 0, 0, 1)
@@ -315,7 +315,7 @@ func ScaleTransform(x, y, z float64) *Transform {
 func RotateXTransform(angle float64) *Transform {
 	sin_t := math.Sin(Radians(angle))
 	cos_t := math.Cos(Radians(angle))
-	m := CreateMatrix4x4(1, 0, 0, 0,
+	m := NewMatrix4x4(1, 0, 0, 0,
 		0, cos_t, -sin_t, 0,
 		0, sin_t, cos_t, 0,
 		0, 0, 0, 1)
@@ -325,7 +325,7 @@ func RotateXTransform(angle float64) *Transform {
 func RotateYTransform(angle float64) *Transform {
 	sin_t := math.Sin(Radians(angle))
 	cos_t := math.Cos(Radians(angle))
-	m := CreateMatrix4x4(cos_t, 0, sin_t, 0,
+	m := NewMatrix4x4(cos_t, 0, sin_t, 0,
 		0, 1, 0, 0,
 		-sin_t, 0, cos_t, 0,
 		0, 0, 0, 1)
@@ -335,7 +335,7 @@ func RotateYTransform(angle float64) *Transform {
 func RotateZTransform(angle float64) *Transform {
 	sin_t := math.Sin(Radians(angle))
 	cos_t := math.Cos(Radians(angle))
-	m := CreateMatrix4x4(cos_t, -sin_t, 0, 0,
+	m := NewMatrix4x4(cos_t, -sin_t, 0, 0,
 		sin_t, cos_t, 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1)
@@ -347,7 +347,7 @@ func RotateTransform(angle float64, axis *Vector) *Transform {
 	s := math.Sin(Radians(angle))
 	c := math.Cos(Radians(angle))
 
-	mat := CreateMatrix4x4((a.x*a.x + (1.0-a.x*a.x)*c), (a.x*a.y*(1.0-c) - a.z*s), (a.x*a.z*(1.0-c) + a.y*s), 0,
+	mat := NewMatrix4x4((a.x*a.x + (1.0-a.x*a.x)*c), (a.x*a.y*(1.0-c) - a.z*s), (a.x*a.z*(1.0-c) + a.y*s), 0,
 		(a.x*a.y*(1.0-c) + a.z*s), (a.y*a.y + (1.0-a.y*a.y)*c), (a.y*a.z*(1.0-c) - a.x*s), 0,
 		(a.x*a.z*(1.0-c) - a.y*s), (a.y*a.z*(1.0-c) + a.x*s), (a.z*a.z + (1.0-a.z*a.z)*c), 0,
 		0, 0, 0, 1)
@@ -396,14 +396,14 @@ func OrthographicTransform(znear, zfar float64) *Transform {
 
 func PerspectiveTransform(fov, znear, zfar float64) *Transform {
 	// Perform projective divide
-	persp := CreateMatrix4x4(1, 0, 0, 0,
+	persp := NewMatrix4x4(1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, zfar/(zfar-znear), -zfar*znear/(zfar-znear),
 		0, 0, 1, 0)
 
 	// Scale to canonical viewing volume
 	invTanAng := 1.0 / math.Tan(Radians(fov)/2.0)
-	perspTrans, _ := CreateTransform(persp)
+	perspTrans, _ := NewTransform(persp)
 	return ScaleTransform(invTanAng, invTanAng, 1.0).MultTransform(perspTrans)
 }
 
@@ -416,7 +416,7 @@ type AnimatedTransform struct {
 	s                            [2]*Matrix4x4
 }
 
-func CreateAnimatedTransform(trans1 *Transform, time1 float64, trans2 *Transform, time2 float64) *AnimatedTransform {
+func NewAnimatedTransform(trans1 *Transform, time1 float64, trans2 *Transform, time2 float64) *AnimatedTransform {
 	t := new(AnimatedTransform)
 	t.startTime = time1
 	t.startTransform = trans1
@@ -499,7 +499,7 @@ func (t *AnimatedTransform) Interpolate(time float64) *Transform {
 		}
 	}
 	// Compute interpolated matrix as product of interpolated components
-	scaleTrans, _ := CreateTransform(scale)
+	scaleTrans, _ := NewTransform(scale)
 	rotTrans := rotate.ToTransform()
 	return TranslateTransform(trans).MultTransform(rotTrans.MultTransform(scaleTrans))
 }

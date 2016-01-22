@@ -54,7 +54,7 @@ func CreateBVHPrimitiveInfo(pn int, b *BBox) BVHPrimitiveInfo {
 	return BVHPrimitiveInfo{pn, *centroid.Scale(0.5), *b}
 }
 
-func CreateBVHBuildNode() *BVHBuildNode {
+func NewBVHBuildNode() *BVHBuildNode {
 	node := new(BVHBuildNode)
 	node.bounds = *CreateEmptyBBox()
 	node.children[0] = nil
@@ -108,7 +108,7 @@ func IntersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg [3]int) bool {
 	return (tmin < ray.maxt) && (tmax > ray.mint)
 }
 
-func CreateBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
+func NewBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 	bvh := new(BVHAccel)
 	bvh.primitiveId = GeneratePrimitiveId()
 	bvh.maxPrimsInNode = Mini(255, maxPrims)
@@ -246,7 +246,7 @@ func nth_element(buildData []BVHPrimitiveInfo, first, nth, last int, comp func(i
 func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrimitiveInfo, start, end int, orderedPrims []Primitive) (node *BVHBuildNode, totalNodes int) {
 	//Assert(start != end);
 	totalNodes++
-	node = CreateBVHBuildNode()
+	node = NewBVHBuildNode()
 	// Compute bounds of all primitives in BVH node
 	bbox := CreateEmptyBBox()
 	for i := start; i < end; i++ {
@@ -575,5 +575,5 @@ func (bvh *BVHAccel) PrimitiveId() uint32 { return bvh.primitiveId }
 func CreateBVHAccelerator(prims []Primitive, ps *ParamSet) *BVHAccel {
 	splitMethod := ps.FindStringParam("splitmethod", "sah")
 	maxPrimsInNode := ps.FindIntParam("maxnodeprims", 4)
-	return CreateBVHAccel(prims, maxPrimsInNode, splitMethod)
+	return NewBVHAccel(prims, maxPrimsInNode, splitMethod)
 }

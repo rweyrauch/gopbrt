@@ -42,13 +42,13 @@ func (rgb *Spectrum) String() string {
 	return s
 }
 
-func CreateSpectrum1(v float32) *Spectrum {
+func NewSpectrum1(v float32) *Spectrum {
 	return &Spectrum{[3]float32{v, v, v}}
 }
-func CreateSpectrum(v [3]float32) *Spectrum {
+func NewSpectrum(v [3]float32) *Spectrum {
 	return &Spectrum{[3]float32{v[0], v[1], v[2]}}
 }
-func CreateSpectrumRGB(r, g, b float32) *Spectrum {
+func NewSpectrumRGB(r, g, b float32) *Spectrum {
 	return &Spectrum{[3]float32{r, g, b}}
 }
 func (rgb *Spectrum) Add(s2 *Spectrum) *Spectrum {
