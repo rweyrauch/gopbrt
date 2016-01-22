@@ -11,6 +11,9 @@ type Sampler interface {
 	ReportResults(samples []Sample, rays []RayDifferential, Ls []Spectrum, isects []Intersection, count int) bool
 	GetSubSampler(num, count int) Sampler
 	RoundSize(size int) int
+	PixelRegion() (xstart, xend, ystart, yend int)
+	SamplesPerPixel() int
+	ShutterTimes() (sopen, sclose float64)
 }
 
 type SamplerData struct {
@@ -271,6 +274,9 @@ func (s *AdaptiveSampler) GetSubSampler(num, count int) Sampler {
 func (s *AdaptiveSampler) RoundSize(size int) int {
 	return int(RoundUpPow2(uint32(size)))
 }
+func (s *AdaptiveSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
+func (s *AdaptiveSampler) SamplesPerPixel() int { return s.samplesPerPixel }
+func (s *AdaptiveSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
 
 func (s *AdaptiveSampler) needsSupersampling(samples []Sample, rays []RayDifferential, Ls []Spectrum, isects []Intersection, count int) bool {
 	switch s.method {
@@ -397,6 +403,9 @@ func (s *BestCandidateSampler) GetSubSampler(num, count int) Sampler {
 func (s *BestCandidateSampler) RoundSize(size int) int {
 	return int(RoundUpPow2(uint32(size)))
 }
+func (s *BestCandidateSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
+func (s *BestCandidateSampler) SamplesPerPixel() int { return s.samplesPerPixel }
+func (s *BestCandidateSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
 
 func NewHaltonSampler(xstart, xend, ystart, yend, ps int, sopen, sclose float64) *HaltonSampler {
 	sampler := new(HaltonSampler)
@@ -456,6 +465,9 @@ func (s *HaltonSampler) GetSubSampler(num, count int) Sampler {
 	return NewHaltonSampler(x0, x1, y0, y1, s.samplesPerPixel, s.shutterOpen, s.shutterClose)
 }
 func (s *HaltonSampler) RoundSize(size int) int { return size }
+func (s *HaltonSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
+func (s *HaltonSampler) SamplesPerPixel() int { return s.samplesPerPixel }
+func (s *HaltonSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
 
 func NewLDSampler(xstart, xend, ystart, yend, ps int, sopen, sclose float64) *LDSampler {
 	sampler := new(LDSampler)
@@ -507,6 +519,9 @@ func (s *LDSampler) GetSubSampler(num, count int) Sampler {
 
 }
 func (s *LDSampler) RoundSize(size int) int { return int(RoundUpPow2(uint32(size))) }
+func (s *LDSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
+func (s *LDSampler) SamplesPerPixel() int { return s.samplesPerPixel }
+func (s *LDSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
 
 func NewRandomSampler(xstart, xend, ystart, yend, ns int, sopen, sclose float64) *RandomSampler {
 	sampler := new(RandomSampler)
@@ -611,6 +626,9 @@ func (s *RandomSampler) GetSubSampler(num, count int) Sampler {
 }
 
 func (s *RandomSampler) RoundSize(size int) int { return size }
+func (s *RandomSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
+func (s *RandomSampler) SamplesPerPixel() int { return s.samplesPerPixel }
+func (s *RandomSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
 
 func NewStratifiedSampler(xstart, xend, ystart, yend, xsamp, ysamp int, jitter bool, sopen, sclose float64) *StratifiedSampler {
 	sampler := new(StratifiedSampler)
@@ -694,6 +712,9 @@ func (s *StratifiedSampler) GetSubSampler(num, count int) Sampler {
 }
 
 func (s *StratifiedSampler) RoundSize(size int) int { return size }
+func (s *StratifiedSampler) PixelRegion() (xstart, xend, ystart, yend int) { return s.xPixelStart, s.xPixelEnd, s.yPixelStart, s.yPixelEnd }
+func (s *StratifiedSampler) SamplesPerPixel() int { return s.samplesPerPixel }
+func (s *StratifiedSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
 
 func CreateAdaptiveSampler(params *ParamSet, film Film, camera Camera) *AdaptiveSampler {
 	// Initialize common sampler parameters
