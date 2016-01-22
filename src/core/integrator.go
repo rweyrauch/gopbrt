@@ -215,9 +215,9 @@ func (i *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferen
 	L = L.Add(isect.Le(wo))
 
 	// Add contribution of each light source
-	for i := 0; i < len(scene.lights); i++ {
+	for _, light := range scene.lights {
 		var visibility VisibilityTester
-		Li, wi, pdf := scene.lights[i].Sample_L(p, isect.rayEpsilon, CreateLightSampleRandom(rng), ray.time, &visibility)
+		Li, wi, pdf := light.Sample_L(p, isect.rayEpsilon, CreateLightSampleRandom(rng), ray.time, &visibility)
 		if Li.IsBlack() || pdf == 0.0 {
 			continue
 		}

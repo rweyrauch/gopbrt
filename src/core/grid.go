@@ -30,7 +30,7 @@ func NewGridAccel(prims []Primitive, refineImmediately bool) *GridAccel {
 	// Initialize _primitives_ with primitives for grid
 	if refineImmediately {
 		for _, p := range prims {
-			p.FullyRefine(grid.primitives)
+			grid.primitives = p.FullyRefine(grid.primitives)
 		}
 	} else {
 		grid.primitives = append(grid.primitives, prims...)
@@ -288,7 +288,10 @@ func (g *GridAccel) offset(x, y, z int) int {
 	return z*g.nVoxels[0]*g.nVoxels[1] + y*g.nVoxels[0] + x
 }
 
-func CreateGridAccelerator(prims []Primitive, ps *ParamSet) *GridAccel { return nil }
+func CreateGridAccelerator(prims []Primitive, ps *ParamSet) *GridAccel { 
+    refineImmediately := ps.FindBoolParam("refineimmediately", false)
+    return NewGridAccel(prims, refineImmediately)
+}
 
 func newVoxel(op Primitive) *Voxel {
 	v := new(Voxel)
@@ -309,7 +312,7 @@ func (v *Voxel) intersect(ray *Ray) (hit bool, isect *Intersection) {
 			// Refine primitive _prim_ if it's not intersectable
 			if !prim.CanIntersect() {
 				p := make([]Primitive, 0, 8)
-				prim.FullyRefine(p)
+				p = prim.FullyRefine(p)
 				Assert(len(p) > 0)
 				if len(p) == 1 {
 					v.primitives[i] = p[0]

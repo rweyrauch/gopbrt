@@ -43,7 +43,7 @@ func (r *SamplerRenderer) Render(scene *Scene) {
 	nTasks := Maxi(32*NumSystemCores(), nPixels/(16*16))
 	nTasks = int(RoundUpPow2(uint32(nTasks)))
 
-	reporter := &ProgressReporter{}
+	reporter := NewProgressReporter(nTasks, "Rendering", -1)
 	for i := 0; i < nTasks; i++ {
 		// Create and 'run' the task synchronously for now.  Port to 'go' routine.
 		task := newSamplerRendererTask(scene, r, r.camera, reporter, r.sampler, sample, r.visualizeObjectIds, nTasks-1-i, nTasks)
@@ -89,11 +89,6 @@ func CreateSamplerRenderer(sampler Sampler, camera Camera, surf SurfaceIntegrato
 	return nil
 }
 
-type ProgressReporter struct{}
-
-func (p *ProgressReporter) Update() {}
-func (p *ProgressReporter) Done()   {}
-
 type samplerRendererTask struct {
 	scene              *Scene
 	renderer           Renderer
@@ -116,7 +111,7 @@ func (t *samplerRendererTask) run() {
 	// Get sub-_Sampler_ for _SamplerRendererTask_
 	sampler := t.mainSampler.GetSubSampler(t.taskNum, t.taskCount)
 	if sampler == nil {
-		t.reporter.Update()
+		t.reporter.Update(1)
 		//PBRT_FINISHED_RENDERTASK(taskNum)
 		return
 	}
@@ -136,7 +131,6 @@ func (t *samplerRendererTask) run() {
 	// Get samples from _Sampler_ and update image
 	sampleCount := sampler.GetMoreSamples(samples, rng)
 	for sampleCount > 0 {
-		Info("SamplerRender Task: %d Remaining Samples: %d", t.taskNum, sampleCount)
 		// Generate camera rays and compute radiance along rays
 		for i := 0; i < sampleCount; i++ {
 			// Find camera ray for _sample[i]_
@@ -207,8 +201,6 @@ func (t *samplerRendererTask) run() {
 
 		sampleCount = sampler.GetMoreSamples(samples, rng)
 	}
-
-    Info("SamplerRender Task: %d completed.", t.taskNum)
     
 	// Clean up after _SamplerRendererTask_ is done with its image region
 	xstart, xend, ystart, yend := sampler.PixelRegion()
@@ -219,6 +211,6 @@ func (t *samplerRendererTask) run() {
 	//delete[] Ls;
 	//delete[] Ts;
 	//delete[] isects;
-	t.reporter.Update()
+	t.reporter.Update(1)
 	//PBRT_FINISHED_RENDERTASK(taskNum);
 }
