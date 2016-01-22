@@ -134,19 +134,19 @@ type (
 func (i *EmissionIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)   {}
 func (i *EmissionIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li, transmittance *Spectrum) {
-	return nil, nil
+	return NewSpectrum1(0.0), NewSpectrum1(0.0)
 }
 func (i *EmissionIntegrator) Transmittance(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	return nil
+	return NewSpectrum1(0.0)
 }
 
 func (i *SingleScatteringIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)   {}
 func (i *SingleScatteringIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *SingleScatteringIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li, transmittance *Spectrum) {
-	return nil, nil
+	return NewSpectrum1(0.0), NewSpectrum1(0.0)
 }
 func (i *SingleScatteringIntegrator) Transmittance(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	return nil
+	return NewSpectrum1(0.0)
 }
 
 func CreateSingleScatteringIntegrator(params *ParamSet) *SingleScatteringIntegrator { return nil }

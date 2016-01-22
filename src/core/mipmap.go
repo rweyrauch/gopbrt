@@ -149,7 +149,7 @@ func NewMIPMapFloat(sres, tres int, img []float32, doTri bool, maxAniso float64,
 }
 
 func (mip *MIPMapFloat) Texel(level, s, t int) float32 {
-	//Assert(level < nLevels);
+	Assert(level < mip.nLevels)
 	l := mip.pyramid[level]
 	// Compute texel $(s,t)$ accounting for boundary conditions
 	switch mip.wrapMode {
@@ -293,7 +293,7 @@ func (mip *MIPMapFloat) ewa(level int, s, t, ds0, dt0, ds1, dt1 float64) float32
 func (mip *MIPMapFloat) clamp(v float32) float32 { return float32(Clamp(float64(v), 0.0, INFINITYF)) }
 
 func resampleWeights(oldres, newres int) []ResampleWeight {
-	//Assert(newres >= oldres);
+	Assert(newres >= oldres);
 	wt := make([]ResampleWeight, newres, newres)
 	filterwidth := 2.0
 	for i := 0; i < newres; i++ {
@@ -409,7 +409,7 @@ func NewMIPMapSpectrum(sres, tres int, img []Spectrum, doTri bool, maxAniso floa
 }
 
 func (mip *MIPMapSpectrum) Texel(level, s, t int) *Spectrum {
-	//Assert(level < nLevels);
+	Assert(level < mip.nLevels)
 	l := mip.pyramid[level]
 	// Compute texel $(s,t)$ accounting for boundary conditions
 	switch mip.wrapMode {

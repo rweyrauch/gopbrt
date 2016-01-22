@@ -127,6 +127,10 @@ func CoordinateSystem(v1 *Vector) (v2, v3 *Vector) {
 	v3 = CrossVector(v1, v2)
 	return v2, v3
 }
+func (v *Vector) HasNaNs() bool { 
+	return math.IsNaN(v.x) || math.IsNaN(v.y) || math.IsNaN(v.z) 
+	}
+
 func (v *Vector) String() string {
 	return fmt.Sprintf("v[ %f, %f, %f ]", v.x, v.y, v.z)
 }
@@ -187,6 +191,10 @@ func DistancePoint(p1, p2 *Point) float64 {
 func DistanceSquaredPoint(p1, p2 *Point) float64 {
 	return p1.Sub(p2).LengthSquared()
 }
+func (p *Point) HasNaNs() bool { 
+	return math.IsNaN(p.x) || math.IsNaN(p.y) || math.IsNaN(p.z) 
+	}
+
 func (p *Point) String() string {
 	return fmt.Sprintf("p[ %f, %f, %f ]", p.x, p.y, p.z)
 }
@@ -282,6 +290,9 @@ func FaceforwardVectorNormal(v *Vector, n2 *Normal) *Vector {
 	}
 	return v
 }
+func (n *Normal) HasNaNs() bool { 
+	return math.IsNaN(n.x) || math.IsNaN(n.y) || math.IsNaN(n.z) 
+	}
 
 func (n *Normal) String() string {
 	return fmt.Sprintf("n[ %f, %f, %f ]", n.x, n.y, n.z)
@@ -296,6 +307,10 @@ func CreateChildRay(origin *Point, direction *Vector, parent *Ray, start, end fl
 
 func (r *Ray) PointAt(t float64) *Point {
 	return r.origin.Add(r.dir.Scale(t))
+}
+
+func (ray *Ray) HasNaNs() bool {
+	return ray.dir.HasNaNs() || ray.origin.HasNaNs() || math.IsNaN(ray.mint) || math.IsNaN(ray.maxt)
 }
 
 func (r *Ray) String() string {
@@ -320,6 +335,11 @@ func (r *RayDifferential) ScaleDifferentials(s float64) {
 	r.ryOrigin = *r.origin.Add(r.ryOrigin.Sub(&r.origin).Scale(s))
 	r.rxDirection = *r.dir.Add(r.rxDirection.Sub(&r.dir).Scale(s))
 	r.ryDirection = *r.dir.Add(r.ryDirection.Sub(&r.dir).Scale(s))
+}
+
+func (ray *RayDifferential) HasNaNs() bool {
+	return ray.dir.HasNaNs() || ray.origin.HasNaNs() || math.IsNaN(ray.mint) || math.IsNaN(ray.maxt) ||
+		(ray.hasDifferentials && ray.rxOrigin.HasNaNs() || ray.ryOrigin.HasNaNs() || ray.rxDirection.HasNaNs() || ray.ryDirection.HasNaNs())
 }
 
 func CreateEmptyBBox() *BBox {

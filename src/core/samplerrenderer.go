@@ -61,8 +61,8 @@ func (r *SamplerRenderer) Render(scene *Scene) {
 }
 
 func (r *SamplerRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li *Spectrum, isect *Intersection, T *Spectrum) {
-	//Assert(ray.time == sample->time);
-	//Assert(!ray.HasNaNs());
+	Assert(ray.time == sample.time)
+	Assert(!ray.HasNaNs())
 	// Allocate local variables for _isect_ and _T_ if needed
 	li = NewSpectrum1(0.0)
 	var hit bool
@@ -128,10 +128,10 @@ func (t *samplerRendererTask) run() {
 	// Allocate space for samples and intersections
 	maxSamples := sampler.MaximumSampleCount()
 	samples := t.origSample.Duplicate(maxSamples)
-	rays := make([]RayDifferential, maxSamples, maxSamples)
-	Ls := make([]Spectrum, maxSamples, maxSamples)
-	Ts := make([]Spectrum, maxSamples, maxSamples)
-	isects := make([]Intersection, maxSamples, maxSamples)
+	rays := make([]*RayDifferential, maxSamples, maxSamples)
+	Ls := make([]*Spectrum, maxSamples, maxSamples)
+	Ts := make([]*Spectrum, maxSamples, maxSamples)
+	isects := make([]*Intersection, maxSamples, maxSamples)
 
 	// Get samples from _Sampler_ and update image
 	sampleCount := sampler.GetMoreSamples(samples, rng)
@@ -142,9 +142,7 @@ func (t *samplerRendererTask) run() {
 			// Find camera ray for _sample[i]_
 			//PBRT_STARTED_GENERATING_CAMERA_RAY(&samples[i]);
 			var rayWeight float64
-			var ray *RayDifferential
-			ray, rayWeight = t.camera.GenerateRayDifferential(&samples[i])
-			rays[i] = *ray
+			rays[i], rayWeight = t.camera.GenerateRayDifferential(&samples[i])
 			rays[i].ScaleDifferentials(1.0 / math.Sqrt(float64(sampler.SamplesPerPixel())))
 			//PBRT_FINISHED_GENERATING_CAMERA_RAY(&samples[i], &rays[i], rayWeight)
 
@@ -168,27 +166,25 @@ func (t *samplerRendererTask) run() {
 										}
 					*/
 				} else {
-					Ls[i] = *NewSpectrum1(0.0)
+					Ls[i] = NewSpectrum1(0.0)
 				}
 			} else {
 				if rayWeight > 0.0 {
-					ls, isect, ts := t.renderer.Li(t.scene, &rays[i], &samples[i], rng, arena)
-					Ls[i] = *ls
-					isects[i] = *isect
-					Ts[i] = *ts
-					Ls[i] = *Ls[i].Scale(float32(rayWeight))
+					Ls[i], isects[i], Ts[i] = t.renderer.Li(t.scene, rays[i], &samples[i], rng, arena)
+					Ls[i] = Ls[i].Scale(float32(rayWeight))
 				} else {
-					Ls[i] = *NewSpectrum1(0.0)
-					Ts[i] = *NewSpectrum1(1.0)
+					Ls[i] = NewSpectrum1(0.0)
+					isects[i] = nil
+					Ts[i] = NewSpectrum1(1.0)
 				}
 
 				// Issue warning if unexpected radiance value returned
 				if Ls[i].HasNaNs() {
 					Error("Not-a-number radiance value returned for image sample.  Setting to black.")
-					Ls[i] = *NewSpectrum1(0.0)
+					Ls[i] = NewSpectrum1(0.0)
 				} else if Ls[i].Y() < -1.0e-5 {
 					Error("Negative luminance value, %f, returned for image sample.  Setting to black.", Ls[i].Y())
-					Ls[i] = *NewSpectrum1(0.0)
+					Ls[i] = NewSpectrum1(0.0)
 					//} else if math.IsInf(Ls[i].Y(),0) {
 					//	Error("Infinite luminance value returned for image sample.  Setting to black.")
 					//	Ls[i] = *NewSpectrum1(0.0)
@@ -201,7 +197,7 @@ func (t *samplerRendererTask) run() {
 		if sampler.ReportResults(samples, rays, Ls, isects, sampleCount) {
 			for i := 0; i < sampleCount; i++ {
 				//PBRT_STARTED_ADDING_IMAGE_SAMPLE(&samples[i], &rays[i], &Ls[i], &Ts[i]);
-				t.camera.Film().AddSample(&samples[i], &Ls[i])
+				t.camera.Film().AddSample(&samples[i], Ls[i])
 				//PBRT_FINISHED_ADDING_IMAGE_SAMPLE();
 			}
 		}

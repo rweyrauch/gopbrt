@@ -8,7 +8,7 @@ import (
 type Sampler interface {
 	GetMoreSamples(samples []Sample, rng *RNG) int
 	MaximumSampleCount() int
-	ReportResults(samples []Sample, rays []RayDifferential, Ls []Spectrum, isects []Intersection, count int) bool
+	ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool
 	GetSubSampler(num, count int) Sampler
 	RoundSize(size int) int
 	PixelRegion() (xstart, xend, ystart, yend int)
@@ -233,7 +233,7 @@ func (s *AdaptiveSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
 
 func (s *AdaptiveSampler) MaximumSampleCount() int { return s.maxSamples }
 
-func (s *AdaptiveSampler) ReportResults(samples []Sample, rays []RayDifferential, Ls []Spectrum, isects []Intersection, count int) bool {
+func (s *AdaptiveSampler) ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
 	if s.supersamplePixel {
 		s.supersamplePixel = false
 		// Advance to next pixel for sampling for _AdaptiveSampler_
@@ -280,7 +280,7 @@ func (s *AdaptiveSampler) PixelRegion() (xstart, xend, ystart, yend int) {
 func (s *AdaptiveSampler) SamplesPerPixel() int                  { return s.samplesPerPixel }
 func (s *AdaptiveSampler) ShutterTimes() (sopen, sclose float64) { return s.shutterOpen, s.shutterClose }
 
-func (s *AdaptiveSampler) needsSupersampling(samples []Sample, rays []RayDifferential, Ls []Spectrum, isects []Intersection, count int) bool {
+func (s *AdaptiveSampler) needsSupersampling(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
 	switch s.method {
 	case ADAPTIVE_COMPARE_SHAPE_ID:
 		// See if any shape ids differ within samples
@@ -390,7 +390,7 @@ again:
 
 func (s *BestCandidateSampler) MaximumSampleCount() int { return 1 }
 
-func (s *BestCandidateSampler) ReportResults(samples []Sample, rays []RayDifferential, Ls []Spectrum, isects []Intersection, count int) bool {
+func (s *BestCandidateSampler) ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
 	return false
 }
 
@@ -460,7 +460,7 @@ retry:
 }
 
 func (s *HaltonSampler) MaximumSampleCount() int { return 1 }
-func (s *HaltonSampler) ReportResults(samples []Sample, rays []RayDifferential, Ls []Spectrum, isects []Intersection, count int) bool {
+func (s *HaltonSampler) ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
 	return false
 }
 func (s *HaltonSampler) GetSubSampler(num, count int) Sampler {
@@ -515,7 +515,7 @@ func (s *LDSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
 	return s.nPixelSamples
 }
 func (s *LDSampler) MaximumSampleCount() int { return s.nPixelSamples }
-func (s *LDSampler) ReportResults(samples []Sample, rays []RayDifferential, Ls []Spectrum, isects []Intersection, count int) bool {
+func (s *LDSampler) ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
 	return false
 }
 func (s *LDSampler) GetSubSampler(num, count int) Sampler {
@@ -624,7 +624,7 @@ func (s *RandomSampler) GetMoreSamples(sample []Sample, rng *RNG) int {
 }
 
 func (s *RandomSampler) MaximumSampleCount() int { return 1 }
-func (s *RandomSampler) ReportResults(samples []Sample, rays []RayDifferential, Ls []Spectrum, isects []Intersection, count int) bool {
+func (s *RandomSampler) ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
 	return false
 }
 func (s *RandomSampler) GetSubSampler(num, count int) Sampler {
@@ -711,7 +711,7 @@ func (s *StratifiedSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
 
 func (s *StratifiedSampler) MaximumSampleCount() int { return s.xPixelSamples * s.yPixelSamples }
 
-func (s *StratifiedSampler) ReportResults(samples []Sample, rays []RayDifferential, Ls []Spectrum, isects []Intersection, count int) bool {
+func (s *StratifiedSampler) ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
 	return false
 }
 

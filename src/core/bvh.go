@@ -170,7 +170,7 @@ func (bvh *BVHAccel) flattenBVHTree(node *BVHBuildNode, offset int) (myOffset, n
 	myOffset = offset
 	nextOffset = offset + 1
 	if node.nPrimitives > 0 {
-		//Assert(!node->children[0] && !node->children[1])
+		Assert(node.children[0] == nil && node.children[1] == nil)
 		linearNode.offset = node.firstPrimOffset
 		linearNode.nPrimitives = node.nPrimitives
 	} else {
@@ -244,7 +244,7 @@ func nth_element(buildData []BVHPrimitiveInfo, first, nth, last int, comp func(i
 }
 
 func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrimitiveInfo, start, end int, orderedPrims []Primitive) (node *BVHBuildNode, totalNodes int) {
-	//Assert(start != end);
+	Assert(start != end)
 	totalNodes++
 	node = NewBVHBuildNode()
 	// Compute bounds of all primitives in BVH node
@@ -351,7 +351,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 					if b == SAH_NUM_BUCKETS {
 						b = SAH_NUM_BUCKETS - 1
 					}
-					//Assert(b >= 0 && b < SAH_NUM_BUCKETS);
+					Assert(b >= 0 && b < SAH_NUM_BUCKETS)
 					buckets[b].count++
 					buckets[b].bounds = *UnionBBoxes(&buckets[b].bounds, &buildData[i].bounds)
 				}
@@ -390,7 +390,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 						if b == SAH_NUM_BUCKETS {
 							b = SAH_NUM_BUCKETS - 1
 						}
-						//Assert(b >= 0 && b < SAH_NUM_BUCKETS);
+						Assert(b >= 0 && b < SAH_NUM_BUCKETS)
 						return b <= minCostSplit
 					}
 					mid = partition(buildData, start, end-1, compareToBucket)

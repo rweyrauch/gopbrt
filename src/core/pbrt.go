@@ -2,6 +2,7 @@ package core
 
 import (
 	"math"
+	"fmt"
 )
 
 const (
@@ -165,4 +166,11 @@ func AtomicAdd(dest *float64, delta float64) {
 func AtomicAddf(dest *float32, delta float32) {
     // TODO: port this function
     *dest = *dest + delta
+}
+
+func Assert(assertion bool) {
+	if !assertion { panic("Assertion failed") }
+}
+func AssertMsg(assertion bool, msg string) {
+	if !assertion { panic(fmt.Errorf("Assertion failed: %s", msg)) }
 }

@@ -846,7 +846,7 @@ func PbrtShape(name string, params *ParamSet) {
 		//params.ReportUnused()
 
 		// Get _animatedWorldToObject_ transform for shape
-		//Assert(MAX_TRANSFORMS == 2);
+		Assert(MAX_TRANSFORMS == 2)
 		var world2obj [2]*Transform
 		_, world2obj[0] = transformCache.Lookup(curTransform.t[0])
 		_, world2obj[1] = transformCache.Lookup(curTransform.t[1])
@@ -941,7 +941,7 @@ func PbrtObjectInstance(name string) {
 		in = make([]Primitive, 1, 1)
 		in[0] = accel
 	}
-	//Assert(MAX_TRANSFORMS == 2);
+	Assert(MAX_TRANSFORMS == 2)
 	var world2instance [2]*Transform
 	world2instance[0], _ = transformCache.Lookup(curTransform.t[0])
 	world2instance[1], _ = transformCache.Lookup(curTransform.t[1])

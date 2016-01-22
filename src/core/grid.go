@@ -46,7 +46,7 @@ func NewGridAccel(prims []Primitive, refineImmediately bool) *GridAccel {
 	// Find _voxelsPerUnitDist_ for grid
 	maxAxis := grid.bounds.MaximumExtent()
 	invMaxWidth := 1.0 / delta.At(maxAxis)
-	//Assert(invMaxWidth > 0.f);
+	Assert(invMaxWidth > 0.0)
 	cubeRoot := 3.0 * math.Pow(float64(len(grid.primitives)), 1.0/3.0)
 	voxelsPerUnitDist := cubeRoot * invMaxWidth
 	for axis := 0; axis < 3; axis++ {
@@ -310,7 +310,7 @@ func (v *Voxel) intersect(ray *Ray) (hit bool, isect *Intersection) {
 			if !prim.CanIntersect() {
 				p := make([]Primitive, 0, 8)
 				prim.FullyRefine(p)
-				//Assert(p.size() > 0)
+				Assert(len(p) > 0)
 				if len(p) == 1 {
 					v.primitives[i] = p[0]
 				} else {
@@ -341,7 +341,7 @@ func (v *Voxel) intersectP(ray *Ray) bool {
 			if !prim.CanIntersect() {
 				p := make([]Primitive, 0, 8)
 				prim.FullyRefine(p)
-				//Assert(p.size() > 0);
+				Assert(len(p) > 0);
 				if len(p) == 1 {
 					v.primitives[i] = p[0]
 				} else {

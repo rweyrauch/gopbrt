@@ -30,7 +30,7 @@ func NewMetropolisRenderer(perPixelSamples, nBootstrap, nDirectPixelSamples int,
     if renderer.largeStepsPerPixel >= renderer.nPixelSamples {
     	 renderer.largeStepsPerPixel /= 2
     }	 
-    //Assert(largeStepsPerPixel >= 1 && largeStepsPerPixel < nPixelSamples);
+    Assert(renderer.largeStepsPerPixel >= 1 && renderer.largeStepsPerPixel < renderer.nPixelSamples)
     if (renderer.nPixelSamples % renderer.largeStepsPerPixel) != 0 {
         origPixelSamples := renderer.nPixelSamples
         renderer.nPixelSamples += renderer.largeStepsPerPixel - (renderer.nPixelSamples % renderer.largeStepsPerPixel)
