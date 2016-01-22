@@ -2,6 +2,8 @@ package core
 
 import (
 	"math"
+	"hash/adler32"
+	"encoding/binary"
 )
 
 type (
@@ -49,14 +51,10 @@ func (r *SamplerRenderer) Render(scene *Scene) {
 		task := newSamplerRendererTask(scene, r, r.camera, reporter, r.sampler, sample, r.visualizeObjectIds, nTasks-1-i, nTasks)
 		task.run()
 	}
-	//EnqueueTasks(renderTasks);
-	//WaitForAllTasks();
-	//for (uint32_t i = 0; i < renderTasks.size(); ++i)
-	//    delete renderTasks[i];
 	reporter.Done()
+	
 	//PBRT_FINISHED_RENDERING();
 	// Clean up after rendering and store final image
-	//delete sample;
 	r.camera.Film().WriteImage(1.0)
 }
 
@@ -117,8 +115,8 @@ func (t *samplerRendererTask) run() {
 	}
 
 	// Declare local variables used for rendering loop
-	var arena *MemoryArena
 	rng := NewRNG(int64(t.taskNum))
+	hash := adler32.New()
 
 	// Allocate space for samples and intersections
 	maxSamples := sampler.MaximumSampleCount()
@@ -127,7 +125,7 @@ func (t *samplerRendererTask) run() {
 	Ls := make([]*Spectrum, maxSamples, maxSamples)
 	Ts := make([]*Spectrum, maxSamples, maxSamples)
 	isects := make([]*Intersection, maxSamples, maxSamples)
-
+	
 	// Get samples from _Sampler_ and update image
 	sampleCount := sampler.GetMoreSamples(samples, rng)
 	for sampleCount > 0 {
@@ -144,27 +142,25 @@ func (t *samplerRendererTask) run() {
 			//PBRT_STARTED_CAMERA_RAY_INTEGRATION(&rays[i], &samples[i]);
 			if t.visualizeObjectIds {
 				if rayWeight > 0.0 {
-					/*
-										var hit bool
-										hit, isects[i] = tscene.Intersect(rays[i])
-										if hit {
-											// random shading based on shape id...
-											ids := [2]int{ isects[i].shapeId, isects[i].primitiveId };
-											h := hash((char *)ids, sizeof(ids));
-											float rgb[3] = { float(h & 0xff), float((h >> 8) & 0xff),
-					                                     float((h >> 16) & 0xff) };
-											Ls[i] = Spectrum::FromRGB(rgb);
-											Ls[i] /= 255.0
-										} else {
-											Ls[i] = *NewSpectrum1(0.0)
-										}
-					*/
+					var hit bool
+					hit, isects[i] = t.scene.Intersect(CreateRayFromRayDifferential(rays[i]))
+					if hit {
+						// random shading based on shape id...
+						binary.Write(hash, binary.BigEndian, isects[i].shapeId)
+						binary.Write(hash, binary.BigEndian, isects[i].primitiveId)
+						h := hash.Sum32()
+						rgb := [3]float32{ float32(h & 0xff), float32((h >> 8) & 0xff), float32((h >> 16) & 0xff) }
+						Ls[i] = NewSpectrumRGB(rgb[0], rgb[1], rgb[2])
+						Ls[i].Scale(1.0 / 255.0)
+					} else {
+						Ls[i] = NewSpectrum1(0.0)
+					}
 				} else {
 					Ls[i] = NewSpectrum1(0.0)
 				}
 			} else {
 				if rayWeight > 0.0 {
-					Ls[i], isects[i], Ts[i] = t.renderer.Li(t.scene, rays[i], &samples[i], rng, arena)
+					Ls[i], isects[i], Ts[i] = t.renderer.Li(t.scene, rays[i], &samples[i], rng, nil)
 					Ls[i] = Ls[i].Scale(float32(rayWeight))
 				} else {
 					Ls[i] = NewSpectrum1(0.0)
@@ -196,21 +192,12 @@ func (t *samplerRendererTask) run() {
 			}
 		}
 
-		// Free _MemoryArena_ memory from computing image sample values
-		//arena.FreeAll();
-
 		sampleCount = sampler.GetMoreSamples(samples, rng)
 	}
     
 	// Clean up after _SamplerRendererTask_ is done with its image region
 	xstart, xend, ystart, yend := sampler.PixelRegion()
 	t.camera.Film().UpdateDisplay(xstart, ystart, xend+1, yend+1, 1.0)
-	//delete sampler;
-	//delete[] samples;
-	//delete[] rays;
-	//delete[] Ls;
-	//delete[] Ts;
-	//delete[] isects;
 	t.reporter.Update(1)
 	//PBRT_FINISHED_RENDERTASK(taskNum);
 }
