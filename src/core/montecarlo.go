@@ -63,18 +63,18 @@ func NewDistribution1D(f []float64) *Distribution1D {
 }
 
 // See std::upper_bound (return index rather than iterator)
-func upper_bound(cdf []float64, u float64) int {
-	for i, v := range cdf {
-		if v > u {
+func upper_bound(cdf []float64, n int, u float64) int {
+	for i := 0; i < n; i++ {
+		if cdf[i] > u {
 			return i
 		}
 	}
-	return len(cdf) - 1
+	return n-1
 }
 
 func (d *Distribution1D) SampleContinuous(u float64) (sample float64, pdf float64, offset int) {
 	// Find surrounding CDF segments and _offset_
-	offset = upper_bound(d.cdf, u)
+	offset = upper_bound(d.cdf, len(d.cdf)-1, u)
 
 	// Compute offset along CDF segment
 	du := (u - d.cdf[offset]) / (d.cdf[offset+1] - d.cdf[offset])
@@ -90,7 +90,7 @@ func (d *Distribution1D) SampleContinuous(u float64) (sample float64, pdf float6
 
 func (d *Distribution1D) SampleDiscrete(u float64) (offset int, pdf float64) {
 	// Find surrounding CDF segments and _offset_
-	offset = upper_bound(d.cdf, u)
+	offset = upper_bound(d.cdf, len(d.cdf)-1, u)
 
 	pdf = d.dfunc[offset] / (d.dfuncInt * float64(len(d.dfunc)))
 

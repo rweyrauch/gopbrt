@@ -343,8 +343,8 @@ func (v *Voxel) intersectP(ray *Ray) bool {
 			// Refine primitive _prim_ if it's not intersectable
 			if !prim.CanIntersect() {
 				p := make([]Primitive, 0, 8)
-				prim.FullyRefine(p)
-				Assert(len(p) > 0);
+				p = prim.FullyRefine(p)
+				Assert(len(p) > 0)
 				if len(p) == 1 {
 					v.primitives[i] = p[0]
 				} else {
