@@ -325,23 +325,79 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 		return defval
 	}
 	value := defval
-	fullparamname := "spectrum " + name
+	
+	spectrumparamname := "spectrum " + name
+	colorparamname := "color " + name
+	rgbparamname := "rgb " + name
+	bbodyparamname := "blockbody " + name
+	xyzparamname := "xyz " + name
+	
 	for i, p := range ps.tokens {
-		if strings.Compare(p, fullparamname) == 0 {
+		if strings.Compare(p, spectrumparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
-				if len(values) == 3 {
-					if v, ok := values[i*3+0].(float64); ok {
-						value.c[0] = float32(v)
-					}
-					if v, ok := values[i*3+1].(float64); ok {
-						value.c[1] = float32(v)
-					}
-					if v, ok := values[i*3+2].(float64); ok {
-						value.c[2] = float32(v)
+				if len(values) > 0 {
+					if _, ok := values[0].(string); ok {
+						// TODO: load and read spectrum data file.
+						Unimplemented()
+					} else {
+						// TODO: read pairs of sampld spectrum data
+						Unimplemented()
 					}
 				}
 			}
-		}
+		} else if strings.Compare(p, colorparamname) == 0 ||
+		 	strings.Compare(p, rgbparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+				if len(values) == 3 {
+					if v, ok := values[0].(float64); ok {
+						value.c[0] = float32(v)
+					}
+					if v, ok := values[1].(float64); ok {
+						value.c[1] = float32(v)
+					}
+					if v, ok := values[2].(float64); ok {
+						value.c[2] = float32(v)
+					}
+				} else {
+                    Error("RGB values given with parameter \"%s\" expected 3 value, got %d.", name, len(values))					
+				}
+			}		 		
+		 } else if strings.Compare(p, bbodyparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+				if len(values) % 2 != 0 {
+                   Warning("Excess value given with blackbody parameter \"%s\".  Ignoring extra one.", name)			
+				}
+				lambdas := make([]float32, len(values)/2, len(values)/2)
+				vals := make([]float32, len(values)/2, len(values)/2)
+				for vi := 0; vi < len(values); vi = vi + 2 {
+					if v, ok := values[vi].(float64); ok {
+						lambdas[vi/2] = float32(v)
+					}
+					if v, ok := values[vi+1].(float64); ok {
+						vals[vi/2] = float32(v)
+					}
+				}
+				value = *SpectrumFromSampled(lambdas, vals)
+			}		 	
+		 } else if strings.Compare(p, xyzparamname) == 0 {
+			if values, ok := ps.params[i].([]Object); ok {
+				if len(values) == 3 {
+					xyz := [3]float32{0.0, 0.0, 0.0}
+					if v, ok := values[0].(float64); ok {
+						xyz[0] = float32(v)
+					}
+					if v, ok := values[1].(float64); ok {
+						xyz[1] = float32(v)
+					}
+					if v, ok := values[2].(float64); ok {
+						xyz[2] = float32(v)
+					}
+					value = *SpectrumFromXYZ(xyz)
+				} else {
+                    Error("XYZ values given with parameter \"%s\" expected 3 value, got %d.", name, len(values))										
+				}
+			}		 			 	
+		 }
 	}
 	return value
 }

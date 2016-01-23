@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"io"
+	"sort"
 )
 
 func XYZToRGB(xyz [3]float32) [3]float32 {
@@ -139,6 +140,81 @@ func (rgb *Spectrum) Y() float32 {
 	return YWeight[0]*rgb.c[0] + YWeight[1]*rgb.c[1] + YWeight[2]*rgb.c[2]
 }
 
+func SpectrumFromSampled(lambdas, vals []float32) *Spectrum {
+	// Sort samples if unordered, use sorted for returned spectrum
+	if !spectrumSamplesSorted(lambdas) {
+		slambdas, svals := sortSpectrumSamples(lambdas, vals)
+		return SpectrumFromSampled(slambdas, svals)
+	}
+	xyz := [3]float32{0, 0, 0}
+	var yint float32 = 0.0
+	for i := 0; i < nCIESamples; i++ {
+		yint += CIE_Y[i]
+		val := interpolateSpectrumSamples(lambdas, vals, CIE_lambda[i])
+		xyz[0] += val * CIE_X[i]
+		xyz[1] += val * CIE_Y[i]
+		xyz[2] += val * CIE_Z[i]
+	}
+	xyz[0] /= yint
+	xyz[1] /= yint
+	xyz[2] /= yint
+	return SpectrumFromXYZ(xyz)
+}
+
 func LerpSpectrum(t float32, s1, s2 *Spectrum) *Spectrum {
 	return &Spectrum{[3]float32{Lerpf(t, s1.c[0], s2.c[0]), Lerpf(t, s1.c[1], s2.c[1]), Lerpf(t, s1.c[2], s2.c[2])}}
+}
+
+func spectrumSamplesSorted(lambda []float32) bool {
+	for i := 0; i < len(lambda)-1; i++ {
+		if lambda[i] > lambda[i+1] {
+			return false
+		}
+	}
+	return true
+}
+
+type sampledSpectrumSorter struct {
+	lambdas, vals []float32
+}
+
+func (s *sampledSpectrumSorter) Len() int {
+	return len(s.lambdas)
+}
+func (s *sampledSpectrumSorter) Swap(i, j int) {
+	s.lambdas[i], s.lambdas[j] = s.lambdas[j], s.lambdas[i]
+	s.vals[i], s.vals[j] = s.vals[j], s.vals[i]
+}
+func (s *sampledSpectrumSorter) Less(i, j int) bool {
+	return s.lambdas[i] < s.lambdas[j]
+}
+
+func sortSpectrumSamples(lambdas, vals []float32) (slambdas, svals []float32) {
+	slambdas = make([]float32, len(lambdas), len(lambdas))
+	svals = make([]float32, len(vals), len(vals))
+	copy(slambdas, lambdas)
+	copy(svals, vals)
+
+	spectrumSorter := &sampledSpectrumSorter{slambdas, svals}
+	sort.Sort(spectrumSorter)
+
+	return slambdas, svals
+}
+
+func interpolateSpectrumSamples(lambdas, vals []float32, l float32) float32 {
+	Assert(spectrumSamplesSorted(lambdas))
+	if l <= lambdas[0] {
+		return vals[0]
+	}
+	if l >= lambdas[len(lambdas)-1] {
+		return vals[len(vals)-1]
+	}
+	for i := 0; i < len(lambdas)-1; i++ {
+		if l >= lambdas[i] && l <= lambdas[i+1] {
+			t := (l - lambdas[i]) / (lambdas[i+1] - lambdas[i])
+			return Lerpf(t, vals[i], vals[i+1])
+		}
+	}
+	Severe("Fatal logic error in InterpolateSpectrumSamples()")
+	return 0.0
 }
