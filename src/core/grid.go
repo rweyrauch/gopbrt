@@ -330,10 +330,10 @@ func (v *Voxel) intersect(ray *Ray) (hit bool, isect *Intersection) {
 		//PBRT_GRID_RAY_PRIMITIVE_INTERSECTION_TEST(const_cast<Primitive *>(prim.GetPtr()));
 		if hit, isect = prim.Intersect(ray); hit {
 			//PBRT_GRID_RAY_PRIMITIVE_HIT(const_cast<Primitive *>(prim.GetPtr()));
-			hit = true
+			return hit, isect
 		}
 	}
-	return hit, isect
+	return false, nil
 }
 
 func (v *Voxel) intersectP(ray *Ray) bool {

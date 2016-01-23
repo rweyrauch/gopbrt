@@ -135,8 +135,24 @@ func CreateGraphicsState() *GraphicsState {
 	gs.areaLightParams = &ParamSet{nil, nil}
 	return gs
 }
+
 func (gs *GraphicsState) CreateMaterial(params *ParamSet) Material {
-	return nil
+    mp := CreateTextureParams(params, gs.materialParams, gs.floatTextures, gs.spectrumTextures)
+    
+    var mtl Material
+    if len(gs.currentNamedMaterial) != 0 {
+        mtl = gs.namedMaterials[gs.currentNamedMaterial]    	
+    }
+    if mtl == nil {
+        mtl = MakeMaterial(gs.material, curTransform.t[0], mp)
+	}        
+    if mtl == nil {
+        mtl = MakeMaterial("matte", curTransform.t[0], mp)
+	}        
+    if mtl == nil {
+        Severe("Unable to create \"matte\" material?!")
+	}        
+    return mtl
 }
 
 // API Static Data
@@ -775,7 +791,7 @@ func PbrtMakeNamedMaterial(name string, params *ParamSet) {
 	VERIFY_WORLD("MakeNamedMaterial")
 	// error checking, warning if replace, what to use for transform?
 	mp := CreateTextureParams(params, graphicsState.materialParams, graphicsState.floatTextures, graphicsState.spectrumTextures)
-	matName := "" // = mp.FindString("type"); // TODO: extract texture type from params
+	matName := mp.FindString("type", ""); 
 	WARN_IF_ANIMATED_TRANSFORM("MakeNamedMaterial")
 	if len(matName) == 0 {
 		Error("No parameter string \"type\" found in MakeNamedMaterial")

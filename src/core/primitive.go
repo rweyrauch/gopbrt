@@ -60,6 +60,7 @@ func NewGeometricPrimitive(s Shape, mtl Material, arealight AreaLight) *Geometri
 	gp.shape = s
 	gp.material = mtl
 	gp.areaLight = arealight
+	
 	return gp
 }
 
@@ -79,12 +80,14 @@ func (p *GeometricPrimitive) CanIntersect() bool {
 
 func (p *GeometricPrimitive) Intersect(r *Ray) (hit bool, isect *Intersection) {
 	var thit, rayEpsilon float64
-
-	if hit, thit, rayEpsilon, _ = p.shape.Intersect(r); !hit {
+	var dg *DifferentialGeometry
+	
+	if hit, thit, rayEpsilon, dg = p.shape.Intersect(r); !hit {
 		return false, nil
 	}
 
 	isect = new(Intersection)
+	isect.dg = dg
 	isect.primitive = p
 	isect.WorldToObject = p.shape.WorldToObject()
 	isect.ObjectToWorld = p.shape.ObjectToWorld()
