@@ -153,17 +153,20 @@ func (integrator *EmissionIntegrator) RequestSamples(sampler Sampler, sample *Sa
 }
 
 func (integrator *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li, transmittance *Spectrum) {
-	vr := scene.volumeRegion
 	Assert(sample != nil)
 	var hit bool
 	var t0, t1 float64
-	if vr != nil {
-		hit, t0, t1 = vr.IntersectP(CreateRayFromRayDifferential(ray))
-		if !hit || (t1-t0) == 0.0 {
+	if scene.volumeRegion != nil {
+		hit, t0, t1 = scene.volumeRegion.IntersectP(CreateRayFromRayDifferential(ray))
+		if !hit || (t1-t0 == 0.0) {
 			transmittance = NewSpectrum1(1.0)
 			li = NewSpectrum1(0.0)
 			return li, transmittance
 		}
+	} else {
+		transmittance = NewSpectrum1(1.0)
+		li = NewSpectrum1(0.0)
+		return li, transmittance		
 	}
 
 	// Do emission-only volume integration in _vr_
@@ -171,6 +174,7 @@ func (integrator *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *R
 
 	// Prepare for volume integration stepping
 	nSamples := Ceil2Int((t1 - t0) / integrator.stepSize)
+	
 	step := (t1 - t0) / float64(nSamples)
 	Tr := NewSpectrum1(1.0)
 	p := ray.PointAt(t0)
@@ -182,7 +186,7 @@ func (integrator *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *R
 		pPrev = p
 		p = ray.PointAt(t0)
 		tauRay := CreateRay(pPrev, p.Sub(pPrev), 0.0, 1.0, ray.time, ray.depth)
-		stepTau := vr.Tau(tauRay, 0.5*integrator.stepSize, rng.RandomFloat())
+		stepTau := scene.volumeRegion.Tau(tauRay, 0.5*integrator.stepSize, rng.RandomFloat())
 		Tr = Tr.Mult(ExpSpectrum(stepTau.Negate()))
 
 		// Possibly terminate ray marching if transmittance is small
@@ -196,7 +200,7 @@ func (integrator *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *R
 		}
 
 		// Compute emission-only source term at _p_
-		Lv = Lv.Add(Tr.Mult(vr.Lve(p, w, ray.time)))
+		Lv = Lv.Add(Tr.Mult(scene.volumeRegion.Lve(p, w, ray.time)))
 		t0 += step
 	}
 	transmittance = Tr

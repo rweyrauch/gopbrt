@@ -65,7 +65,9 @@ func Powf(v, e float32) float32 {
 func Expf(v float32) float32 {
 	return float32(math.Exp(float64(v)))
 }
-
+func IsNaNf(v float32) bool {
+	return v != v
+}
 
 func Mini(v1, v2 int) int {
     if v1 < v2 { return v1 }

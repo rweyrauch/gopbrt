@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"io"
-	"math"
 )
 
 func XYZToRGB(xyz [3]float32) [3]float32 {
@@ -112,7 +111,7 @@ func (rgb *Spectrum) Clamp(low, high float32) *Spectrum {
 
 func (rgb *Spectrum) HasNaNs() bool {
 	for _, v := range rgb.c {
-		if math.IsNaN(float64(v)) {
+		if IsNaNf(v) {
 			return true
 		}
 	}
