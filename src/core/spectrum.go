@@ -31,15 +31,7 @@ type SampledSpectrum struct {
 }
 
 func (rgb *Spectrum) String() string {
-	s := "[ "
-	for i, _ := range rgb.c {
-		s += fmt.Sprintf("%f", rgb.c[i])
-		if i != len(rgb.c)-1 {
-			s += ", "
-		}
-	}
-	s += "]"
-	return s
+	return fmt.Sprintf("rgb[%2.4f,%2.4f,%2.4f]", rgb.c[0], rgb.c[1], rgb.c[2])
 }
 
 func NewSpectrum1(v float32) *Spectrum {

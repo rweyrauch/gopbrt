@@ -154,7 +154,7 @@ func (m *MatteMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *
 	} else {
         dgs = dgShading
 	}
-    bsdf := CreateBSDF(dgs, dgGeom.nn, 1)
+    bsdf := NewBSDF(dgs, dgGeom.nn, 1)
 
     // Evaluate textures for _MatteMaterial_ material and allocate BRDF
     kd := m.Kd.Evaluate(dgs)

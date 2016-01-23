@@ -290,6 +290,12 @@ func FaceforwardVectorNormal(v *Vector, n2 *Normal) *Vector {
 	}
 	return v
 }
+func CrossNormal(v1 *Normal, v2 *Normal) *Vector {
+	return &Vector{(v1.y * v2.z) - (v1.z * v2.y),
+		(v1.z * v2.x) - (v1.x * v2.z),
+		(v1.x * v2.y) - (v1.y * v2.x)}
+}
+
 func (n *Normal) HasNaNs() bool { 
 	return math.IsNaN(n.x) || math.IsNaN(n.y) || math.IsNaN(n.z) 
 	}

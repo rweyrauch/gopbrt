@@ -391,7 +391,7 @@ again:
 func (s *BestCandidateSampler) MaximumSampleCount() int { return 1 }
 
 func (s *BestCandidateSampler) ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
-	return false
+	return true
 }
 
 func (s *BestCandidateSampler) GetSubSampler(num, count int) Sampler {
@@ -461,7 +461,7 @@ retry:
 
 func (s *HaltonSampler) MaximumSampleCount() int { return 1 }
 func (s *HaltonSampler) ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
-	return false
+	return true
 }
 func (s *HaltonSampler) GetSubSampler(num, count int) Sampler {
 	x0, x1, y0, y1 := s.computeSubWindow(num, count)
@@ -516,7 +516,7 @@ func (s *LDSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
 }
 func (s *LDSampler) MaximumSampleCount() int { return s.nPixelSamples }
 func (s *LDSampler) ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
-	return false
+	return true
 }
 func (s *LDSampler) GetSubSampler(num, count int) Sampler {
 	x0, x1, y0, y1 := s.computeSubWindow(num, count)
@@ -625,7 +625,7 @@ func (s *RandomSampler) GetMoreSamples(sample []Sample, rng *RNG) int {
 
 func (s *RandomSampler) MaximumSampleCount() int { return 1 }
 func (s *RandomSampler) ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
-	return false
+	return true
 }
 func (s *RandomSampler) GetSubSampler(num, count int) Sampler {
 	x0, x1, y0, y1 := s.computeSubWindow(num, count)
@@ -712,7 +712,7 @@ func (s *StratifiedSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
 func (s *StratifiedSampler) MaximumSampleCount() int { return s.xPixelSamples * s.yPixelSamples }
 
 func (s *StratifiedSampler) ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool {
-	return false
+	return true
 }
 
 func (s *StratifiedSampler) GetSubSampler(num, count int) Sampler {

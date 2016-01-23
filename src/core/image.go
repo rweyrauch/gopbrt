@@ -82,14 +82,14 @@ func (f *ImageFilm) AddSample(sample *Sample, L *Spectrum) {
 
 	// Loop over filter support and add sample to pixel arrays
 	xyz := L.ToXYZ()
-
+	
 	// Precompute $x$ and $y$ filter table offsets
-	ifx := make([]int, 0, x1-x0+1)
+	ifx := make([]int, x1-x0+1, x1-x0+1)
 	for x := x0; x <= x1; x++ {
 		fx := math.Abs((float64(x) - dimageX) * f.filter.InvXWidth() * filterTableSize)
 		ifx[x-x0] = Mini(Floor2Int(fx), filterTableSize-1)
 	}
-	ify := make([]int, y1-y0+1)
+	ify := make([]int, y1-y0+1, y1-y0+1)
 	for y := y0; y <= y1; y++ {
 		fy := math.Abs((float64(y) - dimageY) * f.filter.InvYWidth() * filterTableSize)
 		ify[y-y0] = Mini(Floor2Int(fy), filterTableSize-1)
@@ -191,6 +191,7 @@ func (f *ImageFilm) WriteImage(splatScale float32) {
 			rgb[3*offset] += splatScale * splatRGB[0]
 			rgb[3*offset+1] += splatScale * splatRGB[1]
 			rgb[3*offset+2] += splatScale * splatRGB[2]
+			
 			offset++
 		}
 	}

@@ -17,6 +17,9 @@ const (
 	BSDF_ALL_TRANSMISSION = BSDF_TRANSMISSION | BSDF_ALL_TYPES
 	BSDF_ALL              = BSDF_ALL_REFLECTION | BSDF_ALL_TRANSMISSION
 )
+const (
+	MAX_BxDFS = 8
+)
 
 type BSDFSample struct {
 	uDir       [2]float64
@@ -45,6 +48,7 @@ type BxDF interface {
 	Rho(wo *Vector, nSamples int, samples []float64) *Spectrum
 	Rho2(nSamples int, samples1, samples2 []float64) *Spectrum
 	Pdf(wi, wo *Vector) float64
+	Type() BxDFType
 }
 type BxDFData struct {
 	bxdftype BxDFType
@@ -91,17 +95,25 @@ func BxDFPdf(wi, wo *Vector) float64 {
 	 }
 }
 
+func matchesFlags(bxdf BxDF, flags BxDFType) bool {
+    return (bxdf.Type() & flags) == bxdf.Type()
+}
+
 type BRDFToBTDF struct { // BxDF
 	BxDFData
 	brdf BxDF
 }
 
 func (b *BRDFToBTDF) F(wo, wi *Vector) *Spectrum {
-	return nil
+	return b.brdf.F(wo, b.otherHemisphere(wi))
 }
-func (b *BRDFToBTDF) Sample_f(wo *Vector, u1, u2 float64) (*Vector, *Spectrum, float64) {
-	return nil, nil, 0.0
+
+func (b *BRDFToBTDF) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
+    wi, f, pdf = b.brdf.Sample_f(wo, u1, u2)
+    wi = b.otherHemisphere(wi)
+    return wi, f, pdf
 }
+
 func (b *BRDFToBTDF) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
 	return nil
 }
@@ -111,6 +123,11 @@ func (b *BRDFToBTDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum 
 func (b *BRDFToBTDF) Pdf(wi, wo *Vector) float64 {
 	return 0.0
 }
+func (b *BRDFToBTDF) Type() BxDFType { return b.bxdftype }
+
+func (b *BRDFToBTDF) otherHemisphere(w *Vector) *Vector {
+    return CreateVector(w.x, w.y, -w.z)
+}
 
 type ScaledBxDF struct { // BxDF
 	BxDFData
@@ -119,10 +136,11 @@ type ScaledBxDF struct { // BxDF
 }
 
 func (b *ScaledBxDF) F(wo, wi *Vector) *Spectrum {
-	return nil
+	return b.bxdf.F(wo, wi).Mult(&b.s)
 }
 func (b *ScaledBxDF) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
-	return nil, nil, 0.0
+    wi, f, pdf = b.bxdf.Sample_f(wo, u1, u2)
+    return wi, f.Mult(&b.s), pdf
 }
 func (b *ScaledBxDF) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
 	return nil
@@ -133,6 +151,7 @@ func (b *ScaledBxDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum 
 func (b *ScaledBxDF) Pdf(wi, wo *Vector) float64 {
 	return 0.0
 }
+func (b *ScaledBxDF) Type() BxDFType { return b.bxdftype }
 
 type Fresnel interface {
 	Evaluate(cosi float64) *Spectrum
@@ -141,9 +160,34 @@ type Fresnel interface {
 type FresnelConductor struct {
 	k, eta Spectrum
 }
+func (fresnel *FresnelConductor) Evaluate(cosi float64) *Spectrum {
+	return FrCond(math.Abs(cosi), &fresnel.eta, &fresnel.k)
+}
+
 type FresnelDielectric struct {
 	eta_t, eta_i float64
 }
+func (fresnel *FresnelDielectric) Evaluate(cosi float64) *Spectrum {
+    // Compute Fresnel reflectance for dielectric
+    cosi = Clamp(cosi, -1.0, 1.0)
+
+    // Compute indices of refraction for dielectric
+    entering := cosi > 0.0
+    ei, et := fresnel.eta_i, fresnel.eta_t
+    if !entering {
+		ei, et = et, ei
+	}
+    // Compute _sint_ using Snell's law
+    sint := ei/et * math.Sqrt(math.Max(0.0, 1.0 - cosi*cosi))
+    if sint >= 1.0 {
+        // Handle total internal reflection
+        return NewSpectrum1(1.0)
+    } else {
+        cost := math.Sqrt(math.Max(0.0, 1.0 - sint*sint))
+        return FrDiel(math.Abs(cosi), cost, NewSpectrum1(float32(ei)), NewSpectrum1(float32(et)))
+    }
+}
+
 type FresnelNoOp struct {
 }
 
@@ -153,35 +197,92 @@ type BSDF struct {
 	nn, ng    Normal
 	sn, tn    Vector
 	nBxDFs    int
-	bxdfs     []BxDF
+	bxdfs     [MAX_BxDFS]BxDF
 }
 
-func CreateBSDF(dg *DifferentialGeometry, ngeom *Normal, eta float64) *BSDF {
-	return nil
+func NewBSDF(dg *DifferentialGeometry, ngeom *Normal, eta float64) *BSDF {
+	bsdf := new(BSDF)
+	bsdf.dgShading = *dg
+	bsdf.eta = eta
+	bsdf.ng = *ngeom
+	bsdf.nn = *bsdf.dgShading.nn
+	bsdf.sn = *NormalizeVector(bsdf.dgShading.dpdu)
+	bsdf.tn = *CrossNormalVector(&bsdf.nn, &bsdf.sn)
+	bsdf.nBxDFs = 0
+	return bsdf
 }
 func (bsdf *BSDF) Add(bxdf BxDF) {
-
+    Assert(bsdf.nBxDFs < MAX_BxDFS)
+    bsdf.bxdfs[bsdf.nBxDFs] = bxdf
+    bsdf.nBxDFs++
 }
+
 func (bsdf *BSDF) NumComponents() int {
 	return bsdf.nBxDFs
 }
-func (bdsf *BSDF) NumComponentsMatching(flags BxDFType) int {
-	return 0
+
+func (bsdf *BSDF) NumComponentsMatching(flags BxDFType) int {
+    num := 0
+    for i := 0; i < bsdf.nBxDFs; i++ {
+        if matchesFlags(bsdf.bxdfs[i], flags) { num++ }
+    }   
+    return num
 }
+
 func (bsdf *BSDF) WorldToLocal(v *Vector) *Vector {
-	return nil
+	return CreateVector(DotVector(v, &bsdf.sn), DotVector(v, &bsdf.tn), DotVectorNormal(v, &bsdf.nn))
 }
+
 func (bsdf *BSDF) LocalToWorld(v *Vector) *Vector {
-	return nil
+	return CreateVector(bsdf.sn.x * v.x + bsdf.tn.x * v.y + bsdf.nn.x * v.z,
+                      bsdf.sn.y * v.x + bsdf.tn.y * v.y + bsdf.nn.y * v.z,
+                      bsdf.sn.z * v.x + bsdf.tn.z * v.y + bsdf.nn.z * v.z)
 }
+
 func (bsdf *BSDF) f(woW, wiW *Vector, flags BxDFType) *Spectrum {
-	return nil
+    //PBRT_STARTED_BSDF_EVAL();
+    wi, wo := bsdf.WorldToLocal(wiW), bsdf.WorldToLocal(woW)
+    if DotVectorNormal(wiW, &bsdf.ng) * DotVectorNormal(woW, &bsdf.ng) > 0 { // ignore BTDFs
+        flags = BxDFType(flags ^ BSDF_TRANSMISSION)
+    } else {// ignore BRDFs
+        flags = BxDFType(flags ^ BSDF_REFLECTION)
+    }    
+    ff := NewSpectrum1(0.0)
+    for i := 0; i < bsdf.nBxDFs; i++ {
+        if matchesFlags(bsdf.bxdfs[i], flags) {
+            ff = ff.Add(bsdf.bxdfs[i].F(wo, wi))
+		}
+    }       
+    //PBRT_FINISHED_BSDF_EVAL();
+    return ff
 }
+
 func (bsdf *BSDF) rho(rng *RNG, flags BxDFType, sqrtSamples int) *Spectrum {
-	return nil
+    nSamples := sqrtSamples * sqrtSamples
+    s1 := make([]float64, 2 * nSamples, 2 * nSamples)
+    StratifiedSample2D(s1, sqrtSamples, sqrtSamples, rng, true)
+    s2 := make([]float64, 2 * nSamples, 2 * nSamples)
+    StratifiedSample2D(s2, sqrtSamples, sqrtSamples, rng, true)
+
+    ret := NewSpectrum1(0.0)
+    for i := 0; i < bsdf.nBxDFs; i++ {
+        if matchesFlags(bsdf.bxdfs[i], flags) {
+            ret = ret.Add(bsdf.bxdfs[i].Rho2(nSamples, s1, s2))
+        }    
+    }        
+    return ret
 }
 func (bsdf *BSDF) rho2(wo *Vector, rng *RNG, flags BxDFType, sqrtSamples int) *Spectrum {
-	return nil
+    nSamples := sqrtSamples * sqrtSamples
+    s1 := make([]float64, 2 * nSamples, 2 * nSamples)
+    StratifiedSample2D(s1, sqrtSamples, sqrtSamples, rng, true)
+    ret := NewSpectrum1(0.0)
+    for i := 0; i < bsdf.nBxDFs; i++ {
+        if matchesFlags(bsdf.bxdfs[i], flags) {
+            ret = ret.Add(bsdf.bxdfs[i].Rho(wo, nSamples, s1))
+        }
+    }
+    return ret
 }
 
 type SpecularReflection struct { // BxDF
@@ -256,12 +357,11 @@ type IrregIsotropicBRDFSample struct {
 }
 
 func FrDiel(cosi, cost float64, etai, etat *Spectrum) *Spectrum {
-	//    var Rparl Spectrum = ((etat * cosi) - (etai * cost)) /
-	//                     ((etat * cosi) + (etai * cost))
-	//    var Rperp Spectrum = ((etai * cosi) - (etat * cost)) /
-	//                     ((etai * cosi) + (etat * cost))
-	//    return (Rparl*Rparl + Rperp*Rperp) / 2.0
-	return nil
+	cosi_ := float32(cosi)
+	cost_ := float32(cost)
+	Rparl := (etat.Scale(cosi_).Sub(etai.Scale(cost_))).Divide((etat.Scale(cosi_).Add(etai.Scale(cost_))))
+	Rperp := (etai.Scale(cosi_).Sub(etat.Scale(cost_))).Divide((etai.Scale(cosi_).Add(etat.Scale(cost_))))
+	return ((Rparl.Mult(Rparl)).Add(Rperp.Mult(Rperp))).Scale(1.0/2.0)
 }
 
 func FrCond(cosi float64, eta, k *Spectrum) *Spectrum {
@@ -358,6 +458,7 @@ func (b *Lambertian) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum 
 func (b *Lambertian) Pdf(wi, wo *Vector) float64 {
 	return BxDFPdf(wi, wo)
 }
+func (b *Lambertian) Type() BxDFType { return b.bxdftype }
 
 func NewOrenNayar(reflectance Spectrum, sig float64) *OrenNayar {
 	on := new(OrenNayar)
@@ -409,3 +510,5 @@ func (b *OrenNayar) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
 func (b *OrenNayar) Pdf(wi, wo *Vector) float64 {
 	return BxDFPdf(wi, wo)
 }
+
+func (b *OrenNayar) Type() BxDFType { return b.bxdftype }
