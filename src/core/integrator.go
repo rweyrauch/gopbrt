@@ -135,6 +135,7 @@ func (i *AmbientOcclusionIntegrator) Preprocess(scene *Scene, camera Camera, ren
 func (i *AmbientOcclusionIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *AmbientOcclusionIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	Unimplemented()
 	return nil
 }
 
@@ -142,6 +143,7 @@ func (i *DiffusePRTIntegrator) Preprocess(scene *Scene, camera Camera, renderer 
 func (i *DiffusePRTIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *DiffusePRTIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	Unimplemented()		
 	return nil
 }
 
@@ -149,6 +151,7 @@ func (i *DipoleSubsurfaceIntegrator) Preprocess(scene *Scene, camera Camera, ren
 func (i *DipoleSubsurfaceIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *DipoleSubsurfaceIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	Unimplemented()		
 	return nil
 }
 
@@ -156,6 +159,7 @@ func (i *DirectLightingIntegrator) Preprocess(scene *Scene, camera Camera, rende
 func (i *DirectLightingIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *DirectLightingIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	Unimplemented()		
 	return nil
 }
 
@@ -163,18 +167,21 @@ func (i *GlossyPRTIntegrator) Preprocess(scene *Scene, camera Camera, renderer R
 func (i *GlossyPRTIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *GlossyPRTIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	Unimplemented()		
 	return nil
 }
 func (i *IGIIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
 func (i *IGIIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *IGIIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	Unimplemented()		
 	return nil
 }
 func (i *IrradianceCacheIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
 func (i *IrradianceCacheIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *IrradianceCacheIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	Unimplemented()		
 	return nil
 }
 
@@ -182,18 +189,21 @@ func (i *PathIntegrator) Preprocess(scene *Scene, camera Camera, renderer Render
 func (i *PathIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *PathIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	Unimplemented()		
 	return nil
 }
 func (i *PhotonIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
 func (i *PhotonIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	Unimplemented()		
 	return nil
 }
 func (i *UseRadianceProbes) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
 func (i *UseRadianceProbes) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *UseRadianceProbes) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	Unimplemented()
 	return nil
 }
 func (i *WhittedIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
@@ -234,16 +244,17 @@ func (i *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferen
 	return L
 }
 
-func CreateAmbientOcclusionIntegrator(params *ParamSet) *AmbientOcclusionIntegrator      { return nil }
-func CreateDiffusePRTIntegratorSurfaceIntegrator(params *ParamSet) *DiffusePRTIntegrator { return nil }
-func CreateDipoleSubsurfaceIntegrator(params *ParamSet) *DipoleSubsurfaceIntegrator      { return nil }
-func CreateDirectLightingIntegrator(params *ParamSet) *DirectLightingIntegrator          { return nil }
-func CreateGlossyPRTIntegratorSurfaceIntegrator(params *ParamSet) *GlossyPRTIntegrator   { return nil }
-func CreateIGISurfaceIntegrator(params *ParamSet) *IGIIntegrator                         { return nil }
-func CreateIrradianceCacheIntegrator(params *ParamSet) *IrradianceCacheIntegrator        { return nil }
-func CreatePathSurfaceIntegrator(params *ParamSet) *PathIntegrator                       { return nil }
-func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator                { return nil }
-func CreateRadianceProbesSurfaceIntegrator(params *ParamSet) *UseRadianceProbes          { return nil }
+func CreateAmbientOcclusionIntegrator(params *ParamSet) *AmbientOcclusionIntegrator      { Unimplemented(); return nil }
+func CreateDiffusePRTIntegratorSurfaceIntegrator(params *ParamSet) *DiffusePRTIntegrator { Unimplemented(); return nil }
+func CreateDipoleSubsurfaceIntegrator(params *ParamSet) *DipoleSubsurfaceIntegrator      { Unimplemented(); return nil }
+func CreateDirectLightingIntegrator(params *ParamSet) *DirectLightingIntegrator          { Unimplemented(); return nil }
+func CreateGlossyPRTIntegratorSurfaceIntegrator(params *ParamSet) *GlossyPRTIntegrator   { Unimplemented(); return nil }
+func CreateIGISurfaceIntegrator(params *ParamSet) *IGIIntegrator                         { Unimplemented(); return nil }
+func CreateIrradianceCacheIntegrator(params *ParamSet) *IrradianceCacheIntegrator        { Unimplemented(); return nil }
+func CreatePathSurfaceIntegrator(params *ParamSet) *PathIntegrator                       { Unimplemented(); return nil }
+func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator                { Unimplemented(); return nil }
+func CreateRadianceProbesSurfaceIntegrator(params *ParamSet) *UseRadianceProbes          { Unimplemented(); return nil }
+
 func CreateWhittedSurfaceIntegrator(params *ParamSet) *WhittedIntegrator {
 	maxDepth := params.FindIntParam("maxdepth", 5)
 	return &WhittedIntegrator{maxDepth}

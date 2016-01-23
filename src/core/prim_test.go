@@ -7,7 +7,7 @@ import(
 var nextVal int = 0
 
 func appendToSlice(prims *[]int) {
-	prims = append(prims, nextVal)
+	*prims = append(*prims, nextVal)
 	nextVal++
 }
 

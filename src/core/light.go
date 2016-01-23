@@ -72,8 +72,10 @@ type ShapeSet struct {
 }
 
 func CreateShapeSet(s *Shape) *ShapeSet {
+	Unimplemented()
 	return nil
 }
+
 func (s *ShapeSet) Area() float64 {
 	return s.sumArea
 }
@@ -363,6 +365,7 @@ func (l *InfiniteAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, tim
 }
 
 func (l *InfiniteAreaLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
+	Unimplemented()
 }
 
 func CreateInfiniteLight(light2world *Transform, paramSet *ParamSet) *InfiniteAreaLight {
@@ -407,6 +410,7 @@ func (l *PointLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float
 }
 
 func (l *PointLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
+	Unimplemented()
 }
 
 func CreatePointLight(light2world *Transform, paramSet *ParamSet) *PointLight {
@@ -418,6 +422,7 @@ func CreatePointLight(light2world *Transform, paramSet *ParamSet) *PointLight {
 }
 
 func (l *ProjectionLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (s *Spectrum, wi *Vector, pdf float64) {
+	Unimplemented()
 	return nil, nil, 0.0
 }
 func (l *ProjectionLight) Power(scene *Scene) *Spectrum      { return nil }
@@ -425,16 +430,20 @@ func (l *ProjectionLight) IsDeltaLight() bool                { return false }
 func (l *ProjectionLight) Le(ray *RayDifferential) *Spectrum { return nil }
 func (l *ProjectionLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
 func (l *ProjectionLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
+	Unimplemented()
 	return nil, nil, nil, 0.0
 }
 func (l *ProjectionLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
+	Unimplemented()
 }
 
 func CreateProjectionLight(light2world *Transform, paramSet *ParamSet) *ProjectionLight {
+	Unimplemented()
 	return nil
 }
 
 func (l *SpotLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (s *Spectrum, wi *Vector, pdf float64) {
+	Unimplemented()
 	return nil, nil, 0.0
 }
 func (l *SpotLight) Power(scene *Scene) *Spectrum      { return nil }
@@ -442,11 +451,14 @@ func (l *SpotLight) IsDeltaLight() bool                { return false }
 func (l *SpotLight) Le(ray *RayDifferential) *Spectrum { return nil }
 func (l *SpotLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
 func (l *SpotLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
+	Unimplemented()
 	return nil, nil, nil, 0.0
 }
 func (l *SpotLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
+	Unimplemented()
 }
 
 func CreateSpotLight(light2world *Transform, paramSet *ParamSet) *SpotLight {
+	Unimplemented()
 	return nil
 }

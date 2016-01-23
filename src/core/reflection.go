@@ -31,15 +31,24 @@ type BSDFSampleOffsets struct {
 }
 
 func CreateBSDFSampleOffsets(count int, sample *Sample) *BSDFSampleOffsets {
-	return nil
+	return &BSDFSampleOffsets{count, sample.Add1D(count), sample.Add2D(count)}
 }
 
 func CreateRandomBSDFSample(rng *RNG) *BSDFSample {
 	return &BSDFSample{[2]float64{rng.RandomFloat(), rng.RandomFloat()}, rng.RandomFloat()}
 }
 
-func CreateBSDFSample(sample *Sample, offsets *BSDFSampleOffsets, num int) *BSDFSample {
-	return nil
+func CreateBSDFSample(sample *Sample, offsets *BSDFSampleOffsets, n int) *BSDFSample {
+	Assert(n < sample.n2D[offsets.dirOffset])
+	Assert(n < sample.n1D[offsets.componentOffset])
+	bsdfSample := new(BSDFSample)
+	bsdfSample.uDir[0] = sample.twoD[offsets.dirOffset][2*n]
+	bsdfSample.uDir[1] = sample.twoD[offsets.dirOffset][2*n+1]
+	bsdfSample.uComponent = sample.oneD[offsets.componentOffset][n]
+	Assert(bsdfSample.uDir[0] >= 0.0 && bsdfSample.uDir[0] < 1.0)
+	Assert(bsdfSample.uDir[1] >= 0.0 && bsdfSample.uDir[1] < 1.0)
+	Assert(bsdfSample.uComponent >= 0.0 && bsdfSample.uComponent < 1.0)
+	return bsdfSample
 }
 
 type BxDF interface {
@@ -117,12 +126,15 @@ func (b *BRDFToBTDF) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectr
 }
 
 func (b *BRDFToBTDF) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
+	Unimplemented()
 	return nil
 }
 func (b *BRDFToBTDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
+	Unimplemented()
 	return nil
 }
 func (b *BRDFToBTDF) Pdf(wi, wo *Vector) float64 {
+	Unimplemented()	
 	return 0.0
 }
 func (b *BRDFToBTDF) Type() BxDFType { return b.bxdftype }
@@ -145,12 +157,15 @@ func (b *ScaledBxDF) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectr
 	return wi, f.Mult(&b.s), pdf
 }
 func (b *ScaledBxDF) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
+	Unimplemented()
 	return nil
 }
 func (b *ScaledBxDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
+	Unimplemented()
 	return nil
 }
 func (b *ScaledBxDF) Pdf(wi, wo *Vector) float64 {
+	Unimplemented()
 	return 0.0
 }
 func (b *ScaledBxDF) Type() BxDFType { return b.bxdftype }
@@ -220,24 +235,26 @@ func (bsdf *BSDF) Sample_f(wo *Vector, bsdfSample *BSDFSample, flags BxDFType) (
 	return nil, nil, 0.0, BSDF_REFLECTION
 }
 
-func (bsdf *BSDF) Pdf(woW, wiW *Vector,flags BxDFType) float64 {
-    if (bsdf.nBxDFs == 0) { return 0.0 }
-    //PBRT_STARTED_BSDF_PDF()
-    wo, wi := bsdf.WorldToLocal(woW), bsdf.WorldToLocal(wiW)
-    var pdf float64
-    matchingComps := 0
-    for i := 0; i < bsdf.nBxDFs; i++ {
-        if matchesFlags(bsdf.bxdfs[i], flags) {
-            matchingComps++
-            pdf += bsdf.bxdfs[i].Pdf(wo, wi)
-        }
-	}        
-    v := 0.0
-    if matchingComps > 0 {
-    	v = pdf / float64(matchingComps)
-   	}
-    //PBRT_FINISHED_BSDF_PDF()
-    return v  	
+func (bsdf *BSDF) Pdf(woW, wiW *Vector, flags BxDFType) float64 {
+	if bsdf.nBxDFs == 0 {
+		return 0.0
+	}
+	//PBRT_STARTED_BSDF_PDF()
+	wo, wi := bsdf.WorldToLocal(woW), bsdf.WorldToLocal(wiW)
+	var pdf float64
+	matchingComps := 0
+	for i := 0; i < bsdf.nBxDFs; i++ {
+		if matchesFlags(bsdf.bxdfs[i], flags) {
+			matchingComps++
+			pdf += bsdf.bxdfs[i].Pdf(wo, wi)
+		}
+	}
+	v := 0.0
+	if matchingComps > 0 {
+		v = pdf / float64(matchingComps)
+	}
+	//PBRT_FINISHED_BSDF_PDF()
+	return v
 }
 
 func (bsdf *BSDF) Add(bxdf BxDF) {

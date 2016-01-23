@@ -2,6 +2,7 @@ package core
 
 import (
 	"math"
+	"fmt"
 )
 
 type VolumeRegion interface {
@@ -35,6 +36,7 @@ type ExponentialDensity struct {
 
 func (r *ExponentialDensity) WorldBound() *BBox { return nil }
 func (r *ExponentialDensity) IntersectP(ray *Ray) (hit bool, t0, t1 float64) {
+	Unimplemented()
 	return false, 0.0, 0.0
 }
 func (r *ExponentialDensity) Sigma_a(p *Point, w *Vector, time float64) *Spectrum  { return nil }
@@ -53,6 +55,7 @@ func (r *ExponentialDensity) Density(Pobj *Point) float64 {
 }
 
 func CreateExponentialVolumeRegion(volume2world *Transform, params *ParamSet) *ExponentialDensity {
+	Unimplemented()
 	return nil
 }
 
@@ -63,6 +66,7 @@ type HomogeneousVolumeDensity struct {
 
 func (r *HomogeneousVolumeDensity) WorldBound() *BBox { return nil }
 func (r *HomogeneousVolumeDensity) IntersectP(ray *Ray) (hit bool, t0, t1 float64) {
+	Unimplemented()
 	return false, 0.0, 0.0
 }
 func (r *HomogeneousVolumeDensity) Sigma_a(p *Point, w *Vector, time float64) *Spectrum  { return nil }
@@ -73,6 +77,7 @@ func (r *HomogeneousVolumeDensity) Sigma_t(p *Point, wo *Vector, time float64) *
 func (r *HomogeneousVolumeDensity) Tau(ray *Ray, step, offset float64) *Spectrum         { return nil }
 
 func CreateHomogeneousVolumeDensityRegion(volume2world *Transform, params *ParamSet) *HomogeneousVolumeDensity {
+	Unimplemented()
 	return nil
 }
 
@@ -95,7 +100,10 @@ func (r *VolumeGridDensity) Sigma_t(p *Point, wo *Vector, time float64) *Spectru
 func (r *VolumeGridDensity) Tau(ray *Ray, step, offset float64) *Spectrum         { return nil }
 func (r *VolumeGridDensity) Density(Pobj *Point) float64                          { return 0.0 }
 
-func CreateGridVolumeRegion(volume2world *Transform, params *ParamSet) *VolumeGridDensity { return nil }
+func CreateGridVolumeRegion(volume2world *Transform, params *ParamSet) *VolumeGridDensity {
+	Unimplemented()
+	return nil
+}
 
 type AggregateVolume struct {
 	regions []VolumeRegion
@@ -111,7 +119,10 @@ func (v *AggregateVolume) P(p *Point, w, wp *Vector, time float64) float64      
 func (v *AggregateVolume) Sigma_t(p *Point, wo *Vector, time float64) *Spectrum { return nil }
 func (v *AggregateVolume) Tau(ray *Ray, step, offset float64) *Spectrum         { return nil }
 
-func CreateAggregateVolume(regions []VolumeRegion) *AggregateVolume { return nil }
+func CreateAggregateVolume(regions []VolumeRegion) *AggregateVolume {
+	Unimplemented()
+	return nil
+}
 
 type VolumeIntegrator interface {
 	Integrator
@@ -131,13 +142,86 @@ type (
 	}
 )
 
-func (i *EmissionIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
-func (i *EmissionIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
-func (i *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li, transmittance *Spectrum) {
-	return NewSpectrum1(0.0), NewSpectrum1(1.0)
+func NewEmissionIntegrator(stepsize float64) *EmissionIntegrator {
+	return &EmissionIntegrator{stepsize, 0, 0}
 }
-func (i *EmissionIntegrator) Transmittance(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	return NewSpectrum1(1.0)
+
+func (integrator *EmissionIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer) {}
+func (integrator *EmissionIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {
+	integrator.tauSampleOffset = sample.Add1D(1)
+	integrator.scatterSampleOffset = sample.Add1D(1)
+}
+
+func (integrator *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li, transmittance *Spectrum) {
+	vr := scene.volumeRegion
+	Assert(sample != nil)
+	var hit bool
+	var t0, t1 float64
+	if vr != nil {
+		hit, t0, t1 = vr.IntersectP(CreateRayFromRayDifferential(ray))
+		if !hit || (t1-t0) == 0.0 {
+			transmittance = NewSpectrum1(1.0)
+			li = NewSpectrum1(0.0)
+			return li, transmittance
+		}
+	}
+
+	// Do emission-only volume integration in _vr_
+	Lv := NewSpectrum1(0.0)
+
+	// Prepare for volume integration stepping
+	nSamples := Ceil2Int((t1 - t0) / integrator.stepSize)
+	step := (t1 - t0) / float64(nSamples)
+	Tr := NewSpectrum1(1.0)
+	p := ray.PointAt(t0)
+	var pPrev *Point
+	w := ray.dir.Negate()
+	t0 += sample.oneD[integrator.scatterSampleOffset][0] * step
+	for i := 0; i < nSamples; i++ {
+		// Advance to sample at _t0_ and update _T_
+		pPrev = p
+		p = ray.PointAt(t0)
+		tauRay := CreateRay(pPrev, p.Sub(pPrev), 0.0, 1.0, ray.time, ray.depth)
+		stepTau := vr.Tau(tauRay, 0.5*integrator.stepSize, rng.RandomFloat())
+		Tr = Tr.Mult(ExpSpectrum(stepTau.Negate()))
+
+		// Possibly terminate ray marching if transmittance is small
+		if Tr.Y() < 1.0e-3 {
+			continueProb := 0.5
+			if rng.RandomFloat() > continueProb {
+				Tr = NewSpectrum1(0.0)
+				break
+			}
+			Tr = Tr.Scale(float32(continueProb))
+		}
+
+		// Compute emission-only source term at _p_
+		Lv = Lv.Add(Tr.Mult(vr.Lve(p, w, ray.time)))
+		t0 += step
+	}
+	transmittance = Tr
+	li = Lv.Scale(float32(step))
+	return li, transmittance
+}
+
+func (integrator *EmissionIntegrator) Transmittance(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
+	if scene.volumeRegion == nil {
+		return NewSpectrum1(1.0)
+	}
+	var step, offset float64
+	if sample != nil {
+		step = integrator.stepSize
+		offset = sample.oneD[integrator.tauSampleOffset][0]
+	} else {
+		step = 4.0 * integrator.stepSize
+		offset = rng.RandomFloat()
+	}
+	tau := scene.volumeRegion.Tau(CreateRayFromRayDifferential(ray), step, offset)
+	return ExpSpectrum(tau.Scale(-1.0))
+}
+
+func (integrator *EmissionIntegrator) String() string {
+	return fmt.Sprintf("emmission[step: %f tauoff: %d scatteroff: %d]", integrator.stepSize, integrator.tauSampleOffset, integrator.scatterSampleOffset)
 }
 
 func (i *SingleScatteringIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
@@ -149,8 +233,14 @@ func (i *SingleScatteringIntegrator) Transmittance(scene *Scene, renderer Render
 	return NewSpectrum1(1.0)
 }
 
-func CreateSingleScatteringIntegrator(params *ParamSet) *SingleScatteringIntegrator { return nil }
-func CreateEmissionVolumeIntegrator(params *ParamSet) *EmissionIntegrator           { return nil }
+func CreateSingleScatteringIntegrator(params *ParamSet) *SingleScatteringIntegrator {
+	Unimplemented()
+	return nil
+}
+func CreateEmissionVolumeIntegrator(params *ParamSet) *EmissionIntegrator {
+	stepSize := params.FindFloatParam("stepsize", 1.0)
+	return NewEmissionIntegrator(stepSize)
+}
 
 // Volume Scattering Declarations
 func PhaseIsotropic(w, wp *Vector) float64          { return 0.0 }
@@ -161,8 +251,10 @@ func PhaseHG(w, wp *Vector, g float64) float64      { return 0.0 }
 func PhaseSchlick(w, wp *Vector, g float64) float64 { return 0.0 }
 
 func GetVolumeScatteringProperties(name string) (found bool, sigma_a, sigma_prime_s *Spectrum) {
+	Unimplemented()
 	return false, nil, nil
 }
 func SubsurfaceFromDiffuse(Kd *Spectrum, meanPathLength, eta float64) (sigma_a, sigma_prime_s *Spectrum) {
+	Unimplemented()
 	return nil, nil
 }

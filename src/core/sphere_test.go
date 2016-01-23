@@ -7,10 +7,10 @@ import (
 
 func TestSphereShape(t *testing.T) {
 
-	ident := CreateIdentityMatrix4x4()
+	ident := NewIdentityMatrix4x4()
 	fmt.Printf("Ident: %v\n", ident)
 
-	o2w, _ := CreateTransform(ident)
+	o2w, _ := NewTransform(ident)
 	w2o := InverseTransform(o2w)
 	sphere := CreateSphere(o2w, w2o, false, 5.0, -5.0, 5.0, 360.0)
 

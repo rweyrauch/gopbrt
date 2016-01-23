@@ -3,6 +3,7 @@ package core
 import (
 	"math"
 	"strings"
+	"fmt"
 )
 
 type Sampler interface {
@@ -67,12 +68,12 @@ func NewSample(sampler Sampler, surf SurfaceIntegrator, vol VolumeIntegrator, sc
 
 func (s *Sample) Add1D(n int) int {
 	s.n1D = append(s.n1D, n)
-	return len(s.n1D)
+	return len(s.n1D)-1
 }
 
 func (s *Sample) Add2D(n int) int {
 	s.n2D = append(s.n2D, n)
-	return len(s.n2D)
+	return len(s.n2D)-1
 }
 
 func (s *Sample) Duplicate(count int) []Sample {
@@ -85,6 +86,11 @@ func (s *Sample) Duplicate(count int) []Sample {
 		ret[i].allocateSampleMemory()
 	}
 	return ret
+}
+
+func (s *Sample) String() string {
+	return fmt.Sprintf("sample[img(%3.2f,%3.2f) lens(%3.2f,%3.2f) time(%3.2f) Num1D: %d(%d) Num2D: %d(%d)]",
+		s.imageX, s.imageY, s.lensU, s.lensV, s.time, len(s.n1D), len(s.oneD), len(s.n2D), len(s.twoD))	
 }
 
 func (s *Sample) allocateSampleMemory() {
