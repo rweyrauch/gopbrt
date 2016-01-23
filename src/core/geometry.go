@@ -39,7 +39,7 @@ type (
 )
 
 const (
-	INFINITY = math.MaxFloat64
+	INFINITY  = math.MaxFloat64
 	INFINITYF = math.MaxFloat32
 )
 
@@ -127,9 +127,9 @@ func CoordinateSystem(v1 *Vector) (v2, v3 *Vector) {
 	v3 = CrossVector(v1, v2)
 	return v2, v3
 }
-func (v *Vector) HasNaNs() bool { 
-	return math.IsNaN(v.x) || math.IsNaN(v.y) || math.IsNaN(v.z) 
-	}
+func (v *Vector) HasNaNs() bool {
+	return math.IsNaN(v.x) || math.IsNaN(v.y) || math.IsNaN(v.z)
+}
 
 func (v *Vector) String() string {
 	return fmt.Sprintf("v[ %f, %f, %f ]", v.x, v.y, v.z)
@@ -191,16 +191,16 @@ func DistancePoint(p1, p2 *Point) float64 {
 func DistanceSquaredPoint(p1, p2 *Point) float64 {
 	return p1.Sub(p2).LengthSquared()
 }
-func (p *Point) HasNaNs() bool { 
-	return math.IsNaN(p.x) || math.IsNaN(p.y) || math.IsNaN(p.z) 
-	}
+func (p *Point) HasNaNs() bool {
+	return math.IsNaN(p.x) || math.IsNaN(p.y) || math.IsNaN(p.z)
+}
 
 func (p *Point) String() string {
 	return fmt.Sprintf("p[ %f, %f, %f ]", p.x, p.y, p.z)
 }
 
 func CreateNormal(x, y, z float64) *Normal {
-    return &Normal{x, y, z}
+	return &Normal{x, y, z}
 }
 func CreateNormalFromVector(v *Vector) *Normal {
 	return &Normal{v.x, v.y, v.z}
@@ -296,9 +296,9 @@ func CrossNormal(v1 *Normal, v2 *Normal) *Vector {
 		(v1.x * v2.y) - (v1.y * v2.x)}
 }
 
-func (n *Normal) HasNaNs() bool { 
-	return math.IsNaN(n.x) || math.IsNaN(n.y) || math.IsNaN(n.z) 
-	}
+func (n *Normal) HasNaNs() bool {
+	return math.IsNaN(n.x) || math.IsNaN(n.y) || math.IsNaN(n.z)
+}
 
 func (n *Normal) String() string {
 	return fmt.Sprintf("n[ %f, %f, %f ]", n.x, n.y, n.z)

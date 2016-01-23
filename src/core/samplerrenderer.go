@@ -1,9 +1,9 @@
 package core
 
 import (
-	"math"
-	"hash/adler32"
 	"encoding/binary"
+	"hash/adler32"
+	"math"
 )
 
 type (
@@ -52,7 +52,7 @@ func (r *SamplerRenderer) Render(scene *Scene) {
 		task.run()
 	}
 	reporter.Done()
-	
+
 	//PBRT_FINISHED_RENDERING();
 	// Clean up after rendering and store final image
 	r.camera.Film().WriteImage(1.0)
@@ -125,7 +125,7 @@ func (t *samplerRendererTask) run() {
 	Ls := make([]*Spectrum, maxSamples, maxSamples)
 	Ts := make([]*Spectrum, maxSamples, maxSamples)
 	isects := make([]*Intersection, maxSamples, maxSamples)
-	
+
 	// Get samples from _Sampler_ and update image
 	sampleCount := sampler.GetMoreSamples(samples, rng)
 	for sampleCount > 0 {
@@ -149,7 +149,7 @@ func (t *samplerRendererTask) run() {
 						binary.Write(hash, binary.BigEndian, isects[i].shapeId)
 						binary.Write(hash, binary.BigEndian, isects[i].primitiveId)
 						h := hash.Sum32()
-						rgb := [3]float32{ float32(h & 0xff), float32((h >> 8) & 0xff), float32((h >> 16) & 0xff) }
+						rgb := [3]float32{float32(h & 0xff), float32((h >> 8) & 0xff), float32((h >> 16) & 0xff)}
 						Ls[i] = NewSpectrumRGB(rgb[0], rgb[1], rgb[2])
 						Ls[i].Scale(1.0 / 255.0)
 					} else {
@@ -194,7 +194,7 @@ func (t *samplerRendererTask) run() {
 
 		sampleCount = sampler.GetMoreSamples(samples, rng)
 	}
-    
+
 	// Clean up after _SamplerRendererTask_ is done with its image region
 	xstart, xend, ystart, yend := sampler.PixelRegion()
 	t.camera.Film().UpdateDisplay(xstart, ystart, xend+1, yend+1, 1.0)

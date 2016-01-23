@@ -618,6 +618,10 @@ func SampleHG(w *Vector, g, u1, u2 float64) *Vector {
 }
 
 func HGPdf(w, wp *Vector, g float64) float64 {
-	//return PhaseHG(w, wp, g)
-	return 0.0
+	return PhaseHG(w, wp, g)
+}
+
+func PowerHeuristic(nf int, fPdf float64, ng int, gPdf float64) float64 {
+    f, g := float64(nf) * fPdf, float64(ng) * gPdf
+    return (f*f) / (f*f + g*g)
 }

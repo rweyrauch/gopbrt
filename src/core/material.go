@@ -141,33 +141,33 @@ func (m *KdSubsurfaceMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *M
 }
 
 func CreateMatteMaterial(xform *Transform, mp *TextureParams) *MatteMaterial {
-    Kd := mp.GetSpectrumTexture("Kd", *NewSpectrum1(0.5))
-    sigma := mp.GetFloatTexture("sigma", 0.0)
-    bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-    return &MatteMaterial{Kd, sigma, bumpMap}
+	Kd := mp.GetSpectrumTexture("Kd", *NewSpectrum1(0.5))
+	sigma := mp.GetFloatTexture("sigma", 0.0)
+	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
+	return &MatteMaterial{Kd, sigma, bumpMap}
 }
 func (m *MatteMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
-    // Allocate _BSDF_, possibly doing bump mapping with _bumpMap_
-    var dgs *DifferentialGeometry
-    if m.bumpMap != nil {
-        dgs = Bump(m.bumpMap, dgGeom, dgShading)
+	// Allocate _BSDF_, possibly doing bump mapping with _bumpMap_
+	var dgs *DifferentialGeometry
+	if m.bumpMap != nil {
+		dgs = Bump(m.bumpMap, dgGeom, dgShading)
 	} else {
-        dgs = dgShading
+		dgs = dgShading
 	}
-    bsdf := NewBSDF(dgs, dgGeom.nn, 1)
+	bsdf := NewBSDF(dgs, dgGeom.nn, 1)
 
-    // Evaluate textures for _MatteMaterial_ material and allocate BRDF
-    kd := m.Kd.Evaluate(dgs)
-    r := kd.Clamp(0.0, 1.0)
-    sig := Clamp(float64(m.sigma.Evaluate(dgs)), 0.0, 90.0)
-    if !r.IsBlack() {
-        if (sig == 0) {
-            bsdf.Add(NewLambertian(*r))
-        } else {
-            bsdf.Add(NewOrenNayar(*r, sig))
+	// Evaluate textures for _MatteMaterial_ material and allocate BRDF
+	kd := m.Kd.Evaluate(dgs)
+	r := kd.Clamp(0.0, 1.0)
+	sig := Clamp(float64(m.sigma.Evaluate(dgs)), 0.0, 90.0)
+	if !r.IsBlack() {
+		if sig == 0 {
+			bsdf.Add(NewLambertian(*r))
+		} else {
+			bsdf.Add(NewOrenNayar(*r, sig))
 		}
-    }
-    return bsdf
+	}
+	return bsdf
 }
 
 func (m *MatteMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {

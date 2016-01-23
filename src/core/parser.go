@@ -389,7 +389,7 @@ func (tp *TextureParams) GetFloatTexture(name string, defval float64) TextureFlo
 	if len(texname) == 0 {
 		texname = tp.materialParams.FindTextureParam(name)
 	}
-	if len(texname) == 0 {
+	if len(texname) != 0 {
 		if tp.floatTextures[texname] != nil {
 			return tp.floatTextures[name]
 		} else {
@@ -405,7 +405,7 @@ func (tp *TextureParams) GetSpectrumTexture(name string, defval Spectrum) Textur
 	if len(texname) == 0 {
 		texname = tp.materialParams.FindTextureParam(name)
 	}
-	if len(texname) == 0 {
+	if len(texname) != 0 {
 		if tp.spectrumTextures[texname] != nil {
 			return tp.spectrumTextures[texname]
 		} else {

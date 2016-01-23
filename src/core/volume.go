@@ -102,14 +102,14 @@ type AggregateVolume struct {
 	bound   *BBox
 }
 
-func (v *AggregateVolume) WorldBound() *BBox { return nil }
-func (v *AggregateVolume) IntersectP(ray *Ray) (hit bool, t0, t1 float64) { return false, 0.0, 0.0 }
-func (v *AggregateVolume) Sigma_a(p *Point, w *Vector, time float64) *Spectrum { return nil }
-func (v *AggregateVolume) Sigma_s(p *Point, w *Vector, time float64) *Spectrum { return nil }
-func (v *AggregateVolume) Lve(p *Point, w *Vector, time float64) *Spectrum { return nil }
-func (v *AggregateVolume) P(p *Point, w, wp *Vector, time float64) float64 { return 0.0 }
+func (v *AggregateVolume) WorldBound() *BBox                                    { return nil }
+func (v *AggregateVolume) IntersectP(ray *Ray) (hit bool, t0, t1 float64)       { return false, 0.0, 0.0 }
+func (v *AggregateVolume) Sigma_a(p *Point, w *Vector, time float64) *Spectrum  { return nil }
+func (v *AggregateVolume) Sigma_s(p *Point, w *Vector, time float64) *Spectrum  { return nil }
+func (v *AggregateVolume) Lve(p *Point, w *Vector, time float64) *Spectrum      { return nil }
+func (v *AggregateVolume) P(p *Point, w, wp *Vector, time float64) float64      { return 0.0 }
 func (v *AggregateVolume) Sigma_t(p *Point, wo *Vector, time float64) *Spectrum { return nil }
-func (v *AggregateVolume) Tau(ray *Ray, step, offset float64) *Spectrum { return nil }
+func (v *AggregateVolume) Tau(ray *Ray, step, offset float64) *Spectrum         { return nil }
 
 func CreateAggregateVolume(regions []VolumeRegion) *AggregateVolume { return nil }
 
@@ -131,22 +131,22 @@ type (
 	}
 )
 
-func (i *EmissionIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)   {}
+func (i *EmissionIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
 func (i *EmissionIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li, transmittance *Spectrum) {
-	return NewSpectrum1(0.0), NewSpectrum1(0.0)
+	return NewSpectrum1(0.0), NewSpectrum1(1.0)
 }
 func (i *EmissionIntegrator) Transmittance(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	return NewSpectrum1(0.0)
+	return NewSpectrum1(1.0)
 }
 
-func (i *SingleScatteringIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)   {}
+func (i *SingleScatteringIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
 func (i *SingleScatteringIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *SingleScatteringIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li, transmittance *Spectrum) {
-	return NewSpectrum1(0.0), NewSpectrum1(0.0)
+	return NewSpectrum1(0.0), NewSpectrum1(1.0)
 }
 func (i *SingleScatteringIntegrator) Transmittance(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	return NewSpectrum1(0.0)
+	return NewSpectrum1(1.0)
 }
 
 func CreateSingleScatteringIntegrator(params *ParamSet) *SingleScatteringIntegrator { return nil }
