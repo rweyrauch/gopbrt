@@ -60,28 +60,28 @@ func NewGeometricPrimitive(s Shape, mtl Material, arealight AreaLight) *Geometri
 	gp.shape = s
 	gp.material = mtl
 	gp.areaLight = arealight
-	
+
 	return gp
 }
 
 func (p *GeometricPrimitive) WorldBound() *BBox {
-    if p.shape != nil {
-	    return p.shape.WorldBound()
-    }
-    return nil
+	if p.shape != nil {
+		return p.shape.WorldBound()
+	}
+	return nil
 }
 
 func (p *GeometricPrimitive) CanIntersect() bool {
-    if p.shape != nil {
-    	return p.shape.CanIntersect()
-    }
-    return false
+	if p.shape != nil {
+		return p.shape.CanIntersect()
+	}
+	return false
 }
 
 func (p *GeometricPrimitive) Intersect(r *RayDifferential) (hit bool, isect *Intersection) {
 	var thit, rayEpsilon float64
 	var dg *DifferentialGeometry
-	
+
 	if hit, thit, rayEpsilon, dg = p.shape.Intersect(CreateRayFromRayDifferential(r)); !hit {
 		return false, nil
 	}
@@ -256,4 +256,70 @@ func (p *Aggregate) GetBSSRDF(dg *DifferentialGeometry, objectToWorld *Transform
 
 func (p *Aggregate) PrimitiveId() uint32 {
 	return p.primitiveId
+}
+
+type NoneAccel struct {
+	PrimitiveData
+	primitives []Primitive
+	bounds     BBox
+}
+
+func NewNoneAccelerator(prims []Primitive) *NoneAccel {
+	none := new(NoneAccel)
+	none.primitiveId = GeneratePrimitiveId()
+	none.primitives = make([]Primitive, 0, 16)
+
+	// Initialize _primitives_ with primitives for none
+	for _, p := range prims {
+		none.primitives = p.FullyRefine(none.primitives)
+	}
+
+	// Compute bounds and choose grid resolution
+	none.bounds = *CreateEmptyBBox()
+	for _, p := range none.primitives {
+		none.bounds = *UnionBBoxes(&none.bounds, p.WorldBound())
+	}
+	return none
+
+}
+func (g *NoneAccel) WorldBound() *BBox  { return &g.bounds }
+
+func (g *NoneAccel) CanIntersect() bool { return true }
+
+func (g *NoneAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
+	var hit bool
+	var isect *Intersection
+	
+	for _, p := range g.primitives {
+		if phit, pisect := p.Intersect(ray); phit {
+			hit = phit
+			isect = pisect
+		}
+	}
+	return hit, isect
+}
+
+func (g *NoneAccel) IntersectP(ray *Ray) bool {
+	for _, p := range g.primitives {
+		if p.IntersectP(ray) { return true }
+	}
+	return false
+}
+
+func (g *NoneAccel) Refine(refined []Primitive) []Primitive     { return refined }
+func (g *NoneAccel) FullyRefine(refined []Primitive) []Primitive { 
+	return PrimitiveFullyRefine(g, refined) 
+}
+
+func (g *NoneAccel) GetAreaLight() AreaLight                     { return nil }
+func (g *NoneAccel) GetBSDF(dg *DifferentialGeometry, objectToWorld *Transform, arena *MemoryArena) *BSDF {
+	return nil
+}
+func (g *NoneAccel) GetBSSRDF(dg *DifferentialGeometry, objectToWorld *Transform, arena *MemoryArena) *BSSRDF {
+	return nil
+}
+func (g *NoneAccel) PrimitiveId() uint32 { return g.primitiveId }
+
+func CreateNoneAccelerator(prims []Primitive, ps *ParamSet) *NoneAccel {
+	return NewNoneAccelerator(prims)
 }

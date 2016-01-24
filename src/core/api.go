@@ -164,28 +164,26 @@ const (
 
 var (
 	currentApiState           int = STATE_UNINITIALIZED
-	curTransform              *TransformSet
+	curTransform              TransformSet
 	activeTransformBits       uint32 = ALL_TRANSFORMS_BITS
 	namedCoordinateSystems    map[string]*TransformSet
-	renderOptions             *RenderOptions
-	graphicsState             *GraphicsState
-	pushedGraphicsStates      []*GraphicsState
-	pushedTransforms          []*TransformSet
+	renderOptions             RenderOptions
+	graphicsState             GraphicsState
+	pushedGraphicsStates      []GraphicsState
+	pushedTransforms          []TransformSet
 	pushedActiveTransformBits []uint32
-	transformCache            *TransformCache
+	transformCache            TransformCache
 )
 
 func init() {
-	curTransform = new(TransformSet)
-	curTransform.t[0], _ = NewTransform(NewIdentityMatrix4x4())
-	curTransform.t[1], _ = NewTransform(NewIdentityMatrix4x4())
+	curTransform = *CreateTransformSet()
 
 	namedCoordinateSystems = make(map[string]*TransformSet, 4)
-	pushedGraphicsStates = make([]*GraphicsState, 0, 8)
-	pushedTransforms = make([]*TransformSet, 0, 8)
+	pushedGraphicsStates = make([]GraphicsState, 0, 8)
+	pushedTransforms = make([]TransformSet, 0, 8)
 	pushedActiveTransformBits = make([]uint32, 0, 8)
 
-	transformCache = CreateTransformCache()
+	transformCache = *CreateTransformCache()
 }
 
 // API "Macros"
@@ -472,6 +470,8 @@ func MakeAccelerator(name string, prims []Primitive, paramSet *ParamSet) Primiti
 		accel = CreateGridAccelerator(prims, paramSet)
 	} else if strings.Compare(name, "kdtree") == 0 {
 		accel = CreateKdTreeAccelerator(prims, paramSet)
+	} else if strings.Compare(name, "none") == 0 {
+		accel = CreateNoneAccelerator(prims, paramSet)	
 	} else {
 		Warning("Accelerator \"%s\" unknown.", name)
 	}
@@ -557,8 +557,8 @@ func PbrtInit(opt *Options) {
 		Error("pbrtInit() has already been called.")
 	}
 	currentApiState = STATE_OPTIONS_BLOCK
-	renderOptions = CreateRenderOptions()
-	graphicsState = CreateGraphicsState()
+	renderOptions = *CreateRenderOptions()
+	graphicsState = *CreateGraphicsState()
 	//SampledSpectrum::Init()
 }
 
@@ -571,7 +571,6 @@ func PbrtCleanup() {
 		Error("pbrtCleanup() called while inside world block.")
 	}
 	currentApiState = STATE_UNINITIALIZED
-	renderOptions = nil
 }
 
 func PbrtIdentity() {
@@ -621,13 +620,13 @@ func PbrtTransform(transform Matrix4x4) {
 
 func PbrtCoordinateSystem(name string) {
 	VERIFY_INITIALIZED("CoordinateSystem")
-	namedCoordinateSystems[name] = curTransform
+	namedCoordinateSystems[name] = &curTransform
 }
 
 func PbrtCoordSysTransform(name string) {
 	VERIFY_INITIALIZED("CoordSysTransform")
 	if namedCoordinateSystems[name] != nil {
-		curTransform = namedCoordinateSystems[name]
+		curTransform = *namedCoordinateSystems[name]
 	} else {
 		Warning("Could't find named coordinate system \"%s\"", name)
 	}
@@ -697,7 +696,7 @@ func PbrtCamera(camtype string, cameraParams *ParamSet) {
 	VERIFY_OPTIONS("Camera")
 	renderOptions.CameraName = camtype
 	renderOptions.CameraParams = cameraParams
-	renderOptions.CameraToWorld = inverseTransformSet(curTransform)
+	renderOptions.CameraToWorld = inverseTransformSet(&curTransform)
 	namedCoordinateSystems["camera"] = renderOptions.CameraToWorld
 }
 
@@ -708,7 +707,7 @@ func PbrtWorldBegin() {
 		curTransform.t[i] = NewTransformExplicit(NewIdentityMatrix4x4(), NewIdentityMatrix4x4())
 	}
 	activeTransformBits = ALL_TRANSFORMS_BITS
-	namedCoordinateSystems["world"] = curTransform
+	namedCoordinateSystems["world"] = &curTransform
 }
 
 func PbrtAttributeBegin() {
@@ -727,8 +726,10 @@ func PbrtAttributeEnd() {
 
 	graphicsState = pushedGraphicsStates[len(pushedGraphicsStates)-1]
 	pushedGraphicsStates = pushedGraphicsStates[:len(pushedGraphicsStates)-1]
+	
 	curTransform = pushedTransforms[len(pushedTransforms)-1]
 	pushedTransforms = pushedTransforms[:len(pushedTransforms)-1]
+	
 	activeTransformBits = pushedActiveTransformBits[len(pushedActiveTransformBits)-1]
 	pushedActiveTransformBits = pushedActiveTransformBits[:len(pushedActiveTransformBits)-1]
 }
@@ -972,11 +973,11 @@ func PbrtWorldEnd() {
 	// Ensure there are no pushed graphics states
 	if len(pushedGraphicsStates) != 0 {
 		Warning("Missing end to pbrtAttributeBegin()")
-		pushedGraphicsStates = make([]*GraphicsState, 0, 8)
+		pushedGraphicsStates = make([]GraphicsState, 0, 8)
 	}
 	if len(pushedTransforms) != 0 {
 		Warning("Missing end to pbrtTransformBegin()")
-		pushedTransforms = make([]*TransformSet, 0, 8)
+		pushedTransforms = make([]TransformSet, 0, 8)
 		pushedActiveTransformBits = make([]uint32, 0, 8)
 	}
 
@@ -991,7 +992,7 @@ func PbrtWorldEnd() {
 	scene = nil
 
 	// Clean up after rendering
-	graphicsState = CreateGraphicsState()
+	graphicsState = *CreateGraphicsState()
 	transformCache.Clear()
 	currentApiState = STATE_OPTIONS_BLOCK
 	//ProbesPrint(stdout)
