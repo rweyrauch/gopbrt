@@ -134,7 +134,7 @@ func (b *BRDFToBTDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum 
 	return nil
 }
 func (b *BRDFToBTDF) Pdf(wi, wo *Vector) float64 {
-	Unimplemented()	
+	Unimplemented()
 	return 0.0
 }
 func (b *BRDFToBTDF) Type() BxDFType { return b.bxdftype }
@@ -359,7 +359,7 @@ type OrenNayar struct { // BxDF
 
 type MicrofacetDistribution interface {
 	D(wh *Vector) float64
-	Sample_f(wo, wi *Vector, u1, u2 float64) float64
+	Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, pdf float64)
 	Pdf(wo, wi *Vector) float64
 }
 
@@ -560,3 +560,93 @@ func (b *OrenNayar) Pdf(wi, wo *Vector) float64 {
 }
 
 func (b *OrenNayar) Type() BxDFType { return b.bxdftype }
+
+func NewMicrofacet(reflectance *Spectrum, f Fresnel, d MicrofacetDistribution) *Microfacet {
+	return &Microfacet{BxDFData{BSDF_REFLECTION | BSDF_GLOSSY}, *reflectance, d, f}
+}
+func (b *Microfacet) F(wo, wi *Vector) *Spectrum {
+	cosThetaO := AbsCosTheta(wo)
+	cosThetaI := AbsCosTheta(wi)
+	if cosThetaI == 0.0 || cosThetaO == 0.0 {
+		return NewSpectrum1(0.0)
+	}
+	wh := wi.Add(wo)
+	if wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0 {
+		return NewSpectrum1(0.0)
+	}
+	wh = NormalizeVector(wh)
+	cosThetaH := DotVector(wi, wh)
+	fr := b.fresnel.Evaluate(cosThetaH)
+	return b.R.Scale(float32(b.distribution.D(wh) * b.G(wo, wi, wh))).Mult(fr).Scale((float32(1.0 / (4.0 * cosThetaI * cosThetaO))))
+}
+
+func (b *Microfacet) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
+	wi, pdf = b.distribution.Sample_f(wo, u1, u2)
+	if !SameHemisphere(wo, wi) {
+		return wi, NewSpectrum1(0.0), pdf
+	}
+	return wi, b.F(wo, wi), pdf
+}
+
+func (b *Microfacet) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
+	return BxDFrho(b, wo, nSamples, samples)
+}
+
+func (b *Microfacet) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
+	return BxDFrho2(b, nSamples, samples1, samples2)
+}
+
+func (b *Microfacet) Pdf(wi, wo *Vector) float64 {
+	if !SameHemisphere(wo, wi) {
+		return 0.0
+	}
+	return b.distribution.Pdf(wo, wi)
+}
+
+func (b *Microfacet) Type() BxDFType { return b.bxdftype }
+
+func (b *Microfacet) G(wo, wi, wh *Vector) float64 {
+	NdotWh := AbsCosTheta(wh)
+	NdotWo := AbsCosTheta(wo)
+	NdotWi := AbsCosTheta(wi)
+	WOdotWh := AbsDotVector(wo, wh)
+	return math.Min(1.0, math.Min((2.0*NdotWh*NdotWo/WOdotWh), (2.0*NdotWh*NdotWi/WOdotWh)))
+}
+
+func (b *Blinn) D(wh *Vector) float64 {
+	costhetah := AbsCosTheta(wh)
+	return (b.exponent + 2) / (2.0 * math.Pi) * math.Pow(costhetah, b.exponent)
+}
+
+func (b *Blinn) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, pdf float64) {
+	// Compute sampled half-angle vector $\wh$ for Blinn distribution
+	costheta := math.Pow(u1, 1.0/(b.exponent+1))
+	sintheta := math.Sqrt(math.Max(0.0, 1.0-costheta*costheta))
+	phi := u2 * 2.0 * math.Pi
+	wh := SphericalDirection(sintheta, costheta, phi)
+	if !SameHemisphere(wo, wh) {
+		wh = wh.Negate()
+	}
+
+	// Compute incident direction by reflecting about $\wh$
+	wi = wo.Negate().Add(wh.Scale(2.0 * DotVector(wo, wh)))
+
+	// Compute PDF for $\wi$ from Blinn distribution
+	blinn_pdf := ((b.exponent + 1.0) * math.Pow(costheta, b.exponent)) / (2.0 * math.Pi * 4.0 * DotVector(wo, wh))
+	if DotVector(wo, wh) <= 0.0 {
+		blinn_pdf = 0.0
+	}
+	pdf = blinn_pdf
+	return wi, pdf
+}
+
+func (b *Blinn) Pdf(wo, wi *Vector) float64 {
+	wh := NormalizeVector(wo.Add(wi))
+	costheta := AbsCosTheta(wh)
+	// Compute PDF for $\wi$ from Blinn distribution
+	blinn_pdf := ((b.exponent + 1.0) * math.Pow(costheta, b.exponent)) / (2.0 * math.Pi * 4.0 * DotVector(wo, wh))
+	if DotVector(wo, wh) <= 0.0 {
+		blinn_pdf = 0.0
+	}
+	return blinn_pdf
+}

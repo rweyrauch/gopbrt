@@ -160,13 +160,13 @@ func (m *MatteMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *
 
 	// Evaluate textures for _MatteMaterial_ material and allocate BRDF
 	kd := m.Kd.Evaluate(dgs)
-	r := kd.Clamp(0.0, 1.0)
+	kd = *kd.Clamp(0.0, INFINITYF)
 	sig := Clamp(float64(m.sigma.Evaluate(dgs)), 0.0, 90.0)
-	if !r.IsBlack() {
+	if !kd.IsBlack() {
 		if sig == 0 {
-			bsdf.Add(NewLambertian(*r))
+			bsdf.Add(NewLambertian(kd))
 		} else {
-			bsdf.Add(NewOrenNayar(*r, sig))
+			bsdf.Add(NewOrenNayar(kd, sig))
 		}
 	}
 	return bsdf
@@ -221,11 +221,38 @@ func (m *MixMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryAren
 }
 
 func CreatePlasticMaterial(xform *Transform, mp *TextureParams) *PlasticMaterial {
-	Unimplemented()
-	return nil
+	Kd := mp.GetSpectrumTexture("Kd", *NewSpectrum1(0.25))
+	Ks := mp.GetSpectrumTexture("Ks", *NewSpectrum1(0.25))
+	roughness := mp.GetFloatTexture("roughness", 0.1)
+	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
+	return &PlasticMaterial{Kd, Ks, roughness, bumpMap}
 }
-func (m *PlasticMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
-	return nil
+
+func (m *PlasticMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
+	// Allocate _BSDF_, possibly doing bump mapping with _bumpMap_
+	var dgs *DifferentialGeometry
+	if m.bumpMap != nil {
+		dgs = Bump(m.bumpMap, dgGeom, dgShading)
+	} else {
+		dgs = dgShading
+	}
+
+	bsdf := NewBSDF(dgs, dgGeom.nn, 1)
+
+	kd := m.Kd.Evaluate(dgs)
+	kd = *kd.Clamp(0.0, INFINITYF)
+	if !kd.IsBlack() {
+		bsdf.Add(NewLambertian(kd))
+	}
+	ks := m.Ks.Evaluate(dgs)
+	ks = *ks.Clamp(0.0, INFINITYF)
+	if !ks.IsBlack() {
+		fresnel := &FresnelDielectric{1.5, 1.0}
+		rough := m.roughness.Evaluate(dgs)
+		spec := NewMicrofacet(&ks, fresnel, &Blinn{1.0 / float64(rough)})
+		bsdf.Add(spec)
+	}
+	return bsdf
 }
 func (m *PlasticMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil

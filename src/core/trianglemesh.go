@@ -54,25 +54,24 @@ func CreateTriangleMeshShape(o2w, w2o *Transform, reverseOrientation bool, param
 		N = nil
 	}
 	if discardDegnerateUVs && uvs != nil && N != nil {
-		/*
-		   // if there are normals, check for bad uv's that
-		   // give degenerate mappings; discard them if so
-		   const int *vp = vi;
-		   for i := 0; i < nvi; i += 3, vp += 3 {
-		       area := 0.5 * CrossVector(P[vp[0]].Sub(&P[vp[1]]), P[vp[2]].Sub(&P[vp[1]]).Length()
-		       if area < 1.0e-7 { continue } // ignore degenerate tris.
-		       if ((uvs[2*vp[0]] == uvs[2*vp[1]] &&
-		           uvs[2*vp[0]+1] == uvs[2*vp[1]+1]) ||
-		           (uvs[2*vp[1]] == uvs[2*vp[2]] &&
-		           uvs[2*vp[1]+1] == uvs[2*vp[2]+1]) ||
-		           (uvs[2*vp[2]] == uvs[2*vp[0]] &&
-		           uvs[2*vp[2]+1] == uvs[2*vp[0]+1])) {
-		           Warning("Degenerate uv coordinates in triangle mesh.  Discarding all uvs.")
-		           uvs = nil
-		           break
-		       }
-		   }
-		*/
+		// if there are normals, check for bad uv's that
+		// give degenerate mappings; discard them if so
+		for i := 0; i < len(vi); i = i + 3 {
+			area := 0.5 * CrossVector(P[vi[i+0]].Sub(&P[vi[i+1]]), P[vi[i+2]].Sub(&P[vi[i+1]])).Length()
+			if area < 1.0e-7 {
+				continue
+			} // ignore degenerate tris.
+			if (uvs[2*vi[i+0]] == uvs[2*vi[i+1]] &&
+				uvs[2*vi[i+0]+1] == uvs[2*vi[i+1]+1]) ||
+				(uvs[2*vi[i+1]] == uvs[2*vi[i+2]] &&
+					uvs[2*vi[i+1]+1] == uvs[2*vi[i+2]+1]) ||
+				(uvs[2*vi[i+2]] == uvs[2*vi[i+0]] &&
+					uvs[2*vi[i+2]+1] == uvs[2*vi[i+0]+1]) {
+				Warning("Degenerate uv coordinates in triangle mesh.  Discarding all uvs.")
+				uvs = nil
+				break
+			}
+		}
 	}
 
 	for i := 0; i < len(vi); i++ {
@@ -174,7 +173,7 @@ func (t *TriangleMesh) IntersectP(ray *Ray) bool {
 	return false
 }
 func (t *TriangleMesh) GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry {
-	return nil
+	return dg
 }
 func (t *TriangleMesh) Area() float64 {
 	return 0.0
@@ -543,5 +542,19 @@ func (t *Triangle) ShapeId() uint32 {
 }
 
 func (t *Triangle) GetUVs(uv [3][2]float64) {
-
+	if t.mesh.uvs != nil {
+		uv[0][0] = t.mesh.uvs[2*t.v[0]]
+		uv[0][1] = t.mesh.uvs[2*t.v[0]+1]
+		uv[1][0] = t.mesh.uvs[2*t.v[1]]
+		uv[1][1] = t.mesh.uvs[2*t.v[1]+1]
+		uv[2][0] = t.mesh.uvs[2*t.v[2]]
+		uv[2][1] = t.mesh.uvs[2*t.v[2]+1]
+	} else {
+		uv[0][0] = 0.0
+		uv[0][1] = 0.0
+		uv[1][0] = 1.0
+		uv[1][1] = 0.0
+		uv[2][0] = 1.0
+		uv[2][1] = 1.0
+	}
 }

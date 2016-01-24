@@ -66,7 +66,7 @@ func (r *SamplerRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample,
 
 	var hit bool
 	// TODO: Must make RayBase an interface and define two structs (Ray, RayDifferential)
-	if hit, isect = scene.Intersect(CreateRayFromRayDifferential(ray)); hit {
+	if hit, isect = scene.Intersect(CreateRayFromRayDifferential(ray)); hit && isect != nil {
 		li = r.surfaceIntegrator.Li(scene, r, ray, isect, sample, rng, arena)
 	} else {
 		// Handle ray that doesn't intersect any geometry
