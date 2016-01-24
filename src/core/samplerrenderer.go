@@ -58,15 +58,15 @@ func (r *SamplerRenderer) Render(scene *Scene) {
 	r.camera.Film().WriteImage(1.0)
 }
 
-func (r *SamplerRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li *Spectrum, isect *Intersection, T *Spectrum) {
+func (r *SamplerRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (*Spectrum, *Intersection, *Spectrum) {
 	Assert(ray.time == sample.time)
 	Assert(!ray.HasNaNs())
 	// Allocate local variables for _isect_ and _T_ if needed
-	li = NewSpectrum1(0.0)
-
+	li := NewSpectrum1(0.0)
+	var isect *Intersection
+	
 	var hit bool
-	// TODO: Must make RayBase an interface and define two structs (Ray, RayDifferential)
-	if hit, isect = scene.Intersect(CreateRayFromRayDifferential(ray)); hit && isect != nil {
+	if hit, isect = scene.Intersect(ray); hit {
 		li = r.surfaceIntegrator.Li(scene, r, ray, isect, sample, rng, arena)
 	} else {
 		// Handle ray that doesn't intersect any geometry
@@ -75,8 +75,7 @@ func (r *SamplerRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample,
 		}
 	}
 
-	var Lvi *Spectrum
-	Lvi, T = r.volumeIntegrator.Li(scene, r, ray, sample, rng, arena)
+	Lvi, T := r.volumeIntegrator.Li(scene, r, ray, sample, rng, arena)
 	li = li.Mult(T).Add(Lvi)
 	return li, isect, T
 }
@@ -145,7 +144,7 @@ func (t *samplerRendererTask) run() {
 			if t.visualizeObjectIds {
 				if rayWeight > 0.0 {
 					var hit bool
-					hit, isects[i] = t.scene.Intersect(CreateRayFromRayDifferential(rays[i]))
+					hit, isects[i] = t.scene.Intersect(rays[i])
 					if hit {
 						// random shading based on shape id...
 						binary.Write(hash, binary.BigEndian, isects[i].shapeId)

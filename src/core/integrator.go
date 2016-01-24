@@ -370,7 +370,7 @@ func EstimateDirect(scene *Scene, renderer Renderer,
 	           // Add light contribution from BSDF sampling
 	           Li := NewSpectrum1(0.0)
 	           ray := CreateRayDifferential(p, wi, rayEpsilon, INFINITY, time, 0)
-	           if hit, lightIsect := scene.Intersect(CreateRayFromRayDifferential(ray)); hit {
+	           if hit, lightIsect := scene.Intersect(ray); hit {
 	               if lightIsect.primitive.GetAreaLight() == light {
 	                   Li = lightIsect.Le(wi.Negate())
 	               }

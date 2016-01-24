@@ -12,7 +12,7 @@ func GeneratePrimitiveId() uint32 {
 type Primitive interface {
 	WorldBound() *BBox
 	CanIntersect() bool
-	Intersect(r *Ray) (bool, *Intersection)
+	Intersect(r *RayDifferential) (bool, *Intersection)
 	IntersectP(r *Ray) bool
 	Refine(refined []Primitive) []Primitive
 	FullyRefine(refined []Primitive) []Primitive
@@ -78,11 +78,11 @@ func (p *GeometricPrimitive) CanIntersect() bool {
     return false
 }
 
-func (p *GeometricPrimitive) Intersect(r *Ray) (hit bool, isect *Intersection) {
+func (p *GeometricPrimitive) Intersect(r *RayDifferential) (hit bool, isect *Intersection) {
 	var thit, rayEpsilon float64
 	var dg *DifferentialGeometry
 	
-	if hit, thit, rayEpsilon, dg = p.shape.Intersect(r); !hit {
+	if hit, thit, rayEpsilon, dg = p.shape.Intersect(CreateRayFromRayDifferential(r)); !hit {
 		return false, nil
 	}
 
@@ -160,9 +160,9 @@ func (p *TransformedPrimitive) CanIntersect() bool {
 	return true
 }
 
-func (p *TransformedPrimitive) Intersect(r *Ray) (hit bool, isect *Intersection) {
+func (p *TransformedPrimitive) Intersect(r *RayDifferential) (hit bool, isect *Intersection) {
 	w2p := p.worldToPrimitive.Interpolate(r.time)
-	ray := RayTransform(w2p, r)
+	ray := RayDifferentialTransform(w2p, r)
 	if hit, isect = p.primitive.Intersect(ray); !hit {
 		return false, nil
 	}
@@ -226,7 +226,7 @@ func (p *Aggregate) CanIntersect() bool {
 	return true
 }
 
-func (p *Aggregate) Intersect(r *Ray) (bool, *Intersection) {
+func (p *Aggregate) Intersect(r *RayDifferential) (bool, *Intersection) {
 	return false, nil
 }
 

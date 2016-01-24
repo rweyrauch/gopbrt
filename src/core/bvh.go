@@ -417,12 +417,14 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 
 func (p *BVHAccel) CanIntersect() bool { return true }
 
-func (bvh *BVHAccel) Intersect(ray *Ray) (hit bool, isect *Intersection) {
+func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	if bvh.nodes == nil {
 		return false, nil
 	}
 	//PBRT_BVH_INTERSECTION_STARTED(const_cast<BVHAccel *>(this), const_cast<Ray *>(&ray))
-	hit = false
+	hitSomething := false
+	var isect *Intersection
+	
 	invDir := CreateVector(1.0/ray.dir.x, 1.0/ray.dir.y, 1.0/ray.dir.z)
 	dirIsNeg := [3]int{0, 0, 0}
 	if invDir.x < 0 {
@@ -440,15 +442,16 @@ func (bvh *BVHAccel) Intersect(ray *Ray) (hit bool, isect *Intersection) {
 	for {
 		node := &bvh.nodes[nodeNum]
 		// Check ray against BVH node
-		if IntersectP(&node.bounds, ray, invDir, dirIsNeg) {
+		if IntersectP(&node.bounds, CreateRayFromRayDifferential(ray), invDir, dirIsNeg) {
 			if node.nPrimitives > 0 {
 				// Intersect ray with primitives in leaf BVH node
 				//PBRT_BVH_INTERSECTION_TRAVERSED_LEAF_NODE(const_cast<LinearBVHNode *>(node))
 				for i := 0; i < node.nPrimitives; i++ {
 					//PBRT_BVH_INTERSECTION_PRIMITIVE_TEST(const_cast<Primitive *>(primitives[node->primitivesOffset+i].GetPtr()))
-					if hit, isect = bvh.primitives[node.offset+i].Intersect(ray); hit {
+					if hit, nisect := bvh.primitives[node.offset+i].Intersect(ray); hit {
 						//PBRT_BVH_INTERSECTION_PRIMITIVE_HIT(const_cast<Primitive *>(primitives[node->primitivesOffset+i].GetPtr()))
-						hit = true
+						hitSomething = true
+						isect = nisect
 					} else {
 						//PBRT_BVH_INTERSECTION_PRIMITIVE_MISSED(const_cast<Primitive *>(primitives[node->primitivesOffset+i].GetPtr()))
 					}
@@ -480,7 +483,7 @@ func (bvh *BVHAccel) Intersect(ray *Ray) (hit bool, isect *Intersection) {
 		}
 	}
 	//PBRT_BVH_INTERSECTION_FINISHED()
-	return hit, isect
+	return hitSomething, isect
 }
 
 func (bvh *BVHAccel) IntersectP(ray *Ray) bool {

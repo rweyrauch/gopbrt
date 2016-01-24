@@ -18,7 +18,7 @@ type (
 
 func (p *KdTreeAccel) WorldBound() *BBox                           { return nil }
 func (p *KdTreeAccel) CanIntersect() bool                          { return false }
-func (p *KdTreeAccel) Intersect(r *Ray) (bool, *Intersection)      { return false, nil }
+func (p *KdTreeAccel) Intersect(r *RayDifferential) (bool, *Intersection)      { return false, nil }
 func (p *KdTreeAccel) IntersectP(r *Ray) bool                      { return false }
 func (p *KdTreeAccel) Refine(refined []Primitive) []Primitive     { return refined }
 func (p *KdTreeAccel) FullyRefine(refined []Primitive) []Primitive { return refined }

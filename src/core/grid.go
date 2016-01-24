@@ -115,14 +115,14 @@ func (g *GridAccel) WorldBound() *BBox  { return &g.bounds }
 
 func (g *GridAccel) CanIntersect() bool { return true }
 
-func (g *GridAccel) Intersect(ray *Ray) (bool, *Intersection) {
+func (g *GridAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	//PBRT_GRID_INTERSECTION_TEST(const_cast<GridAccel *>(this), const_cast<Ray *>(&ray));
 	// Check ray against overall grid bounds
 	var rayT float64
 	var ok bool
 	if g.bounds.Inside(ray.PointAt(ray.mint)) {
 		rayT = ray.mint
-	} else if ok, rayT, _ = g.bounds.IntersectP(ray); !ok {
+	} else if ok, rayT, _ = g.bounds.IntersectP(CreateRayFromRayDifferential(ray)); !ok {
 		//PBRT_GRID_RAY_MISSED_BOUNDS();
 		return false, nil
 	}
@@ -159,9 +159,10 @@ func (g *GridAccel) Intersect(ray *Ray) (bool, *Intersection) {
 		voxel := g.voxels[g.offset(Pos[0], Pos[1], Pos[2])]
 		//PBRT_GRID_RAY_TRAVERSED_VOXEL(Pos, voxel ? voxel->size() : 0);
 		if voxel != nil {
-			var hit bool
-			if hit, isect = voxel.intersect(ray); hit {
+			//var hit bool
+			if hit, visect := voxel.intersect(ray); hit {
 				hitSomething = true
+				isect = visect
 			}
 		}
 		// Advance to next voxel
@@ -305,7 +306,7 @@ func (v *Voxel) addPrimitive(prim Primitive) {
 	v.primitives = append(v.primitives, prim)
 }
 
-func (v *Voxel) intersect(ray *Ray) (hit bool, isect *Intersection) {
+func (v *Voxel) intersect(ray *RayDifferential) (bool, *Intersection) {
 	// Refine primitives in voxel if needed
 	if !v.allCanIntersect {
 		for i, prim := range v.primitives {
@@ -325,15 +326,17 @@ func (v *Voxel) intersect(ray *Ray) (hit bool, isect *Intersection) {
 	}
 
 	// Loop over primitives in voxel and find intersections
-	hit = false
+	hitSomething := false
+	var isect *Intersection
 	for _, prim := range v.primitives {
 		//PBRT_GRID_RAY_PRIMITIVE_INTERSECTION_TEST(const_cast<Primitive *>(prim.GetPtr()));
-		if hit, isect = prim.Intersect(ray); hit {
+		if hit, visect := prim.Intersect(ray); hit {
 			//PBRT_GRID_RAY_PRIMITIVE_HIT(const_cast<Primitive *>(prim.GetPtr()));
-			return hit, isect
+			hitSomething = true
+			isect = visect
 		}
 	}
-	return false, nil
+	return hitSomething, isect
 }
 
 func (v *Voxel) intersectP(ray *Ray) bool {
