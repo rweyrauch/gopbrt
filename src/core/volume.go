@@ -196,7 +196,7 @@ func (integrator *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *R
 				Tr = NewSpectrum1(0.0)
 				break
 			}
-			Tr = Tr.Scale(float32(continueProb))
+			Tr = Tr.Scale(continueProb)
 		}
 
 		// Compute emission-only source term at _p_
@@ -204,7 +204,7 @@ func (integrator *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *R
 		t0 += step
 	}
 	transmittance = Tr
-	li = Lv.Scale(float32(step))
+	li = Lv.Scale(step)
 	return li, transmittance
 }
 

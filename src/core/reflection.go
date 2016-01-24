@@ -79,10 +79,10 @@ func BxDFrho(bxdf BxDF, w *Vector, nSamples int, samples []float64) *Spectrum {
 		// Estimate one term of $\rho_\roman{hd}$
 		wi, f, pdf := bxdf.Sample_f(w, samples[2*i], samples[2*i+1])
 		if pdf > 0.0 {
-			r = r.Add(f.Scale(float32(AbsCosTheta(wi) / pdf)))
+			r = r.Add(f.Scale(AbsCosTheta(wi) / pdf))
 		}
 	}
-	return r.Scale(1.0 / float32(nSamples))
+	return r.Scale(1.0 / float64(nSamples))
 }
 
 func BxDFrho2(bxdf BxDF, nSamples int, samples1, samples2 []float64) *Spectrum {
@@ -92,10 +92,10 @@ func BxDFrho2(bxdf BxDF, nSamples int, samples1, samples2 []float64) *Spectrum {
 		pdf_o := 1.0 / 2.0 * math.Pi
 		wi, f, pdf_i := bxdf.Sample_f(wo, samples2[2*i], samples2[2*i+1])
 		if pdf_i > 0.0 {
-			r = r.Add(f.Scale(float32(AbsCosTheta(wi) * AbsCosTheta(wo) / (pdf_o * pdf_i))))
+			r = r.Add(f.Scale(AbsCosTheta(wi) * AbsCosTheta(wo) / (pdf_o * pdf_i)))
 		}
 	}
-	return r.Scale(1.0 / float32(nSamples) * float32(math.Pi))
+	return r.Scale(1.0 / float64(nSamples) * math.Pi)
 }
 
 func BxDFPdf(wi, wo *Vector) float64 {
@@ -203,7 +203,7 @@ func (fresnel *FresnelDielectric) Evaluate(cosi float64) *Spectrum {
 		return NewSpectrum1(1.0)
 	} else {
 		cost := math.Sqrt(math.Max(0.0, 1.0-sint*sint))
-		return FrDiel(math.Abs(cosi), cost, NewSpectrum1(float32(ei)), NewSpectrum1(float32(et)))
+		return FrDiel(math.Abs(cosi), cost, NewSpectrum1(ei), NewSpectrum1(et))
 	}
 }
 
@@ -405,18 +405,16 @@ type IrregIsotropicBRDFSample struct {
 }
 
 func FrDiel(cosi, cost float64, etai, etat *Spectrum) *Spectrum {
-	cosi_ := float32(cosi)
-	cost_ := float32(cost)
-	Rparl := (etat.Scale(cosi_).Sub(etai.Scale(cost_))).Divide((etat.Scale(cosi_).Add(etai.Scale(cost_))))
-	Rperp := (etai.Scale(cosi_).Sub(etat.Scale(cost_))).Divide((etai.Scale(cosi_).Add(etat.Scale(cost_))))
+	Rparl := (etat.Scale(cosi).Sub(etai.Scale(cost))).Divide((etat.Scale(cosi).Add(etai.Scale(cost))))
+	Rperp := (etai.Scale(cosi).Sub(etat.Scale(cost))).Divide((etai.Scale(cosi).Add(etat.Scale(cost))))
 	return ((Rparl.Mult(Rparl)).Add(Rperp.Mult(Rperp))).Scale(1.0 / 2.0)
 }
 
 func FrCond(cosi float64, eta, k *Spectrum) *Spectrum {
-	tmp := eta.Mult(eta).Add(k.Mult(k)).Scale(float32(cosi * cosi)) // (eta*eta + k*k) * cosi*cosi
-	etaScaled := eta.Scale(2.0 * float32(cosi))
+	tmp := eta.Mult(eta).Add(k.Mult(k)).Scale(cosi * cosi) // (eta*eta + k*k) * cosi*cosi
+	etaScaled := eta.Scale(2.0 * cosi)
 	oneSpec := NewSpectrum1(1.0)
-	cosSpec := NewSpectrum1(float32(cosi * cosi))
+	cosSpec := NewSpectrum1(cosi * cosi)
 
 	//Rparl2 = (tmp - (2.0 * eta * cosi) + 1) / (tmp + (2.0 * eta * cosi) + 1)
 	Rparl2 := tmp.Sub(etaScaled).Add(oneSpec).Divide(tmp.Add(etaScaled).Add(oneSpec))
@@ -488,7 +486,7 @@ func NewLambertian(reflectance Spectrum) *Lambertian {
 	return b
 }
 func (b *Lambertian) F(wo, wi *Vector) *Spectrum {
-	return b.R.Scale(float32(1.0 / math.Pi))
+	return b.R.Scale(1.0 / math.Pi)
 }
 
 func (b *Lambertian) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
@@ -540,7 +538,7 @@ func (b *OrenNayar) F(wo, wi *Vector) *Spectrum {
 		sinalpha = sinthetai
 		tanbeta = sinthetao / AbsCosTheta(wo)
 	}
-	return b.R.Scale(float32((b.A + b.B*maxcos*sinalpha*tanbeta) / math.Pi))
+	return b.R.Scale((b.A + b.B*maxcos*sinalpha*tanbeta) / math.Pi)
 }
 
 func (b *OrenNayar) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
@@ -577,7 +575,7 @@ func (b *Microfacet) F(wo, wi *Vector) *Spectrum {
 	wh = NormalizeVector(wh)
 	cosThetaH := DotVector(wi, wh)
 	fr := b.fresnel.Evaluate(cosThetaH)
-	return b.R.Scale(float32(b.distribution.D(wh) * b.G(wo, wi, wh))).Mult(fr).Scale((float32(1.0 / (4.0 * cosThetaI * cosThetaO))))
+	return b.R.Scale(b.distribution.D(wh) * b.G(wo, wi, wh)).Mult(fr).Scale((1.0 / (4.0 * cosThetaI * cosThetaO)))
 }
 
 func (b *Microfacet) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {

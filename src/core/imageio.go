@@ -81,14 +81,14 @@ func readImageExr(filename string) (image []Spectrum, width, height int) {
 			for c := 0; c < 3; c++ { // ignore 4th channel
 				chanStart := c * width * height			
 				for i, _ := range image {
-					image[i].c[c] = planarRGBA[i + chanStart]
+					image[i].c[c] = float64(planarRGBA[i + chanStart])
 				}
 			}
 		} else { // channels == 1 || channels == 2 (ignore second channel)
 			for i, _ := range image {
-				image[i].c[0] = planarRGBA[i]
-				image[i].c[1] = planarRGBA[i]
-				image[i].c[2] = planarRGBA[i]		
+				image[i].c[0] = float64(planarRGBA[i])
+				image[i].c[1] = float64(planarRGBA[i])
+				image[i].c[2] = float64(planarRGBA[i])		
 			}
 		}
 	}

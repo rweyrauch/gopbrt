@@ -19,20 +19,8 @@ type Options struct {
 func Lerp(t, v1, v2 float64) float64 {
 	return (1.0-t)*v1 + t*v2
 }
-func Lerpf(t, v1, v2 float32) float32 {
-	return (1.0-t)*v1 + t*v2
-}
 
 func Clamp(f, fmin, fmax float64) float64 {
-	if f < fmin {
-		return fmin
-	} else if f > fmax {
-		return fmax
-	}
-	return f
-}
-
-func Clampf(f, fmin, fmax float32) float32 {
 	if f < fmin {
 		return fmin
 	} else if f > fmax {
@@ -56,18 +44,6 @@ func Maxi(v1, v2 int) int {
     return v2
 }
 
-func Sqrtf(v float32) float32 {
-	return float32(math.Sqrt(float64(v)))
-}
-func Powf(v, e float32) float32 {
-	return float32(math.Pow(float64(v), float64(e)))
-}
-func Expf(v float32) float32 {
-	return float32(math.Exp(float64(v)))
-}
-func IsNaNf(v float32) bool {
-	return v != v
-}
 
 func Mini(v1, v2 int) int {
     if v1 < v2 { return v1 }

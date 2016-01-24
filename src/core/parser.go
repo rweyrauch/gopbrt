@@ -350,13 +350,13 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) == 3 {
 					if v, ok := values[0].(float64); ok {
-						value.c[0] = float32(v)
+						value.c[0] = v
 					}
 					if v, ok := values[1].(float64); ok {
-						value.c[1] = float32(v)
+						value.c[1] = v
 					}
 					if v, ok := values[2].(float64); ok {
-						value.c[2] = float32(v)
+						value.c[2] = v
 					}
 				} else {
 					Error("RGB values given with parameter \"%s\" expected 3 value, got %d.", name, len(values))
@@ -367,14 +367,14 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 				if len(values)%2 != 0 {
 					Warning("Excess value given with blackbody parameter \"%s\".  Ignoring extra one.", name)
 				}
-				lambdas := make([]float32, len(values)/2, len(values)/2)
-				vals := make([]float32, len(values)/2, len(values)/2)
+				lambdas := make([]float64, len(values)/2, len(values)/2)
+				vals := make([]float64, len(values)/2, len(values)/2)
 				for vi := 0; vi < len(values); vi = vi + 2 {
 					if v, ok := values[vi].(float64); ok {
-						lambdas[vi/2] = float32(v)
+						lambdas[vi/2] = v
 					}
 					if v, ok := values[vi+1].(float64); ok {
-						vals[vi/2] = float32(v)
+						vals[vi/2] = v
 					}
 				}
 				value = *SpectrumFromSampled(lambdas, vals)
@@ -382,15 +382,15 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 		} else if strings.Compare(p, xyzparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) == 3 {
-					xyz := [3]float32{0.0, 0.0, 0.0}
+					xyz := [3]float64{0.0, 0.0, 0.0}
 					if v, ok := values[0].(float64); ok {
-						xyz[0] = float32(v)
+						xyz[0] = v
 					}
 					if v, ok := values[1].(float64); ok {
-						xyz[1] = float32(v)
+						xyz[1] = v
 					}
 					if v, ok := values[2].(float64); ok {
-						xyz[2] = float32(v)
+						xyz[2] = v
 					}
 					value = *SpectrumFromXYZ(xyz)
 				} else {
@@ -453,7 +453,7 @@ func (tp *TextureParams) GetFloatTexture(name string, defval float64) TextureFlo
 		}
 	}
 	val := tp.geomParams.FindFloatParam(name, tp.materialParams.FindFloatParam(name, defval))
-	return NewConstantTextureFloat(float32(val))
+	return NewConstantTextureFloat(val)
 }
 
 func (tp *TextureParams) GetSpectrumTexture(name string, defval Spectrum) TextureSpectrum {

@@ -151,7 +151,7 @@ func (t *samplerRendererTask) run() {
 						binary.Write(hash, binary.BigEndian, isects[i].shapeId)
 						binary.Write(hash, binary.BigEndian, isects[i].primitiveId)
 						h := hash.Sum32()
-						rgb := [3]float32{float32(h & 0xff), float32((h >> 8) & 0xff), float32((h >> 16) & 0xff)}
+						rgb := [3]float64{float64(h & 0xff), float64((h >> 8) & 0xff), float64((h >> 16) & 0xff)}
 						Ls[i] = NewSpectrumRGB(rgb[0], rgb[1], rgb[2])
 						Ls[i].Scale(1.0 / 255.0)
 					} else {
@@ -163,7 +163,7 @@ func (t *samplerRendererTask) run() {
 			} else {
 				if rayWeight > 0.0 {
 					Ls[i], isects[i], Ts[i] = t.renderer.Li(t.scene, rays[i], &samples[i], rng, nil)
-					Ls[i] = Ls[i].Scale(float32(rayWeight))
+					Ls[i] = Ls[i].Scale(rayWeight)
 				} else {
 					Ls[i] = NewSpectrum1(0.0)
 					isects[i] = nil

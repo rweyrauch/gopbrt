@@ -180,7 +180,7 @@ func (l *DistantLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, tim
 
 func (l *DistantLight) Power(scene *Scene) *Spectrum {
 	_, worldRadius := scene.bound.BoundingSphere()
-	return l.L.Scale(float32(math.Pi * worldRadius * worldRadius))
+	return l.L.Scale(math.Pi * worldRadius * worldRadius)
 }
 
 func (l *DistantLight) IsDeltaLight() bool                { return true }
@@ -304,7 +304,7 @@ func (l *InfiniteAreaLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample
 
 func (l *InfiniteAreaLight) Power(scene *Scene) *Spectrum {
 	_, worldRadius := scene.bound.BoundingSphere()
-	return l.radianceMap.Lookup(0.5, 0.5, 0.5).Scale(float32(math.Pi * worldRadius * worldRadius))
+	return l.radianceMap.Lookup(0.5, 0.5, 0.5).Scale(math.Pi * worldRadius * worldRadius)
 }
 
 func (l *InfiniteAreaLight) IsDeltaLight() bool { return false }
@@ -391,13 +391,13 @@ func NewPointLight(light2world *Transform, intensity *Spectrum) *PointLight {
 
 func (l *PointLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (L *Spectrum, wi *Vector, pdf float64) {
 	vis.SetSegment(p, pEpsilon, &l.lightPos, 0.0, time)
-	L = l.Intensity.Scale(float32(DistanceSquaredPoint(&l.lightPos, p)))
+	L = l.Intensity.Scale(DistanceSquaredPoint(&l.lightPos, p))
 	wi = NormalizeVector(l.lightPos.Sub(p))
 	pdf = 1.0
 	return L, wi, pdf
 }
 
-func (l *PointLight) Power(scene *Scene) *Spectrum      { return l.Intensity.Scale(float32(4.0 * math.Pi)) }
+func (l *PointLight) Power(scene *Scene) *Spectrum      { return l.Intensity.Scale(4.0 * math.Pi) }
 func (l *PointLight) IsDeltaLight() bool                { return true }
 func (l *PointLight) Le(ray *RayDifferential) *Spectrum { return nil }
 func (l *PointLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }

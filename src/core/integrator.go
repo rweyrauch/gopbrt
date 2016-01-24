@@ -233,7 +233,7 @@ func (i *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferen
 		}
 		f := bsdf.f(wo, wi, BSDF_ALL)
 		if !f.IsBlack() && visibility.Unoccluded(scene) {
-			L = L.Add(f.Mult(Li.Scale(float32(AbsDotVectorNormal(wi, n))).Mult(visibility.Transmittance(scene, renderer, sample, rng, arena).Scale(float32(1.0 / pdf)))))
+			L = L.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n)).Mult(visibility.Transmittance(scene, renderer, sample, rng, arena).Scale(1.0 / pdf))))
 		}
 	}
 	if ray.depth+1 < i.maxDepth {
@@ -289,7 +289,7 @@ func UniformSampleAllLights(scene *Scene, renderer Renderer,
 				rayEpsilon, time, bsdf, rng, lightSample, bsdfSample,
 				BxDFType(BSDF_ALL^BSDF_SPECULAR)))
 		}
-		L = L.Add(Ld.InvScale(1.0 / float32(nSamples)))
+		L = L.Add(Ld.InvScale(1.0 / float64(nSamples)))
 	}
 	return L
 }
@@ -327,7 +327,7 @@ func UniformSampleOneLight(scene *Scene, renderer Renderer,
 	}
 	return EstimateDirect(scene, renderer, arena, light, p, n, wo,
 		rayEpsilon, time, bsdf, rng, lightSample,
-		bsdfSample, BxDFType(BSDF_ALL^BSDF_SPECULAR)).Scale(float32(nLights))
+		bsdfSample, BxDFType(BSDF_ALL^BSDF_SPECULAR)).Scale(float64(nLights))
 }
 
 func EstimateDirect(scene *Scene, renderer Renderer,
@@ -346,11 +346,11 @@ func EstimateDirect(scene *Scene, renderer Renderer,
 	           // Add light's contribution to reflected radiance
 	           Li = Li.Mult(visibility.Transmittance(scene, renderer, nil, rng, arena))
 	           if light.IsDeltaLight() {
-	               Ld = Ld.Add(f.Mult(Li.Scale(float32(AbsDotVectorNormal(wi, n) / lightPdf))))
+	               Ld = Ld.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) / lightPdf)))
 	           } else {
 	               bsdfPdf := bsdf.Pdf(wo, wi, flags)
 	               weight := PowerHeuristic(1, lightPdf, 1, bsdfPdf)
-	               Ld = Ld.Add(f.Mult(Li.Scale(float32(AbsDotVectorNormal(wi, n) * weight / lightPdf))))
+	               Ld = Ld.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) * weight / lightPdf)))
 	           }
 	       }
 	   }
@@ -379,7 +379,7 @@ func EstimateDirect(scene *Scene, renderer Renderer,
 	           }
 	           if !Li.IsBlack() {
 	               Li = Li.Mult(renderer.Transmittance(scene, ray, nil, rng, arena))
-	               Ld = Ld.Add(f.Mult(Li.Scale(float32(AbsDotVectorNormal(wi, n) * weight / bsdfPdf))))
+	               Ld = Ld.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) * weight / bsdfPdf)))
 	           }
 	       }
 	   }
@@ -414,7 +414,7 @@ func SpecularReflect(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 		}
 		//PBRT_STARTED_SPECULAR_REFLECTION_RAY(const_cast<RayDifferential *>(&rd))
 		Li, _, _ := renderer.Li(scene, rd, sample, rng, arena)
-		L = f.Mult(Li.Scale(float32(AbsDotVectorNormal(wi, n) / pdf)))
+		L = f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) / pdf))
 		//PBRT_FINISHED_SPECULAR_REFLECTION_RAY(const_cast<RayDifferential *>(&rd))
 	}
 
@@ -460,7 +460,7 @@ func SpecularTransmit(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 		}
 		//PBRT_STARTED_SPECULAR_REFRACTION_RAY(const_cast<RayDifferential *>(&rd));
 		Li, _, _ := renderer.Li(scene, rd, sample, rng, arena)
-		L = f.Mult(Li.Scale(float32(AbsDotVectorNormal(wi, n) / pdf)))
+		L = f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) / pdf))
 		//PBRT_FINISHED_SPECULAR_REFRACTION_RAY(const_cast<RayDifferential *>(&rd));
 	}
 

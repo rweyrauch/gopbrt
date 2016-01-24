@@ -9,9 +9,9 @@ const (
 )
 
 type imagePixel struct {
-	Lxyz      [3]float32
-	weightSum float32
-	splatXYZ  [3]float32
+	Lxyz      [3]float64
+	weightSum float64
+	splatXYZ  [3]float64
 }
 
 type ImageFilm struct {
@@ -100,7 +100,7 @@ func (f *ImageFilm) AddSample(sample *Sample, L *Spectrum) {
 		for x := x0; x <= x1; x++ {
 			// Evaluate filter value at $(x,y)$ pixel
 			offset := ify[y-y0]*filterTableSize + ifx[x-x0]
-			filterWt := float32(f.filterTable[offset])
+			filterWt := f.filterTable[offset]
 
 			// Update pixel values with filtered sample contribution
 			pixel := f.pixelAt(x-f.xPixelStart, y-f.yPixelStart)
@@ -126,9 +126,9 @@ func (f *ImageFilm) Splat(sample *Sample, L *Spectrum) {
 	}
 
 	pixel := f.pixelAt(x-f.xPixelStart, y-f.yPixelStart)
-	AtomicAddf(&pixel.splatXYZ[0], xyz[0])
-	AtomicAddf(&pixel.splatXYZ[1], xyz[1])
-	AtomicAddf(&pixel.splatXYZ[2], xyz[2])
+	AtomicAdd(&pixel.splatXYZ[0], xyz[0])
+	AtomicAdd(&pixel.splatXYZ[1], xyz[1])
+	AtomicAdd(&pixel.splatXYZ[2], xyz[2])
 }
 
 func (f *ImageFilm) GetSampleExtent() (xstart, xend, ystart, yend int) {
@@ -150,11 +150,11 @@ func (f *ImageFilm) GetPixelExtent() (xstart, xend, ystart, yend int) {
 	return xstart, xend, ystart, yend
 }
 
-func (f *ImageFilm) UpdateDisplay(x0, y0, x1, y1 int, splatScale float32) {
+func (f *ImageFilm) UpdateDisplay(x0, y0, x1, y1 int, splatScale float64) {
 
 }
 
-func (f *ImageFilm) WriteImage(splatScale float32) {
+func (f *ImageFilm) WriteImage(splatScale float64) {
 	// Convert image to RGB and compute final pixel values
 	nPix := f.xPixelCount * f.yPixelCount
 	rgb := make([]float32, 3*nPix, 3*nPix)
@@ -166,14 +166,14 @@ func (f *ImageFilm) WriteImage(splatScale float32) {
 			pixel := f.pixelAt(x, y)
 
 			tmprgb := XYZToRGB(pixel.Lxyz)
-			rgb[3*offset] = tmprgb[0]
-			rgb[3*offset+1] = tmprgb[1]
-			rgb[3*offset+2] = tmprgb[2]
+			rgb[3*offset] = float32(tmprgb[0])
+			rgb[3*offset+1] = float32(tmprgb[1])
+			rgb[3*offset+2] = float32(tmprgb[2])
 
 			// Normalize pixel with weight sum
 			weightSum := pixel.weightSum
 			if weightSum != 0.0 {
-				invWt := 1.0 / weightSum
+				invWt := float32(1.0 / weightSum)
 				rgb[3*offset] = float32(math.Max(0.0, float64(rgb[3*offset]*invWt)))
 				rgb[3*offset+1] = float32(math.Max(0.0, float64(rgb[3*offset+1]*invWt)))
 				rgb[3*offset+2] = float32(math.Max(0.0, float64(rgb[3*offset+2]*invWt)))
@@ -181,9 +181,9 @@ func (f *ImageFilm) WriteImage(splatScale float32) {
 
 			// Add splat value at pixel
 			splatRGB := XYZToRGB(pixel.splatXYZ)
-			rgb[3*offset] += splatScale * splatRGB[0]
-			rgb[3*offset+1] += splatScale * splatRGB[1]
-			rgb[3*offset+2] += splatScale * splatRGB[2]
+			rgb[3*offset] += float32(splatScale * splatRGB[0])
+			rgb[3*offset+1] += float32(splatScale * splatRGB[1])
+			rgb[3*offset+2] += float32(splatScale * splatRGB[2])
 
 			offset++
 		}

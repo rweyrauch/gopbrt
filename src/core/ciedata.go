@@ -5,7 +5,7 @@ const (
 )
 
 var (
-	CIE_X [nCIESamples]float32 = [nCIESamples]float32{
+	CIE_X [nCIESamples]float64 = [nCIESamples]float64{
 		// CIE X function values
 		0.0001299000, 0.0001458470, 0.0001638021, 0.0001840037,
 		0.0002066902, 0.0002321000, 0.0002607280, 0.0002930750,
@@ -127,7 +127,7 @@ var (
 		0.000001439440, 0.000001341977, 0.000001251141,
 	}
 
-	CIE_Y [nCIESamples]float32 = [nCIESamples]float32{
+	CIE_Y [nCIESamples]float64 = [nCIESamples]float64{
 		// CIE Y function values
 		0.000003917000, 0.000004393581, 0.000004929604, 0.000005532136,
 		0.000006208245, 0.000006965000, 0.000007813219, 0.000008767336,
@@ -249,7 +249,7 @@ var (
 		0.0000005198080, 0.0000004846123, 0.0000004518100,
 	}
 
-	CIE_Z [nCIESamples]float32 = [nCIESamples]float32{
+	CIE_Z [nCIESamples]float64 = [nCIESamples]float64{
 		// CIE Z function values
 		0.0006061000, 0.0006808792, 0.0007651456, 0.0008600124,
 		0.0009665928, 0.001086000, 0.001220586, 0.001372729,
@@ -371,7 +371,7 @@ var (
 		0.0, 0.0, 0.0,
 	}
 
-	CIE_lambda [nCIESamples]float32 = [nCIESamples]float32{
+	CIE_lambda [nCIESamples]float64 = [nCIESamples]float64{
 		360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373,
 		374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387,
 		388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401,
