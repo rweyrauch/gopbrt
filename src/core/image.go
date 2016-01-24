@@ -48,6 +48,7 @@ func NewImageFilm(xres, yres int, filter Filter, crop []float64, filename string
 		for x := 0; x < filterTableSize; x++ {
 			fx := (float64(x) + 0.5) * filter.XWidth() / float64(filterTableSize)
 			film.filterTable[i] = filter.Evaluate(fx, fy)
+			i++
 		}
 	}
 
@@ -82,7 +83,7 @@ func (f *ImageFilm) AddSample(sample *Sample, L *Spectrum) {
 
 	// Loop over filter support and add sample to pixel arrays
 	xyz := L.ToXYZ()
-	
+
 	// Precompute $x$ and $y$ filter table offsets
 	ifx := make([]int, x1-x0+1, x1-x0+1)
 	for x := x0; x <= x1; x++ {
@@ -94,7 +95,7 @@ func (f *ImageFilm) AddSample(sample *Sample, L *Spectrum) {
 		fy := math.Abs((float64(y) - dimageY) * f.filter.InvYWidth() * filterTableSize)
 		ify[y-y0] = Mini(Floor2Int(fy), filterTableSize-1)
 	}
-	syncNeeded := (f.filter.XWidth() > 0.5 || f.filter.YWidth() > 0.5)
+
 	for y := y0; y <= y1; y++ {
 		for x := x0; x <= x1; x++ {
 			// Evaluate filter value at $(x,y)$ pixel
@@ -103,18 +104,10 @@ func (f *ImageFilm) AddSample(sample *Sample, L *Spectrum) {
 
 			// Update pixel values with filtered sample contribution
 			pixel := f.pixelAt(x-f.xPixelStart, y-f.yPixelStart)
-			if !syncNeeded {
-				pixel.Lxyz[0] += filterWt * xyz[0]
-				pixel.Lxyz[1] += filterWt * xyz[1]
-				pixel.Lxyz[2] += filterWt * xyz[2]
-				pixel.weightSum += filterWt
-			} else {
-				// Safely update _Lxyz_ and _weightSum_ even with concurrency
-				AtomicAddf(&pixel.Lxyz[0], filterWt*xyz[0])
-				AtomicAddf(&pixel.Lxyz[1], filterWt*xyz[1])
-				AtomicAddf(&pixel.Lxyz[2], filterWt*xyz[2])
-				AtomicAddf(&pixel.weightSum, filterWt)
-			}
+			pixel.Lxyz[0] += filterWt * xyz[0]
+			pixel.Lxyz[1] += filterWt * xyz[1]
+			pixel.Lxyz[2] += filterWt * xyz[2]
+			pixel.weightSum += filterWt
 		}
 	}
 }
@@ -191,7 +184,7 @@ func (f *ImageFilm) WriteImage(splatScale float32) {
 			rgb[3*offset] += splatScale * splatRGB[0]
 			rgb[3*offset+1] += splatScale * splatRGB[1]
 			rgb[3*offset+2] += splatScale * splatRGB[2]
-			
+
 			offset++
 		}
 	}

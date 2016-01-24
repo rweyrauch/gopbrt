@@ -23,4 +23,12 @@ func TestSampler(t *testing.T) {
 	// Fetch a sample for the volume
 	val := sample.oneD[vol.scatterSampleOffset][0]
 	fmt.Printf("VolSample: %f\n", val)
+	
+	rng := NewRNG(13)
+	for i := 0; i < 1000; i++ {
+		v := rng.RandomFloat()
+		if v < 0.0 || v > 1.0 {
+			t.Fail()
+		}
+	}
 }

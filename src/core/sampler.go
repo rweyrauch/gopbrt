@@ -669,13 +669,14 @@ func (s *StratifiedSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
 	if s.yPos == s.yPixelEnd {
 		return 0
 	}
-	nSamples := s.xPixelSamples * s.yPixelSamples
+	nSamples := s.xPixelSamples * s.yPixelSamples	
+	
 	// Generate stratified camera samples for _(xPos, yPos)_
 
 	// Generate initial stratified samples into _sampleBuf_ memory
 	imageSamples := s.sampleBuf[:2*nSamples]
-	lensSamples := s.sampleBuf[2*nSamples : 2*nSamples]
-	timeSamples := s.sampleBuf[4*nSamples:]
+	lensSamples := s.sampleBuf[2*nSamples : 4*nSamples]
+	timeSamples := s.sampleBuf[4*nSamples : 5*nSamples]
 	StratifiedSample2D(imageSamples, s.xPixelSamples, s.yPixelSamples, rng, s.jitterSamples)
 	StratifiedSample2D(lensSamples, s.xPixelSamples, s.yPixelSamples, rng, s.jitterSamples)
 	StratifiedSample1D(timeSamples, s.xPixelSamples*s.yPixelSamples, rng, s.jitterSamples)

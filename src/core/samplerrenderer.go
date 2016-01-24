@@ -63,7 +63,7 @@ func (r *SamplerRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample,
 	Assert(!ray.HasNaNs())
 	// Allocate local variables for _isect_ and _T_ if needed
 	li = NewSpectrum1(0.0)
-	
+
 	var hit bool
 	// TODO: Must make RayBase an interface and define two structs (Ray, RayDifferential)
 	if hit, isect = scene.Intersect(CreateRayFromRayDifferential(ray)); hit {
@@ -74,7 +74,7 @@ func (r *SamplerRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample,
 			li = li.Add(scene.lights[i].Le(ray))
 		}
 	}
-	
+
 	var Lvi *Spectrum
 	Lvi, T = r.volumeIntegrator.Li(scene, r, ray, sample, rng, arena)
 	li = li.Mult(T).Add(Lvi)

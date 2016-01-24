@@ -325,13 +325,13 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 		return defval
 	}
 	value := defval
-	
+
 	spectrumparamname := "spectrum " + name
 	colorparamname := "color " + name
 	rgbparamname := "rgb " + name
 	bbodyparamname := "blockbody " + name
 	xyzparamname := "xyz " + name
-	
+
 	for i, p := range ps.tokens {
 		if strings.Compare(p, spectrumparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
@@ -346,7 +346,7 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 				}
 			}
 		} else if strings.Compare(p, colorparamname) == 0 ||
-		 	strings.Compare(p, rgbparamname) == 0 {
+			strings.Compare(p, rgbparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) == 3 {
 					if v, ok := values[0].(float64); ok {
@@ -359,13 +359,13 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 						value.c[2] = float32(v)
 					}
 				} else {
-                    Error("RGB values given with parameter \"%s\" expected 3 value, got %d.", name, len(values))					
+					Error("RGB values given with parameter \"%s\" expected 3 value, got %d.", name, len(values))
 				}
-			}		 		
-		 } else if strings.Compare(p, bbodyparamname) == 0 {
+			}
+		} else if strings.Compare(p, bbodyparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
-				if len(values) % 2 != 0 {
-                   Warning("Excess value given with blackbody parameter \"%s\".  Ignoring extra one.", name)			
+				if len(values)%2 != 0 {
+					Warning("Excess value given with blackbody parameter \"%s\".  Ignoring extra one.", name)
 				}
 				lambdas := make([]float32, len(values)/2, len(values)/2)
 				vals := make([]float32, len(values)/2, len(values)/2)
@@ -378,8 +378,8 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 					}
 				}
 				value = *SpectrumFromSampled(lambdas, vals)
-			}		 	
-		 } else if strings.Compare(p, xyzparamname) == 0 {
+			}
+		} else if strings.Compare(p, xyzparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) == 3 {
 					xyz := [3]float32{0.0, 0.0, 0.0}
@@ -394,10 +394,10 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 					}
 					value = *SpectrumFromXYZ(xyz)
 				} else {
-                    Error("XYZ values given with parameter \"%s\" expected 3 value, got %d.", name, len(values))										
+					Error("XYZ values given with parameter \"%s\" expected 3 value, got %d.", name, len(values))
 				}
-			}		 			 	
-		 }
+			}
+		}
 	}
 	return value
 }
