@@ -1,6 +1,8 @@
 package core
 
-import ()
+import (
+	"fmt"
+)
 
 type TriangleMesh struct {
 	ShapeData
@@ -107,6 +109,7 @@ func NewTriangleMesh(o2w, w2o *Transform, reverseOrientation bool, vi []int, P [
 	t.ntris = len(vi) / 3
 	t.nverts = len(P)
 	t.vertexIndex = make([]int, 3*t.ntris, 3*t.ntris)
+	copy(t.vertexIndex, vi)
 
 	if uv != nil && len(uv) == 2*t.nverts {
 		t.uvs = make([]float64, 2*t.nverts, 2*t.nverts)
@@ -204,6 +207,10 @@ func (t *TriangleMesh) ShapeId() uint32 {
 	return t.shapeId
 }
 
+func (t *TriangleMesh) String() string {
+	return fmt.Sprintf("mesh[id: %d ntris: %d nverts: %d]", t.shapeId, t.ntris, t.nverts)
+}
+
 func NewTriangle(o2w, w2o *Transform, ro bool, m *TriangleMesh, n int) *Triangle {
 	t := new(Triangle)
 	t.objectToWorld = o2w
@@ -211,8 +218,8 @@ func NewTriangle(o2w, w2o *Transform, ro bool, m *TriangleMesh, n int) *Triangle
 	t.reverseOrientation = ro
 	t.transformSwapsHandedness = SwapsHandednessTransform(t.objectToWorld)
 	t.shapeId = GenerateShapeId()
-    t.mesh = m
-    t.v = m.vertexIndex[3*n:3*(n+1)]
+	t.mesh = m
+	t.v = m.vertexIndex[3*n : 3*(n+1)]
 	return t
 }
 
