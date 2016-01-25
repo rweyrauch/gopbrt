@@ -12,6 +12,7 @@ type Light interface {
 	Pdf(p *Point, wi *Vector) float64
 	Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64)
 	SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum)
+	NumSamples() int
 }
 
 type LightData struct {
@@ -203,6 +204,9 @@ func (l *DistantLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time flo
 
 func (l *DistantLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
 }
+func (l *DistantLight) NumSamples() int {
+	return l.nSamples
+}
 
 func CreateDistantLight(light2world *Transform, paramSet *ParamSet) *DistantLight {
 	L := paramSet.FindSpectrumParam("L", *NewSpectrum1(1.0))
@@ -224,6 +228,9 @@ func (l *GonioPhotometricLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2,
 	return nil, nil, nil, 0.0
 }
 func (l *GonioPhotometricLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
+}
+func (l *GonioPhotometricLight) NumSamples() int {
+	return l.nSamples
 }
 
 func CreateGoniometricLight(light2world *Transform, paramSet *ParamSet) *GonioPhotometricLight {
@@ -367,6 +374,9 @@ func (l *InfiniteAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, tim
 func (l *InfiniteAreaLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
 	Unimplemented()
 }
+func (l *InfiniteAreaLight) NumSamples() int {
+	return l.nSamples
+}
 
 func CreateInfiniteLight(light2world *Transform, paramSet *ParamSet) *InfiniteAreaLight {
 	L := paramSet.FindSpectrumParam("L", *NewSpectrum1(1.0))
@@ -412,6 +422,9 @@ func (l *PointLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float
 func (l *PointLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
 	Unimplemented()
 }
+func (l *PointLight) NumSamples() int {
+	return l.nSamples
+}
 
 func CreatePointLight(light2world *Transform, paramSet *ParamSet) *PointLight {
 	I := paramSet.FindSpectrumParam("I", *NewSpectrum1(1.0))
@@ -436,6 +449,9 @@ func (l *ProjectionLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time 
 func (l *ProjectionLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
 	Unimplemented()
 }
+func (l *ProjectionLight) NumSamples() int {
+	return l.nSamples
+}
 
 func CreateProjectionLight(light2world *Transform, paramSet *ParamSet) *ProjectionLight {
 	Unimplemented()
@@ -456,6 +472,9 @@ func (l *SpotLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float6
 }
 func (l *SpotLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
 	Unimplemented()
+}
+func (l *SpotLight) NumSamples() int {
+	return l.nSamples
 }
 
 func CreateSpotLight(light2world *Transform, paramSet *ParamSet) *SpotLight {

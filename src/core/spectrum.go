@@ -3,8 +3,8 @@ package core
 import (
 	"fmt"
 	"io"
-	"sort"
 	"math"
+	"sort"
 )
 
 func XYZToRGB(xyz [3]float64) [3]float64 {

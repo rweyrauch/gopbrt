@@ -111,7 +111,7 @@ func NewGridAccel(prims []Primitive, refineImmediately bool) *GridAccel {
 	return grid
 }
 
-func (g *GridAccel) WorldBound() *BBox  { return &g.bounds }
+func (g *GridAccel) WorldBound() *BBox { return &g.bounds }
 
 func (g *GridAccel) CanIntersect() bool { return true }
 
@@ -264,12 +264,12 @@ func (g *GridAccel) IntersectP(ray *Ray) bool {
 	return false
 }
 
-func (g *GridAccel) Refine(refined []Primitive) []Primitive     { return refined }
-func (g *GridAccel) FullyRefine(refined []Primitive) []Primitive { 
-	return PrimitiveFullyRefine(g, refined) 
+func (g *GridAccel) Refine(refined []Primitive) []Primitive { return refined }
+func (g *GridAccel) FullyRefine(refined []Primitive) []Primitive {
+	return PrimitiveFullyRefine(g, refined)
 }
 
-func (g *GridAccel) GetAreaLight() AreaLight                     { return nil }
+func (g *GridAccel) GetAreaLight() AreaLight { return nil }
 func (g *GridAccel) GetBSDF(dg *DifferentialGeometry, objectToWorld *Transform, arena *MemoryArena) *BSDF {
 	return nil
 }
@@ -289,9 +289,9 @@ func (g *GridAccel) offset(x, y, z int) int {
 	return z*g.nVoxels[0]*g.nVoxels[1] + y*g.nVoxels[0] + x
 }
 
-func CreateGridAccelerator(prims []Primitive, ps *ParamSet) *GridAccel { 
-    refineImmediately := ps.FindBoolParam("refineimmediately", false)
-    return NewGridAccel(prims, refineImmediately)
+func CreateGridAccelerator(prims []Primitive, ps *ParamSet) *GridAccel {
+	refineImmediately := ps.FindBoolParam("refineimmediately", false)
+	return NewGridAccel(prims, refineImmediately)
 }
 
 func newVoxel(op Primitive) *Voxel {

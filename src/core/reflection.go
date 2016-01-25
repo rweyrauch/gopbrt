@@ -231,8 +231,71 @@ func NewBSDF(dg *DifferentialGeometry, ngeom *Normal, eta float64) *BSDF {
 	return bsdf
 }
 
-func (bsdf *BSDF) Sample_f(wo *Vector, bsdfSample *BSDFSample, flags BxDFType) (f *Spectrum, wi *Vector, pdf float64, sampledType BxDFType) {
-	return nil, nil, 0.0, BSDF_REFLECTION
+func (bsdf *BSDF) Sample_f(woW *Vector, bsdfSample *BSDFSample, flags BxDFType) (f *Spectrum, wi *Vector, pdf float64, sampledType BxDFType) {
+	//PBRT_STARTED_BSDF_SAMPLE();
+	// Choose which _BxDF_ to sample
+	matchingComps := bsdf.NumComponentsMatching(flags)
+	if matchingComps == 0 {
+		pdf = 0.0
+		sampledType = BxDFType(0)
+		//PBRT_FINISHED_BSDF_SAMPLE()
+		wi = nil
+		return NewSpectrum1(0.0), wi, pdf, sampledType
+	}
+	which := Mini(Floor2Int(bsdfSample.uComponent*float64(matchingComps)), matchingComps-1)
+	var bxdf BxDF = nil
+	count := which
+	for i := 0; i < bsdf.nBxDFs; i++ {
+		if matchesFlags(bsdf.bxdfs[i], flags) {
+			if count == 0 {
+				bxdf = bsdf.bxdfs[i]
+				break
+			}
+			count--
+		}
+	}
+	Assert(bxdf != nil)
+
+	// Sample chosen _BxDF_
+	wo := bsdf.WorldToLocal(woW)
+	pdf = 0.0
+	wi, f, pdf = bxdf.Sample_f(wo, bsdfSample.uDir[0], bsdfSample.uDir[1])
+	if pdf == 0.0 {
+		sampledType = BxDFType(0)
+		//PBRT_FINISHED_BSDF_SAMPLE()
+		return f, wi, pdf, sampledType
+	}
+	sampledType = bxdf.Type()
+	wiW := bsdf.LocalToWorld(wi)
+
+	// Compute overall PDF with all matching _BxDF_s
+	if !((bxdf.Type()&BSDF_SPECULAR) == 0 && matchingComps > 1) {
+		for i := 0; i < bsdf.nBxDFs; i++ {
+			if bsdf.bxdfs[i] != bxdf && matchesFlags(bsdf.bxdfs[i], flags) {
+				pdf += bsdf.bxdfs[i].Pdf(wo, wi)
+			}
+		}
+	}
+	if matchingComps > 1 {
+		pdf /= float64(matchingComps)
+	}
+
+	// Compute value of BSDF for sampled direction
+	if (bxdf.Type() & BSDF_SPECULAR) != 0 {
+		f = NewSpectrum1(0.0)
+		if DotVectorNormal(wiW, &bsdf.ng)*DotVectorNormal(woW, &bsdf.ng) > 0 { // ignore BTDFs
+			flags = BxDFType(flags ^ BSDF_TRANSMISSION)
+		} else { // ignore BRDFs
+			flags = BxDFType(flags ^ BSDF_REFLECTION)
+		}
+		for i := 0; i < bsdf.nBxDFs; i++ {
+			if matchesFlags(bsdf.bxdfs[i], flags) {
+				f = f.Add(bsdf.bxdfs[i].F(wo, wi))
+			}
+		}
+	}
+	//PBRT_FINISHED_BSDF_SAMPLE()
+	return f, wiW, pdf, sampledType
 }
 
 func (bsdf *BSDF) Pdf(woW, wiW *Vector, flags BxDFType) float64 {
@@ -259,6 +322,7 @@ func (bsdf *BSDF) Pdf(woW, wiW *Vector, flags BxDFType) float64 {
 
 func (bsdf *BSDF) Add(bxdf BxDF) {
 	Assert(bsdf.nBxDFs < MAX_BxDFS)
+	Assert(bxdf.Type() != 0)
 	bsdf.bxdfs[bsdf.nBxDFs] = bxdf
 	bsdf.nBxDFs++
 }

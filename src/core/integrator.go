@@ -1,5 +1,9 @@
 package core
 
+import (
+	"strings"
+)
+
 type LightStrategy int
 
 const (
@@ -53,7 +57,7 @@ type (
 		// Declare sample parameters for light source sampling
 		lightSampleOffsets []LightSampleOffsets
 		bsdfSampleOffsets  []BSDFSampleOffsets
-		ligthNumOffset     int
+		lightNumOffset     int
 	}
 
 	GlossyPRTIntegrator struct {
@@ -143,7 +147,7 @@ func (i *DiffusePRTIntegrator) Preprocess(scene *Scene, camera Camera, renderer 
 func (i *DiffusePRTIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *DiffusePRTIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	Unimplemented()		
+	Unimplemented()
 	return nil
 }
 
@@ -151,37 +155,91 @@ func (i *DipoleSubsurfaceIntegrator) Preprocess(scene *Scene, camera Camera, ren
 func (i *DipoleSubsurfaceIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *DipoleSubsurfaceIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	Unimplemented()		
+	Unimplemented()
 	return nil
 }
 
-func (i *DirectLightingIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
-func (i *DirectLightingIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
-func (i *DirectLightingIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
+func (integrator *DirectLightingIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer) {
+}
+func (integrator *DirectLightingIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {
+	if integrator.strategy == SAMPLE_ALL_UNIFORM {
+		// Allocate and request samples for sampling all lights
+		nLights := len(scene.lights)
+		integrator.lightSampleOffsets = make([]LightSampleOffsets, nLights, nLights)
+		integrator.bsdfSampleOffsets = make([]BSDFSampleOffsets, nLights, nLights)
+		for i := 0; i < nLights; i++ {
+			light := scene.lights[i]
+			nSamples := light.NumSamples()
+			if sampler != nil {
+				nSamples = sampler.RoundSize(nSamples)
+			}
+			integrator.lightSampleOffsets[i] = *CreateLightSampleOffsets(nSamples, sample)
+			integrator.bsdfSampleOffsets[i] = *CreateBSDFSampleOffsets(nSamples, sample)
+		}
+		integrator.lightNumOffset = -1
+	} else {
+		// Allocate and request samples for sampling one light
+		integrator.lightSampleOffsets = make([]LightSampleOffsets, 1, 1)
+		integrator.lightSampleOffsets[0] = *CreateLightSampleOffsets(1, sample)
+		integrator.lightNumOffset = sample.Add1D(1)
+		integrator.bsdfSampleOffsets = make([]BSDFSampleOffsets, 1, 1)
+		integrator.bsdfSampleOffsets[0] = *CreateBSDFSampleOffsets(1, sample)
+	}
+}
+
+func (integrator *DirectLightingIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	Unimplemented()		
-	return nil
+	L := NewSpectrum1(0.0)
+	// Evaluate BSDF at hit point
+	bsdf := isect.GetBSDF(ray, arena)
+	Assert(bsdf != nil)
+	wo := ray.dir.Negate()
+	p := bsdf.dgShading.p
+	n := bsdf.dgShading.nn
+	// Compute emitted light if ray hit an area light source
+	L = L.Add(isect.Le(wo))
+
+	// Compute direct lighting for _DirectLightingIntegrator_ integrator
+	if len(scene.lights) > 0 {
+		// Apply direct lighting strategy
+		switch integrator.strategy {
+		case SAMPLE_ALL_UNIFORM:
+			L = L.Add(UniformSampleAllLights(scene, renderer, arena, p, n, wo,
+				isect.rayEpsilon, ray.time, bsdf, sample, rng,
+				integrator.lightSampleOffsets, integrator.bsdfSampleOffsets))
+		case SAMPLE_ONE_UNIFORM:
+			L = L.Add(UniformSampleOneLight(scene, renderer, arena, p, n, wo,
+				isect.rayEpsilon, ray.time, bsdf, sample, rng,
+				integrator.lightNumOffset, &integrator.lightSampleOffsets[0], &integrator.bsdfSampleOffsets[0]))
+		}
+	}
+	if ray.depth+1 < integrator.maxDepth {
+		// Trace rays for specular reflection and refraction
+		L = L.Add(SpecularReflect(ray, bsdf, rng, isect, renderer, scene, sample, arena))
+		L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))
+	}
+	return L
 }
 
 func (i *GlossyPRTIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
 func (i *GlossyPRTIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *GlossyPRTIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	Unimplemented()		
+	Unimplemented()
 	return nil
 }
 func (i *IGIIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
 func (i *IGIIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *IGIIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	Unimplemented()		
+	Unimplemented()
 	return nil
 }
 func (i *IrradianceCacheIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
 func (i *IrradianceCacheIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *IrradianceCacheIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	Unimplemented()		
+	Unimplemented()
 	return nil
 }
 
@@ -189,14 +247,14 @@ func (i *PathIntegrator) Preprocess(scene *Scene, camera Camera, renderer Render
 func (i *PathIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *PathIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	Unimplemented()		
+	Unimplemented()
 	return nil
 }
 func (i *PhotonIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
 func (i *PhotonIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
 func (i *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	Unimplemented()		
+	Unimplemented()
 	return nil
 }
 func (i *UseRadianceProbes) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
@@ -244,16 +302,49 @@ func (i *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferen
 	return L
 }
 
-func CreateAmbientOcclusionIntegrator(params *ParamSet) *AmbientOcclusionIntegrator      { Unimplemented(); return nil }
-func CreateDiffusePRTIntegratorSurfaceIntegrator(params *ParamSet) *DiffusePRTIntegrator { Unimplemented(); return nil }
-func CreateDipoleSubsurfaceIntegrator(params *ParamSet) *DipoleSubsurfaceIntegrator      { Unimplemented(); return nil }
-func CreateDirectLightingIntegrator(params *ParamSet) *DirectLightingIntegrator          { Unimplemented(); return nil }
-func CreateGlossyPRTIntegratorSurfaceIntegrator(params *ParamSet) *GlossyPRTIntegrator   { Unimplemented(); return nil }
-func CreateIGISurfaceIntegrator(params *ParamSet) *IGIIntegrator                         { Unimplemented(); return nil }
-func CreateIrradianceCacheIntegrator(params *ParamSet) *IrradianceCacheIntegrator        { Unimplemented(); return nil }
-func CreatePathSurfaceIntegrator(params *ParamSet) *PathIntegrator                       { Unimplemented(); return nil }
-func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator                { Unimplemented(); return nil }
-func CreateRadianceProbesSurfaceIntegrator(params *ParamSet) *UseRadianceProbes          { Unimplemented(); return nil }
+func CreateAmbientOcclusionIntegrator(params *ParamSet) *AmbientOcclusionIntegrator {
+	Unimplemented()
+	return nil
+}
+func CreateDiffusePRTIntegratorSurfaceIntegrator(params *ParamSet) *DiffusePRTIntegrator {
+	Unimplemented()
+	return nil
+}
+func CreateDipoleSubsurfaceIntegrator(params *ParamSet) *DipoleSubsurfaceIntegrator {
+	Unimplemented()
+	return nil
+}
+
+func CreateGlossyPRTIntegratorSurfaceIntegrator(params *ParamSet) *GlossyPRTIntegrator {
+	Unimplemented()
+	return nil
+}
+func CreateIGISurfaceIntegrator(params *ParamSet) *IGIIntegrator { Unimplemented(); return nil }
+func CreateIrradianceCacheIntegrator(params *ParamSet) *IrradianceCacheIntegrator {
+	Unimplemented()
+	return nil
+}
+func CreatePathSurfaceIntegrator(params *ParamSet) *PathIntegrator        { Unimplemented(); return nil }
+func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator { Unimplemented(); return nil }
+func CreateRadianceProbesSurfaceIntegrator(params *ParamSet) *UseRadianceProbes {
+	Unimplemented()
+	return nil
+}
+
+func CreateDirectLightingIntegrator(params *ParamSet) *DirectLightingIntegrator {
+	maxDepth := params.FindIntParam("maxdepth", 5)
+	var strategy LightStrategy
+	st := params.FindStringParam("strategy", "all")
+	if strings.Compare(st, "one") == 0 {
+		strategy = SAMPLE_ONE_UNIFORM
+	} else if strings.Compare(st, "all") == 0 {
+		strategy = SAMPLE_ALL_UNIFORM
+	} else {
+		Warning("Strategy \"%s\" for direct lighting unknown.  Using \"all\".", st)
+		strategy = SAMPLE_ALL_UNIFORM
+	}
+	return &DirectLightingIntegrator{strategy, maxDepth, nil, nil, 0}
+}
 
 func CreateWhittedSurfaceIntegrator(params *ParamSet) *WhittedIntegrator {
 	maxDepth := params.FindIntParam("maxdepth", 5)
@@ -336,54 +427,54 @@ func EstimateDirect(scene *Scene, renderer Renderer,
 	rng *RNG, lightSample *LightSample, bsdfSample *BSDFSample,
 	flags BxDFType) *Spectrum {
 	Ld := NewSpectrum1(0.0)
-	
-	   // Sample light source with multiple importance sampling
-	   var visibility VisibilityTester
-	   Li, wi, lightPdf := light.Sample_L(p, rayEpsilon, lightSample, time, &visibility)
-	   if lightPdf > 0.0 && !Li.IsBlack() {
-	       f := bsdf.f(wo, wi, flags)
-	       if !f.IsBlack() && visibility.Unoccluded(scene) {
-	           // Add light's contribution to reflected radiance
-	           Li = Li.Mult(visibility.Transmittance(scene, renderer, nil, rng, arena))
-	           if light.IsDeltaLight() {
-	               Ld = Ld.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) / lightPdf)))
-	           } else {
-	               bsdfPdf := bsdf.Pdf(wo, wi, flags)
-	               weight := PowerHeuristic(1, lightPdf, 1, bsdfPdf)
-	               Ld = Ld.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) * weight / lightPdf)))
-	           }
-	       }
-	   }
 
-	   // Sample BSDF with multiple importance sampling
-	   if !light.IsDeltaLight() {
-	       f, wi, bsdfPdf, sampledType := bsdf.Sample_f(wo, bsdfSample, flags)
-	       if !f.IsBlack() && bsdfPdf > 0.0 {
-	           weight := 1.0
-	           if sampledType & BSDF_SPECULAR != 0 {
-	               lightPdf = light.Pdf(p, wi)
-	               if lightPdf == 0.0 {
-	                   return Ld
-	               }
-	               weight = PowerHeuristic(1, bsdfPdf, 1, lightPdf)
-	           }
-	           // Add light contribution from BSDF sampling
-	           Li := NewSpectrum1(0.0)
-	           ray := CreateRayDifferential(p, wi, rayEpsilon, INFINITY, time, 0)
-	           if hit, lightIsect := scene.Intersect(ray); hit {
-	               if lightIsect.primitive.GetAreaLight() == light {
-	                   Li = lightIsect.Le(wi.Negate())
-	               }
-	           } else {
-	               Li = light.Le(ray)
-	           }
-	           if !Li.IsBlack() {
-	               Li = Li.Mult(renderer.Transmittance(scene, ray, nil, rng, arena))
-	               Ld = Ld.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) * weight / bsdfPdf)))
-	           }
-	       }
-	   }
-	
+	// Sample light source with multiple importance sampling
+	var visibility VisibilityTester
+	Li, wi, lightPdf := light.Sample_L(p, rayEpsilon, lightSample, time, &visibility)
+	if lightPdf > 0.0 && !Li.IsBlack() {
+		f := bsdf.f(wo, wi, flags)
+		if !f.IsBlack() && visibility.Unoccluded(scene) {
+			// Add light's contribution to reflected radiance
+			Li = Li.Mult(visibility.Transmittance(scene, renderer, nil, rng, arena))
+			if light.IsDeltaLight() {
+				Ld = Ld.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) / lightPdf)))
+			} else {
+				bsdfPdf := bsdf.Pdf(wo, wi, flags)
+				weight := PowerHeuristic(1, lightPdf, 1, bsdfPdf)
+				Ld = Ld.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) * weight / lightPdf)))
+			}
+		}
+	}
+
+	// Sample BSDF with multiple importance sampling
+	if !light.IsDeltaLight() {
+		f, wi, bsdfPdf, sampledType := bsdf.Sample_f(wo, bsdfSample, flags)
+		if !f.IsBlack() && bsdfPdf > 0.0 {
+			weight := 1.0
+			if sampledType&BSDF_SPECULAR != 0 {
+				lightPdf = light.Pdf(p, wi)
+				if lightPdf == 0.0 {
+					return Ld
+				}
+				weight = PowerHeuristic(1, bsdfPdf, 1, lightPdf)
+			}
+			// Add light contribution from BSDF sampling
+			Li := NewSpectrum1(0.0)
+			ray := CreateRayDifferential(p, wi, rayEpsilon, INFINITY, time, 0)
+			if hit, lightIsect := scene.Intersect(ray); hit {
+				if lightIsect.primitive.GetAreaLight() == light {
+					Li = lightIsect.Le(wi.Negate())
+				}
+			} else {
+				Li = light.Le(ray)
+			}
+			if !Li.IsBlack() {
+				Li = Li.Mult(renderer.Transmittance(scene, ray, nil, rng, arena))
+				Ld = Ld.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) * weight / bsdfPdf)))
+			}
+		}
+	}
+
 	return Ld
 }
 
