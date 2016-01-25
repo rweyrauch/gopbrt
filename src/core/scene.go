@@ -25,3 +25,5 @@ func (s *Scene) Intersect(ray *RayDifferential) (hit bool, isect *Intersection) 
 func (s *Scene) IntersectP(ray *Ray) bool {
 	return s.aggregate.IntersectP(ray) 
 }
+
+func (s *Scene) WorldBound() *BBox { return &s.bound }
