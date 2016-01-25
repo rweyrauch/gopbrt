@@ -149,8 +149,12 @@ func (ps *ParamSet) FindBoolParam(name string, defval bool) bool {
 	for i, p := range ps.tokens {
 		if strings.Compare(p, fullparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
-				if b, ok := values[0].(bool); ok {
-					value = b
+				if b, ok := values[0].(string); ok {
+					if strings.Compare(b, "true") == 0 {
+						value = true
+					} else if strings.Compare(b, "false") == 0 {
+						value = false
+					}
 				}
 			}
 		}
