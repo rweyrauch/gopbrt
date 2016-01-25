@@ -159,6 +159,7 @@ func (t *samplerRendererTask) run() {
 				} else {
 					Ls[i] = NewSpectrum1(0.0)
 				}
+				Ts[i] = NewSpectrum1(1.0)
 			} else {
 				if rayWeight > 0.0 {
 					Ls[i], isects[i], Ts[i] = t.renderer.Li(t.scene, rays[i], &samples[i], rng, nil)

@@ -151,7 +151,7 @@ func (t *TriangleMesh) WorldBound() *BBox {
 		panic("Null mesh arg.")
 	}
 	for i := 0; i < t.nverts; i++ {
-		worldBounds = UnionBBoxPoint(worldBounds, PointTransform(t.worldToObject, &t.p[i]))
+		worldBounds = UnionBBoxPoint(worldBounds, &t.p[i])
 	}
 	return worldBounds
 }
