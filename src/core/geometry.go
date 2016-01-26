@@ -355,7 +355,10 @@ func CreateBBoxFromPoint(p *Point) *BBox {
 	return &BBox{*p, *p}
 }
 func CreateBBoxFromPoints(p1, p2 *Point) *BBox {
-	return &BBox{*p1, *p2}
+	bbox := new(BBox)
+	bbox.pMin.x, bbox.pMin.y, bbox.pMin.z = math.Min(p1.x, p2.x), math.Min(p1.y, p2.y), math.Min(p1.z, p2.z)
+    bbox.pMax.x, bbox.pMax.y, bbox.pMax.z = math.Max(p1.x, p2.x), math.Max(p1.y, p2.y), math.Max(p1.z, p2.z)
+	return bbox
 }
 func UnionBBoxPoint(b *BBox, p *Point) *BBox {
 	return &BBox{Point{math.Min(b.pMin.x, p.x), math.Min(b.pMin.y, p.y), math.Min(b.pMin.z, p.z)},
