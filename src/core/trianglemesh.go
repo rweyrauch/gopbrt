@@ -514,8 +514,8 @@ func (t *Triangle) SampleAt(p *Point, u1, u2 float64) (ps *Point, ns *Normal) {
 	p2 := &t.mesh.p[t.v[1]]
 	p3 := &t.mesh.p[t.v[2]]
 	ps = p1.Scale(b1).Add(p2.Scale(b2).Sub(p3.Scale(b1 + b2 - 1.0)))
-	ns = CreateNormalFromVector(CrossVector(p2.Sub(p1), p3.Sub(p1)))
-	ns = NormalizeNormal(ns)
+	n := CreateNormalFromVector(CrossVector(p2.Sub(p1), p3.Sub(p1)))
+	ns = NormalizeNormal(n)
 	if t.reverseOrientation {
 		ns = ns.Scale(-1.0)
 	}

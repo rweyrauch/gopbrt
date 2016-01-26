@@ -65,4 +65,5 @@ func (pr *ProgressReporter) Update(num int) {
 }
 
 func (pr *ProgressReporter) Done()   {
+	fmt.Println("")
 }

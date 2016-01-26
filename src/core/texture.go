@@ -520,7 +520,7 @@ func (tex *Checkerboard2DTextureFloat) Evaluate(dg *DifferentialGeometry) float6
 	s, t, dsdx, dtdx, dsdy, dtdy := tex.mapping.Map(dg)
 	if tex.aaMethod == AA_NONE {
 		// Point sample _Checkerboard2DTexture_
-		if Floor2Int(s)+Floor2Int(t)%2 == 0 {
+		if (Floor2Int(s)+Floor2Int(t))%2 == 0 {
 			return tex.tex1.Evaluate(dg)
 		}
 		return tex.tex2.Evaluate(dg)
@@ -534,7 +534,7 @@ func (tex *Checkerboard2DTextureFloat) Evaluate(dg *DifferentialGeometry) float6
 		t0, t1 := t-dt, t+dt
 		if Floor2Int(s0) == Floor2Int(s1) && Floor2Int(t0) == Floor2Int(t1) {
 			// Point sample _Checkerboard2DTexture_
-			if Floor2Int(s)+Floor2Int(t)%2 == 0 {
+			if (Floor2Int(s)+Floor2Int(t))%2 == 0 {
 				return tex.tex1.Evaluate(dg)
 			}
 			return tex.tex2.Evaluate(dg)
@@ -566,7 +566,7 @@ func (tex *Checkerboard2DTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spe
 	s, t, dsdx, dtdx, dsdy, dtdy := tex.mapping.Map(dg)
 	if tex.aaMethod == AA_NONE {
 		// Point sample _Checkerboard2DTexture_
-		if Floor2Int(s)+Floor2Int(t)%2 == 0 {
+		if (Floor2Int(s)+Floor2Int(t))%2 == 0 {
 			return tex.tex1.Evaluate(dg)
 		}
 		return tex.tex2.Evaluate(dg)
@@ -580,7 +580,7 @@ func (tex *Checkerboard2DTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spe
 		t0, t1 := t-dt, t+dt
 		if Floor2Int(s0) == Floor2Int(s1) && Floor2Int(t0) == Floor2Int(t1) {
 			// Point sample _Checkerboard2DTexture_
-			if Floor2Int(s)+Floor2Int(t)%2 == 0 {
+			if (Floor2Int(s)+Floor2Int(t))%2 == 0 {
 				return tex.tex1.Evaluate(dg)
 			}
 			return tex.tex2.Evaluate(dg)
@@ -598,7 +598,7 @@ func (tex *Checkerboard2DTextureSpectrum) Evaluate(dg *DifferentialGeometry) Spe
 		}
 		spec1 := tex.tex1.Evaluate(dg)
 		spec2 := tex.tex2.Evaluate(dg)
-		return *spec1.Scale(1.0 - area2).Add(spec2.Scale(area2))
+		return *(spec1.Scale(1.0 - area2).Add(spec2.Scale(area2)))
 	}
 }
 
