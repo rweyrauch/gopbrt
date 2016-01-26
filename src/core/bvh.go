@@ -160,7 +160,8 @@ func NewBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 		Severe("Incorrect number of BVH detected.  Expected: %d  Got: %d", totalNodes, offset)
 	}
 	//PBRT_BVH_FINISHED_CONSTRUCTION(bvh)
-
+	Info("BVH construction finished.")
+	
 	return bvh
 }
 
@@ -465,12 +466,12 @@ func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 				// Put far BVH node on _todo_ stack, advance to near node
 				//PBRT_BVH_INTERSECTION_TRAVERSED_INTERIOR_NODE(const_cast<LinearBVHNode *>(node))
 				if dirIsNeg[node.axis] != 0 {
-					todoOffset++
 					todo[todoOffset] = nodeNum + 1
+					todoOffset++
 					nodeNum = node.offset
 				} else {
-					todoOffset++
 					todo[todoOffset] = node.offset
+					todoOffset++
 					nodeNum = nodeNum + 1
 				}
 			}
