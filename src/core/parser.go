@@ -494,17 +494,28 @@ func (tp *TextureParams) GetFloatTextureOrNil(name string) TextureFloat {
 }
 
 type Lexer struct {
-	scanner *Scanner
+	scanners []*Scanner
 }
 
 func (yylex Lexer) Error(e string) {
 	panic(e)
 }
+
 func (yylex Lexer) Lex(lval *yySymType) int {
 scanagain:	
-	_, token, val := yylex.scanner.Scan()
+	_, token, val := yylex.Current().Scan()
 	
-	if token == EOF { return 0 }
+	//Info("Source: %s  Token: %d  Value: %s  NumScanners: %d", yylex.Current().filename, token, val, len(yylex.scanners))
+	
+	if token == EOF {
+		if len(yylex.scanners) > 1 {
+			yylex.scanners = yylex.scanners[:len(yylex.scanners)-1]
+			//Info("Finished reading include file.")
+			goto scanagain
+		} else {
+			return 0
+		} 
+	}
 	switch token {
 	case NUMBER:
 		value, _ := strconv.ParseFloat(val, 64) 
@@ -520,6 +531,35 @@ scanagain:
 	return token
 }
 
+
+func (yylex *Lexer) Current() *Scanner {
+	return yylex.scanners[len(yylex.scanners)-1]
+}
+
+func (yylex *Lexer) PushInclude(filename string) {
+	Info("Pushed include file, %s", filename)
+	fi, err := os.Open(filename)
+	defer fi.Close()
+	
+	if err != nil {
+		Error("Unable to open include file, %s", filename)
+	} else {
+		src, _ := ioutil.ReadAll(fi)
+		scanner := new(Scanner)
+		scanner.Init(filename, src, nil)
+		yylex.scanners = append(yylex.scanners, scanner)
+	}
+}
+
+func include_push(filename string, yylex yyLexer) {
+	lexer, ok := yylex.(*Lexer)
+	if ok {
+		lexer.PushInclude(filename)
+	} else {
+		Error("yylex is not a Lexer.")
+	}
+}
+
 func ParseFile(filename string) bool {
 	fi, err := os.Open(filename)
 	defer fi.Close()
@@ -528,10 +568,11 @@ func ParseFile(filename string) bool {
 		return false
 	}
 
-	var yylex Lexer
+	yylex := new(Lexer)
 	src, err := ioutil.ReadAll(fi)
-	yylex.scanner = new(Scanner)
-	yylex.scanner.Init(filename, src, nil)
+	yylex.scanners = make([]*Scanner, 1, 2)
+	yylex.scanners[0] = new(Scanner)
+	yylex.scanners[0].Init(filename, src, nil)
 	yyParse(yylex)
 	return true
 }

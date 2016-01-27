@@ -272,7 +272,7 @@ pbrt_stmt
 	}
 	| INCLUDE STRING
 	{
-		//include_push($2)
+		include_push($2, yylex)
 	}
 	| LIGHTSOURCE STRING param_list
 	{
