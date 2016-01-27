@@ -2,13 +2,14 @@ package core
 
 // Go commands to generate lexer/parser.
 //
-//go:generate nex -o pbrtlex.go pbrtlex.nn
 //go:generate go tool yacc -o pbrtparser.go pbrtparser.y
 
 import (
 	"os"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
+	"strconv"
 )
 
 type Object interface{}
@@ -492,6 +493,33 @@ func (tp *TextureParams) GetFloatTextureOrNil(name string) TextureFloat {
 	}
 }
 
+type Lexer struct {
+	scanner *Scanner
+}
+
+func (yylex Lexer) Error(e string) {
+	panic(e)
+}
+func (yylex Lexer) Lex(lval *yySymType) int {
+scanagain:	
+	_, token, val := yylex.scanner.Scan()
+	
+	if token == EOF { return 0 }
+	switch token {
+	case NUMBER:
+		value, _ := strconv.ParseFloat(val, 64) 
+		lval.value = value 	
+	case IDENTIFIER:
+		lval.id = val
+	case STRING:
+		lval.id = val
+	case COMMENT:
+		goto scanagain				
+	}
+	
+	return token
+}
+
 func ParseFile(filename string) bool {
 	fi, err := os.Open(filename)
 	defer fi.Close()
@@ -500,7 +528,10 @@ func ParseFile(filename string) bool {
 		return false
 	}
 
-	yylex := NewLexer(fi)
+	var yylex Lexer
+	src, err := ioutil.ReadAll(fi)
+	yylex.scanner = new(Scanner)
+	yylex.scanner.Init(filename, src, nil)
 	yyParse(yylex)
 	return true
 }
