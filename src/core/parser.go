@@ -372,17 +372,15 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 				if len(values)%2 != 0 {
 					Warning("Excess value given with blackbody parameter \"%s\".  Ignoring extra one.", name)
 				}
-				lambdas := make([]float64, len(values)/2, len(values)/2)
-				vals := make([]float64, len(values)/2, len(values)/2)
-				for vi := 0; vi < len(values); vi = vi + 2 {
-					if v, ok := values[vi].(float64); ok {
-						lambdas[vi/2] = v
-					}
-					if v, ok := values[vi+1].(float64); ok {
-						vals[vi/2] = v
-					}
+				temp, scale := 0.0, 1.0
+				if v, ok := values[0].(float64); ok {
+					temp = v
 				}
-				value = *SpectrumFromSampled(lambdas, vals)
+				if v, ok := values[1].(float64); ok {
+					scale = v
+				}
+				v := Blackbody(CIE_lambda, temp)
+				value = *SpectrumFromSampled(CIE_lambda, v).Scale(scale)
 			}
 		} else if strings.Compare(p, xyzparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {

@@ -49,7 +49,7 @@ func TestTriangleMeshShape(t *testing.T) {
 		if pm.IntersectP(ray) { 
 			hit = true
 		} 
-		hit2,_ := pm.Intersect(ray)
+		hit2,_ := pm.Intersect(CreateRayDifferentialFromRay(ray))
 		if hit != hit2 { t.Fail() }
 	}
 	// should hit one of the two triangle
