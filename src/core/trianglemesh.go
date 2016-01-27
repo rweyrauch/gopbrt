@@ -288,7 +288,7 @@ func (tri *Triangle) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg
 	// Compute triangle partial derivatives
 	var dpdu, dpdv *Vector
 	var uvs [3][2]float64
-	tri.GetUVs(uvs)
+	tri.GetUVs(&uvs)
 
 	// Compute deltas for triangle partial derivatives
 	du1 := uvs[0][0] - uvs[2][0]
@@ -378,7 +378,7 @@ func (tri *Triangle) IntersectP(ray *Ray) bool {
 		// Compute triangle partial derivatives
 		var dpdu, dpdv *Vector
 		var uvs [3][2]float64
-		tri.GetUVs(uvs)
+		tri.GetUVs(&uvs)
 
 		// Compute deltas for triangle partial derivatives
 		du1 := uvs[0][0] - uvs[2][0]
@@ -423,7 +423,7 @@ func (tri *Triangle) GetShadingGeometry(obj2world *Transform, dg *DifferentialGe
 
 	// Initialize _A_ and _C_ matrices for barycentrics
 	var uv [3][2]float64
-	tri.GetUVs(uv)
+	tri.GetUVs(&uv)
 
 	A := [2][2]float64{{uv[1][0] - uv[0][0], uv[2][0] - uv[0][0]},
 		{uv[1][1] - uv[0][1], uv[2][1] - uv[0][1]}}
@@ -462,7 +462,7 @@ func (tri *Triangle) GetShadingGeometry(obj2world *Transform, dg *DifferentialGe
 	// Compute $\dndu$ and $\dndv$ for triangle shading geometry
 	if tri.mesh.n != nil {
 		var uvs [3][2]float64
-		tri.GetUVs(uvs)
+		tri.GetUVs(&uvs)
 		// Compute deltas for triangle partial derivatives of normal
 		du1 := uvs[0][0] - uvs[2][0]
 		du2 := uvs[1][0] - uvs[2][0]
@@ -541,7 +541,7 @@ func (t *Triangle) ShapeId() uint32 {
 	return t.mesh.shapeId
 }
 
-func (t *Triangle) GetUVs(uv [3][2]float64) {
+func (t *Triangle) GetUVs(uv *[3][2]float64) {
 	if t.mesh.uvs != nil {
 		uv[0][0] = t.mesh.uvs[2*t.v[0]]
 		uv[0][1] = t.mesh.uvs[2*t.v[0]+1]

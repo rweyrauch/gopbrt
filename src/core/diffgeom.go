@@ -2,6 +2,7 @@ package core
 
 import (
 	"math"
+	"fmt"
 )
 
 type DifferentialGeometry struct {
@@ -92,4 +93,8 @@ func (dg *DifferentialGeometry) ComputeDifferentials(ray *RayDifferential) {
 		}
 	}
 fail:
+}
+
+func (dg *DifferentialGeometry) String() string {
+	return fmt.Sprintf("dg[p: %v n: %v u,v: %f,%f]", dg.p, dg.nn, dg.u, dg.v)
 }
