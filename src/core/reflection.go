@@ -115,6 +115,9 @@ type BRDFToBTDF struct { // BxDF
 	brdf BxDF
 }
 
+func NewBRDFToBTDF(brdf BxDF) *BRDFToBTDF {
+	return &BRDFToBTDF{BxDFData{brdf.Type() ^ (BSDF_REFLECTION | BSDF_TRANSMISSION)}, brdf}
+}
 func (b *BRDFToBTDF) F(wo, wi *Vector) *Spectrum {
 	return b.brdf.F(wo, b.otherHemisphere(wi))
 }
@@ -147,6 +150,10 @@ type ScaledBxDF struct { // BxDF
 	BxDFData
 	bxdf BxDF
 	s    Spectrum
+}
+
+func NewScaledBxDF(bxdf BxDF, s Spectrum) *ScaledBxDF {
+	return &ScaledBxDF{BxDFData{bxdf.Type()}, bxdf, s}
 }
 
 func (b *ScaledBxDF) F(wo, wi *Vector) *Spectrum {
@@ -208,6 +215,10 @@ func (fresnel *FresnelDielectric) Evaluate(cosi float64) *Spectrum {
 }
 
 type FresnelNoOp struct {
+}
+
+func (fresnel *FresnelNoOp) Evaluate(cosi float64) *Spectrum {
+	return NewSpectrum1(1.0)
 }
 
 type BSDF struct {
@@ -459,8 +470,8 @@ type BSSRDF struct {
 	sig_a, sigp_s Spectrum
 }
 
-func CreateBSSRDF(sa, sps Spectrum, et float64) *BSSRDF {
-	return &BSSRDF{et, sa, sps}
+func NewBSSRDF(sa, sps *Spectrum, et float64) *BSSRDF {
+	return &BSSRDF{et, *sa, *sps}
 }
 
 type IrregIsotropicBRDFSample struct {
@@ -542,6 +553,50 @@ func SinPhi(w *Vector) float64 {
 func SameHemisphere(w, wp *Vector) bool {
 	return w.z*wp.z > 0.0
 }
+
+func (b *SpecularReflection) F(wo, wi *Vector) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularReflection) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
+	Unimplemented()
+	return nil, nil, 0.0
+}
+func (b *SpecularReflection) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularReflection) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularReflection) Pdf(wi, wo *Vector) float64 {
+	Unimplemented()
+	return 0.0
+}
+func (b *SpecularReflection) Type() BxDFType { return b.bxdftype }
+
+func (b *SpecularTransmission) F(wo, wi *Vector) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularTransmission) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
+	Unimplemented()
+	return nil, nil, 0.0
+}
+func (b *SpecularTransmission) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularTransmission) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularTransmission) Pdf(wi, wo *Vector) float64 {
+	Unimplemented()
+	return 0.0
+}
+func (b *SpecularTransmission) Type() BxDFType { return b.bxdftype }
 
 func NewLambertian(reflectance Spectrum) *Lambertian {
 	b := new(Lambertian)
@@ -675,6 +730,62 @@ func (b *Microfacet) G(wo, wi, wh *Vector) float64 {
 	return math.Min(1.0, math.Min((2.0*NdotWh*NdotWo/WOdotWh), (2.0*NdotWh*NdotWi/WOdotWh)))
 }
 
+func NewFresnelBlend(d, s *Spectrum, dist *MicrofacetDistribution) *FresnelBlend {
+	fb := &FresnelBlend{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)}, *d, *s, *dist}
+	return fb
+}
+
+func (blend *FresnelBlend) schlickFresnel(costheta float64) *Spectrum {
+	return blend.Rs.Add((NewSpectrum1(1.0).Sub(&blend.Rs)).Scale(math.Pow(1.0-costheta, 5.0)))
+}
+
+func (blend *FresnelBlend) F(wo, wi *Vector) *Spectrum {
+
+	diffuse := blend.Rd.Scale(28.0 / (23.0 * math.Pi)).Mult((NewSpectrum1(1.0).Sub(&blend.Rs)).Scale((1.0 - math.Pow(1.0-0.5*AbsCosTheta(wi), 5)) * (1.0 - math.Pow(1.0-0.5*AbsCosTheta(wo), 5))))
+	wh := wi.Add(wo)
+	if wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0 {
+		return NewSpectrum1(0.0)
+	}
+	wh = NormalizeVector(wh)
+	specular := blend.schlickFresnel(DotVector(wi, wh)).Scale(blend.distribution.D(wh) / (4.0 * AbsDotVector(wi, wh) * math.Max(AbsCosTheta(wi), AbsCosTheta(wo))))
+	return diffuse.Add(specular)
+}
+
+func (blend *FresnelBlend) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
+	if u1 < 0.5 {
+		u1 = 2.0 * u1
+		// Cosine-sample the hemisphere, flipping the direction if necessary
+		wi = CosineSampleHemisphere(u1, u2)
+		if wo.z < 0.0 {
+			wi.z *= -1.0
+		}
+	} else {
+		u1 = 2.0 * (u1 - 0.5)
+		wi, pdf = blend.distribution.Sample_f(wo, u1, u2)
+		if !SameHemisphere(wo, wi) {
+			return wi, NewSpectrum1(0.0), pdf
+		}
+	}
+	pdf = blend.Pdf(wo, wi)
+	return wi, blend.F(wo, wi), pdf
+}
+
+func (blend *FresnelBlend) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
+	return BxDFrho(blend, wo, nSamples, samples)
+}
+func (blend *FresnelBlend) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
+	return BxDFrho2(blend, nSamples, samples1, samples2)
+}
+func (blend *FresnelBlend) Pdf(wi, wo *Vector) float64 {
+	if !SameHemisphere(wo, wi) {
+		return 0.0
+	}
+	return 0.5 * (AbsCosTheta(wi)*INV_PI + blend.distribution.Pdf(wo, wi))
+}
+func (f *FresnelBlend) Type() BxDFType {
+	return f.bxdftype
+}
+
 func (b *Blinn) D(wh *Vector) float64 {
 	costhetah := AbsCosTheta(wh)
 	return (b.exponent + 2) / (2.0 * math.Pi) * math.Pow(costhetah, b.exponent)
@@ -711,4 +822,90 @@ func (b *Blinn) Pdf(wo, wi *Vector) float64 {
 		blinn_pdf = 0.0
 	}
 	return blinn_pdf
+}
+
+func NewAnisotropic(x, y float64) *Anisotropic {
+	if x > 10000.0 || math.IsNaN(x) {
+		x = 10000.0
+	}
+	if y > 10000.0 || math.IsNaN(y) {
+		y = 10000.0
+	}
+	return &Anisotropic{x, y}
+}
+
+func (a *Anisotropic) D(wh *Vector) float64 {
+	costhetah := AbsCosTheta(wh)
+	d := 1.0 - costhetah*costhetah
+	if d == 0.0 {
+		return 0.0
+	}
+	e := (a.ex*wh.x*wh.x + a.ey*wh.y*wh.y) / d
+	return math.Sqrt((a.ex+2.0)*(a.ey+2.0)) * (1.0 / (2.0 * math.Pi)) * math.Pow(costhetah, e)
+}
+
+func (a *Anisotropic) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, pdf float64) {
+	// Sample from first quadrant and remap to hemisphere to sample $\wh$
+	var phi, costheta float64
+	if u1 < 0.25 {
+		phi, costheta = a.sampleFirstQuadrant(4.0*u1, u2)
+	} else if u1 < 0.5 {
+		u1 = 4.0 * (0.5 - u1)
+		phi, costheta = a.sampleFirstQuadrant(u1, u2)
+		phi = math.Pi - phi
+	} else if u1 < 0.75 {
+		u1 = 4.0 * (u1 - 0.5)
+		phi, costheta = a.sampleFirstQuadrant(u1, u2)
+		phi += math.Pi
+	} else {
+		u1 = 4.0 * (1.0 - u1)
+		phi, costheta = a.sampleFirstQuadrant(u1, u2)
+		phi = 2.0*math.Pi - phi
+	}
+	sintheta := math.Sqrt(math.Max(0.0, 1.0-costheta*costheta))
+	wh := SphericalDirection(sintheta, costheta, phi)
+	if !SameHemisphere(wo, wh) {
+		wh = wh.Negate()
+	}
+
+	// Compute incident direction by reflecting about $\wh$
+	dotwowh := DotVector(wo, wh)
+	wi = wh.Scale(2.0 * dotwowh).Sub(wo)
+
+	// Compute PDF for $\wi$ from anisotropic distribution
+	costhetah := AbsCosTheta(wh)
+	ds := 1.0 - costhetah*costhetah
+	anisotropic_pdf := 0.0
+	if ds > 0.0 && DotVector(wo, wh) > 0.0 {
+		e := (a.ex*wh.x*wh.x + a.ey*wh.y*wh.y) / ds
+		d := math.Sqrt((a.ex+1.0)*(a.ey+1.0)) * INV_TWOPI * math.Pow(costhetah, e)
+		anisotropic_pdf = d / (4.0 * DotVector(wo, wh))
+	}
+	pdf = anisotropic_pdf
+	return wi, pdf
+}
+
+func (a *Anisotropic) Pdf(wo, wi *Vector) float64 {
+	wh := NormalizeVector(wo.Add(wi))
+	// Compute PDF for $\wi$ from anisotropic distribution
+	costhetah := AbsCosTheta(wh)
+	ds := 1.0 - costhetah*costhetah
+	anisotropic_pdf := 0.0
+	if ds > 0.0 && DotVector(wo, wh) > 0.0 {
+		e := (a.ex*wh.x*wh.x + a.ey*wh.y*wh.y) / ds
+		d := math.Sqrt((a.ex+1.0)*(a.ey+1.0)) * INV_TWOPI * math.Pow(costhetah, e)
+		anisotropic_pdf = d / (4.0 * DotVector(wo, wh))
+	}
+	return anisotropic_pdf
+}
+
+func (a *Anisotropic) sampleFirstQuadrant(u1, u2 float64) (phi, costheta float64) {
+	if a.ex == a.ey {
+		phi = math.Pi * u1 * 0.5
+	} else {
+		phi = math.Atan(math.Sqrt((a.ex+1.0)/(a.ey+1.0)) * math.Tan(math.Pi*u1*0.5))
+	}
+	cosphi, sinphi := math.Cos(phi), math.Sin(phi)
+	costheta = math.Pow(u2, 1.0/(a.ex*cosphi*cosphi+a.ey*sinphi*sinphi+1))
+	return phi, costheta
 }

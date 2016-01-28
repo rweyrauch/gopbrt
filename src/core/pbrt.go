@@ -9,6 +9,11 @@ const (
 	PBRT_VERSION   = "2.0.0"
 )
 
+const (
+	INV_TWOPI = 1.0 / (2.0 * math.Pi)
+	INV_PI = 1.0 / math.Pi
+)
+
 type Options struct {
 	NumCores                                int
 	QuickRender, Quiet, Verbose, OpenWindow, Debug bool
