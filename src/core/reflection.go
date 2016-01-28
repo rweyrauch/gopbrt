@@ -190,7 +190,7 @@ func (fresnel *FresnelConductor) Evaluate(cosi float64) *Spectrum {
 }
 
 type FresnelDielectric struct {
-	eta_t, eta_i float64
+	eta_i, eta_t float64
 }
 
 func (fresnel *FresnelDielectric) Evaluate(cosi float64) *Spectrum {
@@ -554,46 +554,62 @@ func SameHemisphere(w, wp *Vector) bool {
 }
 
 func (b *SpecularReflection) F(wo, wi *Vector) *Spectrum {
-	Unimplemented()
-	return nil
+	return NewSpectrum1(0.0)
 }
 func (b *SpecularReflection) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
-	Unimplemented()
-	return nil, nil, 0.0
+    // Compute perfect specular reflection direction
+    wi = CreateVector(-wo.x, -wo.y, wo.z)
+    pdf = 1.0
+    f = (b.fresnel.Evaluate(CosTheta(wo)).Mult(b.R)).InvScale(AbsCosTheta(wi))
+	return wi, f, pdf
 }
 func (b *SpecularReflection) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
-	Unimplemented()
-	return nil
+	return BxDFrho(b, wo, nSamples, samples)
 }
 func (b *SpecularReflection) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
-	Unimplemented()
-	return nil
+	return BxDFrho2(b, nSamples, samples1, samples2)
 }
 func (b *SpecularReflection) Pdf(wi, wo *Vector) float64 {
-	Unimplemented()
 	return 0.0
 }
 func (b *SpecularReflection) Type() BxDFType { return b.bxdftype }
 
 
 func (b *SpecularTransmission) F(wo, wi *Vector) *Spectrum {
-	Unimplemented()
-	return nil
+	return NewSpectrum1(0.0)
 }
+
 func (b *SpecularTransmission) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
-	Unimplemented()
-	return nil, nil, 0.0
+    // Figure out which $\eta$ is incident and which is transmitted
+    entering := CosTheta(wo) > 0.0
+    ei, et := b.etai, b.etat
+    if !entering {
+        ei, et = et, ei
+	}
+    // Compute transmitted ray direction
+    sini2 := SinTheta2(wo);
+    eta := ei / et
+    sint2 := eta * eta * sini2
+
+    // Handle total internal reflection for transmission
+    if sint2 >= 1.0 { return nil, NewSpectrum1(0.0), 0.0 }
+    cost := math.Sqrt(math.Max(0.0, 1.0 - sint2))
+    if entering { cost = -cost }
+    sintOverSini := eta
+    wi = CreateVector(sintOverSini * -wo.x, sintOverSini * -wo.y, cost)
+    pdf = 1.0
+    F := b.fresnel.Evaluate(CosTheta(wo))
+    f = (NewSpectrum1(1.0).Sub(F)).Mult(b.T.InvScale(AbsCosTheta(wi)))
+    return wi, f, pdf
 }
+
 func (b *SpecularTransmission) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
-	Unimplemented()
-	return nil
+	return BxDFrho(b, wo, nSamples, samples)
 }
 func (b *SpecularTransmission) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
-	Unimplemented()
-	return nil
+	return BxDFrho2(b, nSamples, samples1, samples2)
 }
 func (b *SpecularTransmission) Pdf(wi, wo *Vector) float64 {
-	Unimplemented()
 	return 0.0
 }
 func (b *SpecularTransmission) Type() BxDFType { return b.bxdftype }

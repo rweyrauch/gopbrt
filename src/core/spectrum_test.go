@@ -28,7 +28,7 @@ var rgbOutputVector []rgbOutputData = []rgbOutputData{
 }
 
 const (
-	tol = 0.00001
+	tol = 0.0001
 )
 
 var blackBodySpectrumInputVector [][2]float64 = [][2]float64{
