@@ -149,19 +149,19 @@ func (b *BRDFToBTDF) otherHemisphere(w *Vector) *Vector {
 type ScaledBxDF struct { // BxDF
 	BxDFData
 	bxdf BxDF
-	s    Spectrum
+	s    *Spectrum
 }
 
-func NewScaledBxDF(bxdf BxDF, s Spectrum) *ScaledBxDF {
+func NewScaledBxDF(bxdf BxDF, s *Spectrum) *ScaledBxDF {
 	return &ScaledBxDF{BxDFData{bxdf.Type()}, bxdf, s}
 }
 
 func (b *ScaledBxDF) F(wo, wi *Vector) *Spectrum {
-	return b.bxdf.F(wo, wi).Mult(&b.s)
+	return b.bxdf.F(wo, wi).Mult(b.s)
 }
 func (b *ScaledBxDF) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
 	wi, f, pdf = b.bxdf.Sample_f(wo, u1, u2)
-	return wi, f.Mult(&b.s), pdf
+	return wi, f.Mult(b.s), pdf
 }
 func (b *ScaledBxDF) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
 	Unimplemented()
@@ -182,11 +182,11 @@ type Fresnel interface {
 }
 
 type FresnelConductor struct {
-	k, eta Spectrum
+	k, eta *Spectrum
 }
 
 func (fresnel *FresnelConductor) Evaluate(cosi float64) *Spectrum {
-	return FrCond(math.Abs(cosi), &fresnel.eta, &fresnel.k)
+	return FrCond(math.Abs(cosi), fresnel.eta, fresnel.k)
 }
 
 type FresnelDielectric struct {
@@ -410,25 +410,25 @@ func (bsdf *BSDF) rho2(wo *Vector, rng *RNG, flags BxDFType, sqrtSamples int) *S
 
 type SpecularReflection struct { // BxDF
 	BxDFData
-	R       Spectrum
+	R       *Spectrum
 	fresnel Fresnel
 }
 
 type SpecularTransmission struct { // BxDF
 	BxDFData
-	T          Spectrum
+	T          *Spectrum
 	etai, etat float64
 	fresnel    *FresnelDielectric
 }
 
 type Lambertian struct { // BxDF
 	BxDFData
-	R Spectrum
+	R *Spectrum
 }
 
 type OrenNayar struct { // BxDF
 	BxDFData
-	R    Spectrum
+	R    *Spectrum
 	A, B float64
 }
 
@@ -440,7 +440,7 @@ type MicrofacetDistribution interface {
 
 type Microfacet struct { // BxDF
 	BxDFData
-	R            Spectrum
+	R            *Spectrum
 	distribution MicrofacetDistribution
 	fresnel      Fresnel
 }
@@ -455,7 +455,7 @@ type Anisotropic struct { // MicrofacetDistribution
 
 type FresnelBlend struct { // BxDF
 	BxDFData
-	Rd, Rs       Spectrum
+	Rd, Rs       *Spectrum
 	distribution MicrofacetDistribution
 }
 
@@ -467,16 +467,16 @@ type RegularHalfangleBRDF struct { // BxDF
 
 type BSSRDF struct {
 	e             float64
-	sig_a, sigp_s Spectrum
+	sig_a, sigp_s *Spectrum
 }
 
 func NewBSSRDF(sa, sps *Spectrum, et float64) *BSSRDF {
-	return &BSSRDF{et, *sa, *sps}
+	return &BSSRDF{et, sa, sps}
 }
 
 type IrregIsotropicBRDFSample struct {
 	p *Point
-	v Spectrum
+	v *Spectrum
 }
 
 func FrDiel(cosi, cost float64, etai, etat *Spectrum) *Spectrum {
@@ -598,7 +598,7 @@ func (b *SpecularTransmission) Pdf(wi, wo *Vector) float64 {
 }
 func (b *SpecularTransmission) Type() BxDFType { return b.bxdftype }
 
-func NewLambertian(reflectance Spectrum) *Lambertian {
+func NewLambertian(reflectance *Spectrum) *Lambertian {
 	b := new(Lambertian)
 	b.bxdftype = BSDF_REFLECTION | BSDF_DIFFUSE
 	b.R = reflectance
@@ -625,7 +625,7 @@ func (b *Lambertian) Pdf(wi, wo *Vector) float64 {
 }
 func (b *Lambertian) Type() BxDFType { return b.bxdftype }
 
-func NewOrenNayar(reflectance Spectrum, sig float64) *OrenNayar {
+func NewOrenNayar(reflectance *Spectrum, sig float64) *OrenNayar {
 	on := new(OrenNayar)
 	on.bxdftype = BSDF_REFLECTION | BSDF_DIFFUSE
 	on.R = reflectance
@@ -679,7 +679,7 @@ func (b *OrenNayar) Pdf(wi, wo *Vector) float64 {
 func (b *OrenNayar) Type() BxDFType { return b.bxdftype }
 
 func NewMicrofacet(reflectance *Spectrum, f Fresnel, d MicrofacetDistribution) *Microfacet {
-	return &Microfacet{BxDFData{BSDF_REFLECTION | BSDF_GLOSSY}, *reflectance, d, f}
+	return &Microfacet{BxDFData{BSDF_REFLECTION | BSDF_GLOSSY}, reflectance, d, f}
 }
 func (b *Microfacet) F(wo, wi *Vector) *Spectrum {
 	cosThetaO := AbsCosTheta(wo)
@@ -730,18 +730,18 @@ func (b *Microfacet) G(wo, wi, wh *Vector) float64 {
 	return math.Min(1.0, math.Min((2.0*NdotWh*NdotWo/WOdotWh), (2.0*NdotWh*NdotWi/WOdotWh)))
 }
 
-func NewFresnelBlend(d, s *Spectrum, dist *MicrofacetDistribution) *FresnelBlend {
-	fb := &FresnelBlend{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)}, *d, *s, *dist}
+func NewFresnelBlend(d, s *Spectrum, dist MicrofacetDistribution) *FresnelBlend {
+	fb := &FresnelBlend{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)}, d, s, dist}
 	return fb
 }
 
 func (blend *FresnelBlend) schlickFresnel(costheta float64) *Spectrum {
-	return blend.Rs.Add((NewSpectrum1(1.0).Sub(&blend.Rs)).Scale(math.Pow(1.0-costheta, 5.0)))
+	return blend.Rs.Add((NewSpectrum1(1.0).Sub(blend.Rs)).Scale(math.Pow(1.0-costheta, 5.0)))
 }
 
 func (blend *FresnelBlend) F(wo, wi *Vector) *Spectrum {
 
-	diffuse := blend.Rd.Scale(28.0 / (23.0 * math.Pi)).Mult((NewSpectrum1(1.0).Sub(&blend.Rs)).Scale((1.0 - math.Pow(1.0-0.5*AbsCosTheta(wi), 5)) * (1.0 - math.Pow(1.0-0.5*AbsCosTheta(wo), 5))))
+	diffuse := blend.Rd.Scale(28.0 / (23.0 * math.Pi)).Mult((NewSpectrum1(1.0).Sub(blend.Rs)).Scale((1.0 - math.Pow(1.0-0.5*AbsCosTheta(wi), 5)) * (1.0 - math.Pow(1.0-0.5*AbsCosTheta(wo), 5))))
 	wh := wi.Add(wo)
 	if wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0 {
 		return NewSpectrum1(0.0)

@@ -177,10 +177,8 @@ func (m *GlassMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *
 	ior := m.index.Evaluate(dgs)
 	bsdf := NewBSDF(dgs, dgGeom.nn, ior)
 
-	R := m.Kr.Evaluate(dgs)
-	R = *R.Clamp(0.0, INFINITY)
-	T := m.Kt.Evaluate(dgs)
-	T = *T.Clamp(0.0, INFINITY)
+	R := m.Kr.Evaluate(dgs).Clamp(0.0, INFINITY)
+	T := m.Kt.Evaluate(dgs).Clamp(0.0, INFINITY)
 	if !R.IsBlack() {
 		fresnel := &FresnelDielectric{1.0, ior}
 		bsdf.Add(&SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, R, fresnel})
@@ -213,8 +211,7 @@ func (m *KdSubsurfaceMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, 
 		dgs = dgShading
 	}
 	bsdf := NewBSDF(dgs, dgGeom.nn, 1.0)
-	R := m.Kr.Evaluate(dgs)
-	R = *R.Clamp(0.0, INFINITY)
+	R := m.Kr.Evaluate(dgs).Clamp(0.0, INFINITY)
 	e := m.eta.Evaluate(dgs)
 	if !R.IsBlack() {
 		bsdf.Add(&SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, R, &FresnelDielectric{1.0, e}})
@@ -225,9 +222,8 @@ func (m *KdSubsurfaceMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, 
 func (m *KdSubsurfaceMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	e := m.eta.Evaluate(dgShading)
 	mfp := m.meanfreepath.Evaluate(dgShading)
-	kd := m.Kd.Evaluate(dgShading)
-	kd = *kd.Clamp(0.0, INFINITY)
-	sigma_a, sigma_prime_s := SubsurfaceFromDiffuse(&kd, mfp, e)
+	kd := m.Kd.Evaluate(dgShading).Clamp(0.0, INFINITY)
+	sigma_a, sigma_prime_s := SubsurfaceFromDiffuse(kd, mfp, e)
 	return NewBSSRDF(sigma_a, sigma_prime_s, e)
 }
 
@@ -249,8 +245,7 @@ func (m *MatteMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *
 	bsdf := NewBSDF(dgs, dgGeom.nn, 1)
 
 	// Evaluate textures for _MatteMaterial_ material and allocate BRDF
-	kd := m.Kd.Evaluate(dgs)
-	kd = *kd.Clamp(0.0, INFINITY)
+	kd := m.Kd.Evaluate(dgs).Clamp(0.0, INFINITY)
 	sig := Clamp(m.sigma.Evaluate(dgs), 0.0, 90.0)
 	if !kd.IsBlack() {
 		if sig == 0 {
@@ -325,8 +320,7 @@ func (m *MirrorMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena 
 	}
 
 	bsdf := NewBSDF(dgs, dgGeom.nn, 1)
-	R := m.Kr.Evaluate(dgs)
-	R = *R.Clamp(0.0, INFINITY)
+	R := m.Kr.Evaluate(dgs).Clamp(0.0, INFINITY)
 	if !R.IsBlack() {
 		fresnel := &FresnelNoOp{}
 		bsdf.Add(&SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, R, fresnel})
@@ -345,10 +339,8 @@ func CreateMixMaterial(xform *Transform, mp *TextureParams, m1, m2 Material) *Mi
 func (m *MixMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
 	b1 := m.m1.GetBSDF(dgGeom, dgShading, arena)
 	b2 := m.m2.GetBSDF(dgGeom, dgShading, arena)
-	s1 := m.scale.Evaluate(dgShading)
-	s1 = *s1.Clamp(0.0, INFINITY)
-	s2 := *NewSpectrum1(1.0).Sub(&s1)
-	s2 = *s2.Clamp(0.0, INFINITY)
+	s1 := m.scale.Evaluate(dgShading).Clamp(0.0, INFINITY)
+	s2 := (NewSpectrum1(1.0).Sub(s1)).Clamp(0.0, INFINITY)
 	n1, n2 := b1.NumComponents(), b2.NumComponents()
 	for i := 0; i < n1; i++ {
 		b1.bxdfs[i] = NewScaledBxDF(b1.bxdfs[i], s1)
@@ -381,17 +373,15 @@ func (m *PlasticMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena
 
 	bsdf := NewBSDF(dgs, dgGeom.nn, 1)
 
-	kd := m.Kd.Evaluate(dgs)
-	kd = *kd.Clamp(0.0, INFINITY)
+	kd := m.Kd.Evaluate(dgs).Clamp(0.0, INFINITY)
 	if !kd.IsBlack() {
 		bsdf.Add(NewLambertian(kd))
 	}
-	ks := m.Ks.Evaluate(dgs)
-	ks = *ks.Clamp(0.0, INFINITY)
+	ks := m.Ks.Evaluate(dgs).Clamp(0.0, INFINITY)
 	if !ks.IsBlack() {
 		fresnel := &FresnelDielectric{1.5, 1.0}
 		rough := m.roughness.Evaluate(dgs)
-		spec := NewMicrofacet(&ks, fresnel, &Blinn{1.0 / rough})
+		spec := NewMicrofacet(ks, fresnel, &Blinn{1.0 / rough})
 		bsdf.Add(spec)
 	}
 	return bsdf
@@ -428,21 +418,19 @@ func (m *ShinyMetalMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, ar
 	}
 
 	bsdf := NewBSDF(dgs, dgGeom.nn, 1.0)
-	spec := m.Ks.Evaluate(dgs)
-	spec = *spec.Clamp(0.0, INFINITY)
+	spec := m.Ks.Evaluate(dgs).Clamp(0.0, INFINITY)
 	rough := m.roughness.Evaluate(dgs)
-	R := m.Kr.Evaluate(dgs)
-	R = *R.Clamp(0.0, INFINITY)
+	R := m.Kr.Evaluate(dgs).Clamp(0.0, INFINITY)
 
 	md := &Blinn{1.0 / rough}
-	k := *NewSpectrum1(0.0)
+	k := NewSpectrum1(0.0)
 	if !spec.IsBlack() {
-		frMf := &FresnelConductor{*fresnelApproxEta(&spec), k}
+		frMf := &FresnelConductor{fresnelApproxEta(spec), k}
 		bsdf.Add(NewMicrofacet(NewSpectrum1(1.0), frMf, md))
 	}
 	if !R.IsBlack() {
-		frSr := &FresnelConductor{*fresnelApproxEta(&R), k}
-		bsdf.Add(&SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, *NewSpectrum1(1.0), frSr})
+		frSr := &FresnelConductor{fresnelApproxEta(R), k}
+		bsdf.Add(&SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, NewSpectrum1(1.0), frSr})
 	}
 	return bsdf
 }
@@ -469,10 +457,8 @@ func (m *SubstrateMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, are
 	}
 
 	bsdf := NewBSDF(dgs, dgGeom.nn, 1.0)
-	d := m.Kd.Evaluate(dgs)
-	d = *d.Clamp(0.0, INFINITY)
-	s := m.Ks.Evaluate(dgs)
-	s = *s.Clamp(0.0, INFINITY)
+	d := m.Kd.Evaluate(dgs).Clamp(0.0, INFINITY)
+	s := m.Ks.Evaluate(dgs).Clamp(0.0, INFINITY)
 	u := m.nu.Evaluate(dgs)
 	v := m.nv.Evaluate(dgs)
 
@@ -518,8 +504,7 @@ func (m *SubsurfaceMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, ar
 	}
 
 	bsdf := NewBSDF(dgs, dgGeom.nn, 1.0)
-	R := m.Kr.Evaluate(dgs)
-	R = *R.Clamp(0.0, INFINITY)
+	R := m.Kr.Evaluate(dgs).Clamp(0.0, INFINITY)
 	e := m.eta.Evaluate(dgs)
 	if !R.IsBlack() {
 		bsdf.Add(&SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, R, &FresnelDielectric{1.0, e}})
@@ -554,35 +539,31 @@ func (m *TranslucentMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, a
 	}
 	bsdf := NewBSDF(dgs, dgGeom.nn, ior)
 
-	r := m.reflect.Evaluate(dgs)
-	r = *r.Clamp(0.0, INFINITY)
-	t := m.transmit.Evaluate(dgs)
-	t = *t.Clamp(0.0, INFINITY)
+	r := m.reflect.Evaluate(dgs).Clamp(0.0, INFINITY)
+	t := m.transmit.Evaluate(dgs).Clamp(0.0, INFINITY)
 	if r.IsBlack() && t.IsBlack() {
 		return bsdf
 	}
 
-	kd := m.Kd.Evaluate(dgs)
-	kd = *kd.Clamp(0.0, INFINITY)
+	kd := m.Kd.Evaluate(dgs).Clamp(0.0, INFINITY)
 	if !kd.IsBlack() {
 		if !r.IsBlack() {
-			bsdf.Add(NewLambertian(*r.Mult(&kd)))
+			bsdf.Add(NewLambertian(r.Mult(kd)))
 		}
 		if !t.IsBlack() {
-			bsdf.Add(NewBRDFToBTDF(NewLambertian(*t.Mult(&kd))))
+			bsdf.Add(NewBRDFToBTDF(NewLambertian(t.Mult(kd))))
 		}
 	}
-	ks := m.Ks.Evaluate(dgs)
-	ks = *ks.Clamp(0.0, INFINITY)
+	ks := m.Ks.Evaluate(dgs).Clamp(0.0, INFINITY)
 	if !ks.IsBlack() {
 		rough := m.roughness.Evaluate(dgs)
 		if !r.IsBlack() {
 			fresnel := &FresnelDielectric{ior, 1.0}
-			bsdf.Add(NewMicrofacet(r.Mult(&ks), fresnel, &Blinn{1.0 / rough}))
+			bsdf.Add(NewMicrofacet(r.Mult(ks), fresnel, &Blinn{1.0 / rough}))
 		}
 		if !t.IsBlack() {
 			fresnel := &FresnelDielectric{ior, 1.0}
-			bsdf.Add(NewBRDFToBTDF(NewMicrofacet(t.Mult(&ks), fresnel, &Blinn{1.0 / rough})))
+			bsdf.Add(NewBRDFToBTDF(NewMicrofacet(t.Mult(ks), fresnel, &Blinn{1.0 / rough})))
 		}
 	}
 	return bsdf
@@ -614,40 +595,35 @@ func (m *UberMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *M
 
 	bsdf := NewBSDF(dgs, dgGeom.nn, 1.0)
 
-	op := m.opacity.Evaluate(dgs)
-	op = *op.Clamp(0.0, INFINITY)
+	op := m.opacity.Evaluate(dgs).Clamp(0.0, INFINITY)
 	if op.Equal(NewSpectrum1(1.0)) {
 		fresnel := &FresnelDielectric{1.0, 1.0}
-		tr := &SpecularTransmission{BxDFData{BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR)}, *NewSpectrum1(1.0).Sub(&op), 1.0, 1.0, fresnel}
+		tr := &SpecularTransmission{BxDFData{BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR)}, NewSpectrum1(1.0).Sub(op), 1.0, 1.0, fresnel}
 		bsdf.Add(tr)
 	}
 
-	kd := m.Kd.Evaluate(dgs)
-	kd = *op.Mult(&kd).Clamp(0.0, INFINITY)
+	kd := op.Mult(m.Kd.Evaluate(dgs)).Clamp(0.0, INFINITY)
 	if !kd.IsBlack() {
 		diff := NewLambertian(kd)
 		bsdf.Add(diff)
 	}
 
 	e := m.eta.Evaluate(dgs)
-	ks := m.Ks.Evaluate(dgs)
-	ks = *op.Mult(&ks).Clamp(0.0, INFINITY)
+	ks := op.Mult(m.Ks.Evaluate(dgs)).Clamp(0.0, INFINITY)
 	if !ks.IsBlack() {
 		fresnel := &FresnelDielectric{e, 1.0}
 		rough := m.roughness.Evaluate(dgs)
-		spec := NewMicrofacet(&ks, fresnel, &Blinn{1.0 / rough})
+		spec := NewMicrofacet(ks, fresnel, &Blinn{1.0 / rough})
 		bsdf.Add(spec)
 	}
 
-	kr := m.Kr.Evaluate(dgs)
-	kr = *op.Mult(&kr).Clamp(0.0, INFINITY)
+	kr := op.Mult(m.Kr.Evaluate(dgs)).Clamp(0.0, INFINITY)
 	if !kr.IsBlack() {
 		fresnel := &FresnelDielectric{e, 1.0}
 		bsdf.Add(&SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, kr, fresnel})
 	}
 
-	kt := m.Kt.Evaluate(dgs)
-	kt = *op.Mult(&kt).Clamp(0.0, INFINITY)
+	kt := op.Mult(m.Kt.Evaluate(dgs)).Clamp(0.0, INFINITY)
 	if !kt.IsBlack() {
 		fresnel := &FresnelDielectric{e, 1.0}
 		bsdf.Add(&SpecularTransmission{BxDFData{BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR)}, kt, e, 1.0, fresnel})

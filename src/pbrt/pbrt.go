@@ -62,7 +62,7 @@ func main() {
 	if !options.Quiet {
 		fmt.Printf("gopbrt version %s\n", core.GOPBRT_VERSION)
 		fmt.Printf("Copyright (c)2016 Rick Weyrauch.\n\n")
-		fmt.Printf("gopbrt based on pbrt 2.0.0 (see http://pbrt.org)\n\n")
+		fmt.Printf("gopbrt based on pbrt 2.0.0 (see http://pbrt.org)\n")
 		fmt.Printf("Copyright (c)1998-2014 Matt Pharr and Greg Humphreys.\n")
 		fmt.Printf("The source code to pbrt (but *not* the book contents) is covered by the BSD License.\n")
 		fmt.Printf("See the file LICENSE.txt for the conditions of the license.\n")
