@@ -222,14 +222,16 @@ func interpolateSpectrumSamples(lambdas, vals []float64, l float64) float64 {
 
 func Blackbody(wl []float64, temp float64) []float64 {
 	vals := make([]float64, len(wl), len(wl))
-    if temp <= 0 {
-        for i, _ := range vals { vals[i] = 0.0 }
-        return vals
-    }
-    C2 := 1.4388e7
-    norm := math.Pow(555.0, 5.0) * (math.Exp(C2/(555.0*temp)) - 1.0)
-    for i, w := range wl {
-        vals[i] = norm/(math.Pow(w, 5.0)*(math.Exp(C2/(w*temp))-1.0))
+	if temp <= 0 {
+		for i, _ := range vals {
+			vals[i] = 0.0
+		}
+		return vals
+	}
+	C2 := 1.4388e7
+	norm := math.Pow(555.0, 5.0) * (math.Exp(C2/(555.0*temp)) - 1.0)
+	for i, w := range wl {
+		vals[i] = norm / (math.Pow(w, 5.0) * (math.Exp(C2/(w*temp)) - 1.0))
 	}
 	return vals
 }
