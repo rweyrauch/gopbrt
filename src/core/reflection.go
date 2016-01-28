@@ -115,6 +115,9 @@ type BRDFToBTDF struct { // BxDF
 	brdf BxDF
 }
 
+func NewBRDFToBTDF(brdf BxDF) *BRDFToBTDF {
+	return &BRDFToBTDF{BxDFData{brdf.Type() ^ (BSDF_REFLECTION | BSDF_TRANSMISSION)}, brdf}
+}
 func (b *BRDFToBTDF) F(wo, wi *Vector) *Spectrum {
 	return b.brdf.F(wo, b.otherHemisphere(wi))
 }
@@ -208,6 +211,9 @@ func (fresnel *FresnelDielectric) Evaluate(cosi float64) *Spectrum {
 }
 
 type FresnelNoOp struct {
+}
+func (fresnel *FresnelNoOp) Evaluate(cosi float64) *Spectrum {
+	return NewSpectrum1(1.0)
 }
 
 type BSDF struct {
@@ -542,6 +548,51 @@ func SinPhi(w *Vector) float64 {
 func SameHemisphere(w, wp *Vector) bool {
 	return w.z*wp.z > 0.0
 }
+
+func (b *SpecularReflection) F(wo, wi *Vector) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularReflection) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
+	Unimplemented()
+	return nil, nil, 0.0
+}
+func (b *SpecularReflection) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularReflection) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularReflection) Pdf(wi, wo *Vector) float64 {
+	Unimplemented()
+	return 0.0
+}
+func (b *SpecularReflection) Type() BxDFType { return b.bxdftype }
+
+
+func (b *SpecularTransmission) F(wo, wi *Vector) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularTransmission) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
+	Unimplemented()
+	return nil, nil, 0.0
+}
+func (b *SpecularTransmission) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularTransmission) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
+	Unimplemented()
+	return nil
+}
+func (b *SpecularTransmission) Pdf(wi, wo *Vector) float64 {
+	Unimplemented()
+	return 0.0
+}
+func (b *SpecularTransmission) Type() BxDFType { return b.bxdftype }
 
 func NewLambertian(reflectance Spectrum) *Lambertian {
 	b := new(Lambertian)

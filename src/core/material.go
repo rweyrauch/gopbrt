@@ -121,11 +121,36 @@ type (
 )
 
 func CreateGlassMaterial(xform *Transform, mp *TextureParams) *GlassMaterial {
-	Unimplemented()
-	return nil
+    Kr := mp.GetSpectrumTexture("Kr", *NewSpectrum1(1.0))
+    Kt := mp.GetSpectrumTexture("Kt", *NewSpectrum1(1.0))
+    index := mp.GetFloatTexture("index", 1.5)
+    bumpMap := mp.GetFloatTextureOrNil("bumpmap")
+    return &GlassMaterial{Kr, Kt, index, bumpMap}
 }
-func (m *GlassMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
-	return nil
+
+func (m *GlassMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
+    var dgs *DifferentialGeometry
+	if m.bumpMap != nil {
+		dgs = Bump(m.bumpMap, dgGeom, dgShading)
+	} else {
+		dgs = dgShading
+	}
+    ior := m.index.Evaluate(dgs)
+	bsdf := NewBSDF(dgs, dgGeom.nn, ior)
+    
+    R := m.Kr.Evaluate(dgs)
+    R = *R.Clamp(0.0, INFINITY)
+    T := m.Kt.Evaluate(dgs)
+    T = *T.Clamp(0.0, INFINITY)
+    if !R.IsBlack() {
+		fresnel := &FresnelDielectric{1.0, ior}
+        bsdf.Add(&SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, R, fresnel})
+    }        
+    if !T.IsBlack() {
+		fresnel := &FresnelDielectric{1.0, ior}
+        bsdf.Add(&SpecularTransmission{BxDFData{BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR)}, T, 1.0, ior, fresnel})
+    }    
+    return bsdf
 }
 func (m *GlassMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
@@ -160,8 +185,8 @@ func (m *MatteMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *
 
 	// Evaluate textures for _MatteMaterial_ material and allocate BRDF
 	kd := m.Kd.Evaluate(dgs)
-	kd = *kd.Clamp(0.0, INFINITYF)
-	sig := Clamp(float64(m.sigma.Evaluate(dgs)), 0.0, 90.0)
+	kd = *kd.Clamp(0.0, INFINITY)
+	sig := Clamp(m.sigma.Evaluate(dgs), 0.0, 90.0)
 	if !kd.IsBlack() {
 		if sig == 0 {
 			bsdf.Add(NewLambertian(kd))
@@ -199,11 +224,27 @@ func (m *MetalMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryAr
 }
 
 func CreateMirrorMaterial(xform *Transform, mp *TextureParams) *MirrorMaterial {
-	Unimplemented()
-	return nil
+    Kr := mp.GetSpectrumTexture("Kr", *NewSpectrum1(0.9))
+    bumpMap := mp.GetFloatTextureOrNil("bumpmap")
+    return &MirrorMaterial{Kr, bumpMap}
 }
-func (m *MirrorMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
-	return nil
+func (m *MirrorMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
+    // Allocate _BSDF_, possibly doing bump mapping with _bumpMap_
+	var dgs *DifferentialGeometry
+	if m.bumpMap != nil {
+		dgs = Bump(m.bumpMap, dgGeom, dgShading)
+	} else {
+		dgs = dgShading
+	}
+	
+	bsdf := NewBSDF(dgs, dgGeom.nn, 1)
+    R := m.Kr.Evaluate(dgs)
+    R = *R.Clamp(0.0, INFINITY)
+    if !R.IsBlack() {
+		fresnel := &FresnelNoOp{}
+        bsdf.Add(&SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, R, fresnel})
+    }        
+    return bsdf
 }
 func (m *MirrorMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
@@ -240,16 +281,16 @@ func (m *PlasticMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena
 	bsdf := NewBSDF(dgs, dgGeom.nn, 1)
 
 	kd := m.Kd.Evaluate(dgs)
-	kd = *kd.Clamp(0.0, INFINITYF)
+	kd = *kd.Clamp(0.0, INFINITY)
 	if !kd.IsBlack() {
 		bsdf.Add(NewLambertian(kd))
 	}
 	ks := m.Ks.Evaluate(dgs)
-	ks = *ks.Clamp(0.0, INFINITYF)
+	ks = *ks.Clamp(0.0, INFINITY)
 	if !ks.IsBlack() {
 		fresnel := &FresnelDielectric{1.5, 1.0}
 		rough := m.roughness.Evaluate(dgs)
-		spec := NewMicrofacet(&ks, fresnel, &Blinn{1.0 / float64(rough)})
+		spec := NewMicrofacet(&ks, fresnel, &Blinn{1.0 / rough})
 		bsdf.Add(spec)
 	}
 	return bsdf
@@ -259,11 +300,50 @@ func (m *PlasticMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *Memory
 }
 
 func CreateShinyMetalMaterial(xform *Transform, mp *TextureParams) *ShinyMetalMaterial {
-	Unimplemented()
-	return nil
+    Kr := mp.GetSpectrumTexture("Kr", *NewSpectrum1(1.0))
+    Ks := mp.GetSpectrumTexture("Ks", *NewSpectrum1(1.0))
+    roughness := mp.GetFloatTexture("roughness", 0.1)
+    bumpMap := mp.GetFloatTextureOrNil("bumpmap")
+    return &ShinyMetalMaterial{Kr, Ks, roughness, bumpMap}
 }
-func (m *ShinyMetalMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
-	return nil
+
+func fresnelApproxEta(Fr *Spectrum) *Spectrum {
+    reflectance := Fr.Clamp(0.0, 0.999)
+    return NewSpectrum1(1.0).Add(SqrtSpectrum(reflectance)).Divide(NewSpectrum1(1.0).Sub(SqrtSpectrum(reflectance)))
+}
+
+func fresnelApproxK(Fr *Spectrum) *Spectrum {
+    reflectance := Fr.Clamp(0.0, 0.999)
+    return SqrtSpectrum(reflectance.Divide(NewSpectrum1(1.0).Sub(reflectance))).Scale(2.0)
+}
+
+func (m *ShinyMetalMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
+    // Allocate _BSDF_, possibly doing bump-mapping with _bumpMap_
+	var dgs *DifferentialGeometry
+	if m.bumpMap != nil {
+		dgs = Bump(m.bumpMap, dgGeom, dgShading)
+	} else {
+		dgs = dgShading
+	}
+        
+    bsdf := NewBSDF(dgs, dgGeom.nn, 1.0)
+    spec := m.Ks.Evaluate(dgs)
+    spec = *spec.Clamp(0.0, INFINITY)
+    rough := m.roughness.Evaluate(dgs)
+    R := m.Kr.Evaluate(dgs)
+    R = *R.Clamp(0.0, INFINITY)
+
+    md := &Blinn{1.0 / rough}
+    k := *NewSpectrum1(0.0)
+    if !spec.IsBlack() {
+        frMf := &FresnelConductor{*fresnelApproxEta(&spec), k}
+        bsdf.Add(NewMicrofacet(NewSpectrum1(1.0), frMf, md))
+    }
+    if !R.IsBlack() {
+        frSr := &FresnelConductor{*fresnelApproxEta(&R), k}
+        bsdf.Add(&SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, *NewSpectrum1(1.0), frSr})
+    }
+    return bsdf
 }
 func (m *ShinyMetalMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
@@ -292,11 +372,51 @@ func (m *SubsurfaceMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *Mem
 }
 
 func CreateTranslucentMaterial(xform *Transform, mp *TextureParams) *TranslucentMaterial {
-	Unimplemented()
-	return nil
+    Kd := mp.GetSpectrumTexture("Kd", *NewSpectrum1(0.25))
+    Ks := mp.GetSpectrumTexture("Ks", *NewSpectrum1(0.25))
+    reflect := mp.GetSpectrumTexture("reflect", *NewSpectrum1(0.5))
+    transmit := mp.GetSpectrumTexture("transmit", *NewSpectrum1(0.5))
+    roughness := mp.GetFloatTexture("roughness", 0.1)
+    bumpMap := mp.GetFloatTextureOrNil("bumpmap")
+    return &TranslucentMaterial{Kd, Ks, reflect, transmit, roughness, bumpMap}
 }
-func (m *TranslucentMaterial) GetBSDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSDF {
-	return nil
+
+func (m *TranslucentMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
+    ior := 1.5
+ 	var dgs *DifferentialGeometry
+	if m.bumpMap != nil {
+		dgs = Bump(m.bumpMap, dgGeom, dgShading)
+	} else {
+		dgs = dgShading
+	}
+    bsdf := NewBSDF(dgs, dgGeom.nn, ior)
+
+    r := m.reflect.Evaluate(dgs)
+    r = *r.Clamp(0.0, INFINITY)
+    t := m.transmit.Evaluate(dgs)
+    t = *t.Clamp(0.0, INFINITY)
+    if r.IsBlack() && t.IsBlack() { return bsdf }
+
+    kd := m.Kd.Evaluate(dgs)
+    kd = *kd.Clamp(0.0, INFINITY)
+    if !kd.IsBlack() {
+        if !r.IsBlack() { bsdf.Add(NewLambertian(*r.Mult(&kd))) }
+        if !t.IsBlack() { bsdf.Add(NewBRDFToBTDF(NewLambertian(*t.Mult(&kd)))) }
+    }
+    ks := m.Ks.Evaluate(dgs)
+    ks = *ks.Clamp(0.0, INFINITY)
+    if !ks.IsBlack() {
+        rough := m.roughness.Evaluate(dgs)
+        if !r.IsBlack() {
+            fresnel := &FresnelDielectric{ior, 1.0}
+            bsdf.Add(NewMicrofacet(r.Mult(&ks), fresnel, &Blinn{1.0 / rough}))
+        }
+        if !t.IsBlack() {
+            fresnel := &FresnelDielectric{ior, 1.0}
+            bsdf.Add(NewBRDFToBTDF(NewMicrofacet(t.Mult(&ks), fresnel, &Blinn{1.0 / rough})))
+        }
+    }
+    return bsdf
 }
 func (m *TranslucentMaterial) GetBSSRDF(dg, dgs *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
