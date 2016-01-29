@@ -590,17 +590,41 @@ func CreateProjectionLight(light2world *Transform, paramSet *ParamSet) *Projecti
 	return nil
 }
 
-func (l *SpotLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (s *Spectrum, wi *Vector, pdf float64) {
-	Unimplemented()
-	return nil, nil, 0.0
+func NewSpotLight(light2world *Transform, intensity *Spectrum, width, fall float64) *SpotLight {
+	light := new(SpotLight)
+	light.nSamples = 1
+	light.LightToWorld = light2world
+	light.WorldToLight = InverseTransform(light2world)
+	light.lightPos = *PointTransform(light2world, CreatePoint(0, 0, 0))
+    light.Intensity = *intensity
+    light.cosTotalWidth = math.Cos(Radians(width))
+    light.cosFalloffStart = math.Cos(Radians(fall))
+	
+	return light
 }
-func (l *SpotLight) Power(scene *Scene) *Spectrum      { return nil }
-func (l *SpotLight) IsDeltaLight() bool                { return false }
+
+func (l *SpotLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (Ls *Spectrum, wi *Vector, pdf float64) {
+    wi = NormalizeVector(l.lightPos.Sub(p))
+    pdf = 1.0
+    vis.SetSegment(p, pEpsilon, &l.lightPos, 0.0, time)
+    Ls = l.Intensity.Scale(l.falloff(wi.Negate()) / DistanceSquaredPoint(&l.lightPos, p))
+    return Ls, wi, pdf
+}
+
+func (l *SpotLight) Power(scene *Scene) *Spectrum      { 
+    return l.Intensity.Scale(2.0 * math.Pi * (1.0 - 0.5 * (l.cosFalloffStart + l.cosTotalWidth)))
+}
+
+func (l *SpotLight) IsDeltaLight() bool                { return true }
 func (l *SpotLight) Le(ray *RayDifferential) *Spectrum { return NewSpectrum1(0.0) }
 func (l *SpotLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
-func (l *SpotLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
-	Unimplemented()
-	return nil, nil, nil, 0.0
+func (l *SpotLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (Ls *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
+    v := UniformSampleCone(ls.uPos[0], ls.uPos[1], l.cosTotalWidth)
+    ray = CreateRay(&l.lightPos, VectorTransform(l.LightToWorld, v), 0.0, INFINITY, time, 0)
+    Ns = CreateNormalFromVector(&ray.dir)
+    pdf = UniformConePdf(l.cosTotalWidth)
+    Ls = l.Intensity.Scale(l.falloff(&ray.dir))
+    return Ls, ray, Ns, pdf
 }
 func (l *SpotLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
 	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)	
@@ -610,7 +634,31 @@ func (l *SpotLight) NumSamples() int {
 	return l.nSamples
 }
 
-func CreateSpotLight(light2world *Transform, paramSet *ParamSet) *SpotLight {
-	Unimplemented()
-	return nil
+func (l *SpotLight) falloff(w *Vector) float64 {
+     wl := NormalizeVector(VectorTransform(l.WorldToLight, w))
+     costheta := wl.z
+    if costheta < l.cosTotalWidth   {  return 0.0 }
+    if costheta > l.cosFalloffStart  { return 1.0 }
+    // Compute falloff inside spotlight cone
+    delta := (costheta - l.cosTotalWidth) / (l.cosFalloffStart - l.cosTotalWidth)
+    return delta*delta*delta*delta
+}
+
+func CreateSpotLight(l2w *Transform, paramSet *ParamSet) *SpotLight {
+     I := paramSet.FindSpectrumParam("I", *NewSpectrum1(1.0))
+     sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
+     coneangle := paramSet.FindFloatParam("coneangle", 30.0)
+     conedelta := paramSet.FindFloatParam("conedeltaangle", 5.0)
+    // Compute spotlight world to light transformation
+     from := paramSet.FindPointParam("from", Point{0,0,0})
+     to := paramSet.FindPointParam("to", Point{0,0,1})
+     dir := NormalizeVector(to.Sub(&from))
+    
+    du, dv := CoordinateSystem(dir)
+    dirToZ, _  := NewTransform(NewMatrix4x4( du.x,  du.y,  du.z, 0.0,
+                             dv.x,  dv.y,  dv.z, 0.0,
+                            dir.x, dir.y, dir.z, 0.0,
+                                0,     0,     0, 1.0))
+    light2world := l2w.MultTransform(TranslateTransform(CreateVector(from.x, from.y, from.z))).MultTransform(InverseTransform(dirToZ))
+    return NewSpotLight(light2world, I.Mult(&sc), coneangle, coneangle-conedelta)
 }
