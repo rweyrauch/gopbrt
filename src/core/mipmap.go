@@ -293,7 +293,7 @@ func (mip *MIPMapFloat) ewa(level int, s, t, ds0, dt0, ds1, dt1 float64) float64
 func (mip *MIPMapFloat) clamp(v float64) float64 { return Clamp(v, 0.0, INFINITY) }
 
 func resampleWeights(oldres, newres int) []ResampleWeight {
-	Assert(newres >= oldres);
+	Assert(newres >= oldres)
 	wt := make([]ResampleWeight, newres, newres)
 	filterwidth := 2.0
 	for i := 0; i < newres; i++ {

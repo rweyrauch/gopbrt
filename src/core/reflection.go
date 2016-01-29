@@ -548,6 +548,10 @@ func SameHemisphere(w, wp *Vector) bool {
 	return w.z*wp.z > 0.0
 }
 
+func NewSpecularReflection(r *Spectrum, fresnel Fresnel) *SpecularReflection {
+	return &SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, r, fresnel}
+}
+
 func (b *SpecularReflection) F(wo, wi *Vector) *Spectrum {
 	return NewSpectrum1(0.0)
 }
@@ -568,6 +572,10 @@ func (b *SpecularReflection) Pdf(wi, wo *Vector) float64 {
 	return 0.0
 }
 func (b *SpecularReflection) Type() BxDFType { return b.bxdftype }
+
+func NewSpecularTransmission(t *Spectrum, etai, etat float64, fresnel *FresnelDielectric) *SpecularTransmission {
+	return &SpecularTransmission{BxDFData{BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR)}, t, etai, etat, fresnel}
+}
 
 func (b *SpecularTransmission) F(wo, wi *Vector) *Spectrum {
 	return NewSpectrum1(0.0)

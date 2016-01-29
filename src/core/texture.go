@@ -312,7 +312,6 @@ func Turbulence(p *Point, dpdx, dpdy *Vector, omega float64, maxOctaves int) flo
 }
 
 type (
-
 	TextureFloat interface {
 		Evaluate(dg *DifferentialGeometry) float64
 	}
@@ -320,7 +319,7 @@ type (
 	TextureSpectrum interface {
 		Evaluate(dg *DifferentialGeometry) *Spectrum
 	}
-	
+
 	BilerpTextureFloat struct {
 		mapping            TextureMapping2D
 		v00, v01, v10, v11 float64
@@ -378,11 +377,11 @@ type (
 
 	ImageTextureFloat struct {
 		mapping TextureMapping2D
-		mipmap *MIPMapFloat
+		mipmap  *MIPMapFloat
 	}
 	ImageTextureSpectrum struct {
 		mapping TextureMapping2D
-		mipmap *MIPMapSpectrum
+		mipmap  *MIPMapSpectrum
 	}
 
 	MarbleTextureFloat struct {
@@ -1115,40 +1114,42 @@ func CreateWrinkledSpectrumTexture(tex2world *Transform, tp *TextureParams) *Wri
 }
 
 type texInfo struct {
-    filename string
-    doTrilinear bool
-    maxAniso float64
-    wrapMode WrapMode
-    scale, gamma float64
+	filename     string
+	doTrilinear  bool
+	maxAniso     float64
+	wrapMode     WrapMode
+	scale, gamma float64
 }
 
 var (
-	textureFloatCache map[texInfo]*MIPMapFloat
+	textureFloatCache    map[texInfo]*MIPMapFloat
 	textureSpectrumCache map[texInfo]*MIPMapSpectrum
 )
 
 func getTextureFloat(filename string, doTrilinear bool, maxAniso float64, wrapMode WrapMode, scale, gamma float64) *MIPMapFloat {
 	texKey := texInfo{filename, doTrilinear, maxAniso, wrapMode, scale, gamma}
-	
+
 	tex := textureFloatCache[texKey]
-	if tex != nil { return tex }
-	
-    texels, width, height := ReadImage(filename)
-    if texels != nil {
-    	texfloat := make([]float64, len(texels), len(texels))
-    	for i, t := range texels  {
-    		texfloat[i] = convertInFloat(&t, scale, gamma)
-    	}
-    	tex = NewMIPMapFloat(width, height, texfloat, doTrilinear, maxAniso, wrapMode)
-    } else {
-        // Create one-valued _MIPMap_
-        texfloat := make([]float64, 1, 1)
-        texfloat[0] = math.Pow(scale, gamma)
-    	tex = NewMIPMapFloat(1, 1, texfloat, doTrilinear, maxAniso, wrapMode)
-    }
-    textureFloatCache[texKey] = tex;
-    //PBRT_LOADED_IMAGE_MAP(const_cast<char *>(filename.c_str()), width, height, sizeof(Tmemory), ret);
-	
+	if tex != nil {
+		return tex
+	}
+
+	texels, width, height := ReadImage(filename)
+	if texels != nil {
+		texfloat := make([]float64, len(texels), len(texels))
+		for i, t := range texels {
+			texfloat[i] = convertInFloat(&t, scale, gamma)
+		}
+		tex = NewMIPMapFloat(width, height, texfloat, doTrilinear, maxAniso, wrapMode)
+	} else {
+		// Create one-valued _MIPMap_
+		texfloat := make([]float64, 1, 1)
+		texfloat[0] = math.Pow(scale, gamma)
+		tex = NewMIPMapFloat(1, 1, texfloat, doTrilinear, maxAniso, wrapMode)
+	}
+	textureFloatCache[texKey] = tex
+	//PBRT_LOADED_IMAGE_MAP(const_cast<char *>(filename.c_str()), width, height, sizeof(Tmemory), ret);
+
 	return tex
 }
 
@@ -1156,37 +1157,39 @@ func getTextureSpectrum(filename string, doTrilinear bool, maxAniso float64, wra
 	texKey := texInfo{filename, doTrilinear, maxAniso, wrapMode, scale, gamma}
 
 	tex := textureSpectrumCache[texKey]
-	if tex != nil { return tex }
+	if tex != nil {
+		return tex
+	}
 
-   texels, width, height := ReadImage(filename)
-    if texels != nil {
-    	for i, t := range texels  {
-    		texels[i] = *convertInSpectrum(&t, scale, gamma)
-    	}
-    	tex = NewMIPMapSpectrum(width, height, texels, doTrilinear, maxAniso, wrapMode)
-    } else {
-        // Create one-valued _MIPMap_
-        texels := make([]Spectrum, 1, 1)
-        texels[0] = *NewSpectrum1(math.Pow(scale, gamma))
-    	tex = NewMIPMapSpectrum(1, 1, texels, doTrilinear, maxAniso, wrapMode)
-    }
-    textureSpectrumCache[texKey] = tex;
-    //PBRT_LOADED_IMAGE_MAP(const_cast<char *>(filename.c_str()), width, height, sizeof(Tmemory), ret);
-	
+	texels, width, height := ReadImage(filename)
+	if texels != nil {
+		for i, t := range texels {
+			texels[i] = *convertInSpectrum(&t, scale, gamma)
+		}
+		tex = NewMIPMapSpectrum(width, height, texels, doTrilinear, maxAniso, wrapMode)
+	} else {
+		// Create one-valued _MIPMap_
+		texels := make([]Spectrum, 1, 1)
+		texels[0] = *NewSpectrum1(math.Pow(scale, gamma))
+		tex = NewMIPMapSpectrum(1, 1, texels, doTrilinear, maxAniso, wrapMode)
+	}
+	textureSpectrumCache[texKey] = tex
+	//PBRT_LOADED_IMAGE_MAP(const_cast<char *>(filename.c_str()), width, height, sizeof(Tmemory), ret);
+
 	return tex
 }
 
 func convertInSpectrum(from *Spectrum, scale, gamma float64) *Spectrum {
-    return PowSpectrum(from.Scale(scale), gamma)
-        }
+	return PowSpectrum(from.Scale(scale), gamma)
+}
 
 func convertInFloat(from *Spectrum, scale, gamma float64) float64 {
-    return math.Pow(scale * from.Y(), gamma)
+	return math.Pow(scale*from.Y(), gamma)
 }
 
 func convertOutSpectrum(from *Spectrum) *Spectrum {
-    return from
+	return from
 }
 func convertOutFloat(from float64) float64 {
-    return from
+	return from
 }

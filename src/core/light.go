@@ -11,13 +11,42 @@ type Light interface {
 	Le(ray *RayDifferential) *Spectrum
 	Pdf(p *Point, wi *Vector) float64
 	Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64)
-	SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum)
+	SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum)
 	NumSamples() int
 }
 
 type LightData struct {
 	nSamples                   int
 	LightToWorld, WorldToLight *Transform
+}
+
+func LightSHProject(light Light, p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
+	coeffs = make([]Spectrum, SHTerms(lmax), SHTerms(lmax))
+    for i, _ := range coeffs {
+        coeffs[i] = *NewSpectrum1(0.0)
+    }
+    
+    ns := RoundUpPow2(uint32(light.NumSamples()))
+    scramble1D := rng.RandomUInt()
+    scramble2D := [2]uint32{ rng.RandomUInt(), rng.RandomUInt() }
+    Ylm := make([]float64, SHTerms(lmax), SHTerms(lmax))
+    var i uint32
+    for i = 0; i < ns; i++ {
+        // Compute incident radiance sample from _light_, update SH _coeffs_
+        u := [2]float64{0.0, 0.0}
+        Sample02(i, scramble2D, u[:])
+        lightSample := &LightSample{u, VanDerCorput(i, scramble1D)}
+        var vis VisibilityTester
+        Li, wi, pdf := light.Sample_L(p, pEpsilon, lightSample, time, &vis)
+        if !Li.IsBlack() && pdf > 0.0 && (!computeLightVisibility || vis.Unoccluded(scene)) {
+            // Add light sample contribution to MC estimate of SH coefficients
+            SHEvaluate(wi, lmax, Ylm)
+            for j := 0; j < SHTerms(lmax); j++ {
+                coeffs[j] = *coeffs[j].Add(Li.Scale(Ylm[j] / (pdf * float64(ns))))
+            }    
+        }
+    }
+    return coeffs
 }
 
 type VisibilityTester struct {
@@ -72,9 +101,38 @@ type ShapeSet struct {
 	areaDistribution *Distribution1D
 }
 
-func CreateShapeSet(s *Shape) *ShapeSet {
-	Unimplemented()
-	return nil
+func CreateShapeSet(s Shape) *ShapeSet {
+	ss := new(ShapeSet)
+	
+	ss.shapes = make([]Shape, 0, 4)
+	ss.areas = make([]float64, 0, 4)
+	
+    todo := make([]Shape, 1, 1)
+    todo[0] = s
+    
+    for len(todo) != 0 {
+		sh := todo[len(todo)-1]
+		todo = todo[:len(todo)-1] // pop off of stack
+        if sh.CanIntersect() {
+            ss.shapes = append(ss.shapes, sh)
+        } else {
+            todo = sh.Refine(todo)
+		}            
+    }
+    if len(ss.shapes) > 64 {
+        Warning("Area light geometry turned into %d shapes; may be very inefficient.", len(ss.shapes))
+	}
+    
+    // Compute total area of shapes in _ShapeSet_ and area CDF
+    ss.sumArea = 0.0
+    for _, s := range ss.shapes {
+        a := s.Area()
+        ss.areas = append(ss.areas, a)
+        ss.sumArea += a
+    }
+    ss.areaDistribution = NewDistribution1D(ss.areas)
+    
+    return ss
 }
 
 func (s *ShapeSet) Area() float64 {
@@ -202,8 +260,10 @@ func (l *DistantLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time flo
 	return L, ray, Ns, pdf
 }
 
-func (l *DistantLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
+func (l *DistantLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)	
 }
+
 func (l *DistantLight) NumSamples() int {
 	return l.nSamples
 }
@@ -222,12 +282,13 @@ func (l *GonioPhotometricLight) Sample_L(p *Point, pEpsilon float64, ls *LightSa
 }
 func (l *GonioPhotometricLight) Power(scene *Scene) *Spectrum      { return nil }
 func (l *GonioPhotometricLight) IsDeltaLight() bool                { return false }
-func (l *GonioPhotometricLight) Le(ray *RayDifferential) *Spectrum { return nil }
+func (l *GonioPhotometricLight) Le(ray *RayDifferential) *Spectrum { return NewSpectrum1(0.0) }
 func (l *GonioPhotometricLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
 func (l *GonioPhotometricLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
 	return nil, nil, nil, 0.0
 }
-func (l *GonioPhotometricLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
+func (l *GonioPhotometricLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)		
 }
 func (l *GonioPhotometricLight) NumSamples() int {
 	return l.nSamples
@@ -371,9 +432,10 @@ func (l *InfiniteAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, tim
 	return Ls, ray, Ns, pdf
 }
 
-func (l *InfiniteAreaLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
-	Unimplemented()
+func (l *InfiniteAreaLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)	
 }
+
 func (l *InfiniteAreaLight) NumSamples() int {
 	return l.nSamples
 }
@@ -409,7 +471,7 @@ func (l *PointLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time 
 
 func (l *PointLight) Power(scene *Scene) *Spectrum      { return l.Intensity.Scale(4.0 * math.Pi) }
 func (l *PointLight) IsDeltaLight() bool                { return true }
-func (l *PointLight) Le(ray *RayDifferential) *Spectrum { return nil }
+func (l *PointLight) Le(ray *RayDifferential) *Spectrum { return NewSpectrum1(0.0) }
 func (l *PointLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
 func (l *PointLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (L *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
 	L = &l.Intensity
@@ -419,9 +481,10 @@ func (l *PointLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float
 	return L, ray, Ns, pdf
 }
 
-func (l *PointLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
-	Unimplemented()
+func (l *PointLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)		
 }
+
 func (l *PointLight) NumSamples() int {
 	return l.nSamples
 }
@@ -446,8 +509,8 @@ func (l *ProjectionLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time 
 	Unimplemented()
 	return nil, nil, nil, 0.0
 }
-func (l *ProjectionLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
-	Unimplemented()
+func (l *ProjectionLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)	
 }
 func (l *ProjectionLight) NumSamples() int {
 	return l.nSamples
@@ -464,15 +527,16 @@ func (l *SpotLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time f
 }
 func (l *SpotLight) Power(scene *Scene) *Spectrum      { return nil }
 func (l *SpotLight) IsDeltaLight() bool                { return false }
-func (l *SpotLight) Le(ray *RayDifferential) *Spectrum { return nil }
+func (l *SpotLight) Le(ray *RayDifferential) *Spectrum { return NewSpectrum1(0.0) }
 func (l *SpotLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
 func (l *SpotLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
 	Unimplemented()
 	return nil, nil, nil, 0.0
 }
-func (l *SpotLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG, coeffs *Spectrum) {
-	Unimplemented()
+func (l *SpotLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)	
 }
+
 func (l *SpotLight) NumSamples() int {
 	return l.nSamples
 }

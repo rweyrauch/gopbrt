@@ -19,6 +19,8 @@ func ReadImage(name string) (pixels []Spectrum, xSize, ySize int) {
 		Warning("PFM file load not implemented.")						
 	} else if strings.Compare(ext, ".tga") == 0 {
 		Warning("TGA file load not implemented.")						
+	} else if strings.Compare(ext, ".png") == 0 {
+		return readImagePng(name)
 	}
 	
     Error("Unable to load image stored in format \"%s\" for filename \"%s\". Returning a constant grey image instead.", ext, name)
@@ -70,6 +72,38 @@ func writeImagePng(filename string, pixels []float32, xres, yres int) {
 	}
 }
 
+func readImagePng(filename string) (image []Spectrum, width, height int) {
+	f, err := os.Open(filename)
+	defer f.Close()
+	if err != nil {
+		Error("Error reading PNG \"%s\"", filename)
+		return nil, 0, 0
+	}
+	
+	pngImage, err := png.Decode(f)
+	if err != nil {
+		Error("Error decoding PNG \"%s\"", filename)
+		return nil, 0, 0		
+	}
+	
+	bounds := pngImage.Bounds()
+	
+	width = bounds.Dx()
+	height = bounds.Dy()
+	image = make([]Spectrum, width * height, width * height) 
+	
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			rb, gb, bb, _ := pngImage.At(x, y).RGBA()
+			r := float64(rb) / float64(0xffff)
+			g := float64(gb) / float64(0xffff)
+			b := float64(bb) / float64(0xffff)			
+			image[y * width + x] = *NewSpectrumRGB(r, g, b)
+		}
+	}
+	return image, width, height
+}
+
 func readImageExr(filename string) (image []Spectrum, width, height int) {
 	var planarRGBA []float32
 	var channels int
@@ -93,4 +127,8 @@ func readImageExr(filename string) (image []Spectrum, width, height int) {
 		}
 	}
 	return image, width, height
+}
+
+
+func writeImageExr(filename string, pixels []float32, xres, yres int) {
 }

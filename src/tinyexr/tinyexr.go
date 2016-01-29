@@ -83,3 +83,16 @@ func ReadImageEXR(filename string) (width, height, channels int, planarRGBA []fl
 
 	return width, height, channels, planarRGBA
 }
+
+func WriteImageEXR(filename string, width, height, channels int, pixels[]float32) {
+	var exrImage C.EXRImage
+	
+	initEXRImage(&exrImage)
+	defer freeEXRImage(&exrImage)
+	
+	exrImage.width = C.int(width)
+	exrImage.height = C.int(height)
+	exrImage.num_channels = C.int(channels)
+	
+}
+
