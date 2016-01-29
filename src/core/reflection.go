@@ -129,16 +129,13 @@ func (b *BRDFToBTDF) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectr
 }
 
 func (b *BRDFToBTDF) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
-	Unimplemented()
-	return nil
+	return b.brdf.Rho(b.otherHemisphere(wo), nSamples, samples)
 }
 func (b *BRDFToBTDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
-	Unimplemented()
-	return nil
+	return b.brdf.Rho2(nSamples, samples1, samples2)
 }
 func (b *BRDFToBTDF) Pdf(wi, wo *Vector) float64 {
-	Unimplemented()
-	return 0.0
+	return b.brdf.Pdf(wo, b.otherHemisphere(wi))
 }
 func (b *BRDFToBTDF) Type() BxDFType { return b.bxdftype }
 
@@ -164,16 +161,13 @@ func (b *ScaledBxDF) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectr
 	return wi, f.Mult(b.s), pdf
 }
 func (b *ScaledBxDF) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
-	Unimplemented()
-	return nil
+	return b.bxdf.Rho(wo, nSamples, samples).Mult(b.s)
 }
 func (b *ScaledBxDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
-	Unimplemented()
-	return nil
+	return b.bxdf.Rho2(nSamples, samples1, samples2).Mult(b.s)
 }
 func (b *ScaledBxDF) Pdf(wi, wo *Vector) float64 {
-	Unimplemented()
-	return 0.0
+	return BxDFPdf(wi, wo)
 }
 func (b *ScaledBxDF) Type() BxDFType { return b.bxdftype }
 
@@ -216,6 +210,7 @@ func (fresnel *FresnelDielectric) Evaluate(cosi float64) *Spectrum {
 
 type FresnelNoOp struct {
 }
+
 func (fresnel *FresnelNoOp) Evaluate(cosi float64) *Spectrum {
 	return NewSpectrum1(1.0)
 }
@@ -557,10 +552,10 @@ func (b *SpecularReflection) F(wo, wi *Vector) *Spectrum {
 	return NewSpectrum1(0.0)
 }
 func (b *SpecularReflection) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
-    // Compute perfect specular reflection direction
-    wi = CreateVector(-wo.x, -wo.y, wo.z)
-    pdf = 1.0
-    f = (b.fresnel.Evaluate(CosTheta(wo)).Mult(b.R)).InvScale(AbsCosTheta(wi))
+	// Compute perfect specular reflection direction
+	wi = CreateVector(-wo.x, -wo.y, wo.z)
+	pdf = 1.0
+	f = (b.fresnel.Evaluate(CosTheta(wo)).Mult(b.R)).InvScale(AbsCosTheta(wi))
 	return wi, f, pdf
 }
 func (b *SpecularReflection) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
@@ -574,33 +569,36 @@ func (b *SpecularReflection) Pdf(wi, wo *Vector) float64 {
 }
 func (b *SpecularReflection) Type() BxDFType { return b.bxdftype }
 
-
 func (b *SpecularTransmission) F(wo, wi *Vector) *Spectrum {
 	return NewSpectrum1(0.0)
 }
 
 func (b *SpecularTransmission) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
-    // Figure out which $\eta$ is incident and which is transmitted
-    entering := CosTheta(wo) > 0.0
-    ei, et := b.etai, b.etat
-    if !entering {
-        ei, et = et, ei
+	// Figure out which $\eta$ is incident and which is transmitted
+	entering := CosTheta(wo) > 0.0
+	ei, et := b.etai, b.etat
+	if !entering {
+		ei, et = et, ei
 	}
-    // Compute transmitted ray direction
-    sini2 := SinTheta2(wo);
-    eta := ei / et
-    sint2 := eta * eta * sini2
+	// Compute transmitted ray direction
+	sini2 := SinTheta2(wo)
+	eta := ei / et
+	sint2 := eta * eta * sini2
 
-    // Handle total internal reflection for transmission
-    if sint2 >= 1.0 { return nil, NewSpectrum1(0.0), 0.0 }
-    cost := math.Sqrt(math.Max(0.0, 1.0 - sint2))
-    if entering { cost = -cost }
-    sintOverSini := eta
-    wi = CreateVector(sintOverSini * -wo.x, sintOverSini * -wo.y, cost)
-    pdf = 1.0
-    F := b.fresnel.Evaluate(CosTheta(wo))
-    f = (NewSpectrum1(1.0).Sub(F)).Mult(b.T.InvScale(AbsCosTheta(wi)))
-    return wi, f, pdf
+	// Handle total internal reflection for transmission
+	if sint2 >= 1.0 {
+		return nil, NewSpectrum1(0.0), 0.0
+	}
+	cost := math.Sqrt(math.Max(0.0, 1.0-sint2))
+	if entering {
+		cost = -cost
+	}
+	sintOverSini := eta
+	wi = CreateVector(sintOverSini*-wo.x, sintOverSini*-wo.y, cost)
+	pdf = 1.0
+	F := b.fresnel.Evaluate(CosTheta(wo))
+	f = (NewSpectrum1(1.0).Sub(F)).Mult(b.T.InvScale(AbsCosTheta(wi)))
+	return wi, f, pdf
 }
 
 func (b *SpecularTransmission) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
