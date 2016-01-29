@@ -101,7 +101,7 @@ type ShapeSet struct {
 	areaDistribution *Distribution1D
 }
 
-func CreateShapeSet(s Shape) *ShapeSet {
+func NewShapeSet(s Shape) *ShapeSet {
 	ss := new(ShapeSet)
 	
 	ss.shapes = make([]Shape, 0, 4)
@@ -167,7 +167,7 @@ type (
 	DiffuseAreaLight struct {
 		LightData
 		Lemit    Spectrum
-		shapeSet []Spectrum
+		shapeSet *ShapeSet
 		area     float64
 	}
 
@@ -215,8 +215,76 @@ type (
 	}
 )
 
+func NewDiffuseAreaLight(light2world *Transform, Le *Spectrum, ns int, shape Shape) *DiffuseAreaLight {
+	light := new(DiffuseAreaLight)
+	light.nSamples = ns
+	light.LightToWorld = light2world
+	light.WorldToLight = InverseTransform(light2world)
+	light.Lemit = *Le
+	light.shapeSet = NewShapeSet(shape)
+    light.area = light.shapeSet.Area()
+
+	return light
+} 
+
+func (l *DiffuseAreaLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (Ls *Spectrum, wi *Vector, pdf float64) {
+    //PBRT_AREA_LIGHT_STARTED_SAMPLE()
+    ps, ns := l.shapeSet.SampleAt(p, ls)
+    wi = NormalizeVector(ps.Sub(p))
+    pdf = l.shapeSet.Pdf2(p, wi)
+    vis.SetSegment(p, pEpsilon, ps, 1.0e-3, time)
+    Ls = l.L(ps, ns, wi.Negate())
+    //PBRT_AREA_LIGHT_FINISHED_SAMPLE()
+    return Ls, wi, pdf
+}
+
+func (l *DiffuseAreaLight) Power(scene *Scene) *Spectrum {
+	return l.Lemit.Scale(l.area * math.Pi)
+}
+
+func (l *DiffuseAreaLight) IsDeltaLight() bool { return false }
+
+func (l *DiffuseAreaLight) Le(ray *RayDifferential) *Spectrum {
+	return NewSpectrum1(0.0)
+}
+
+func (l *DiffuseAreaLight) Pdf(p *Point, wi *Vector) float64 {
+	return l.shapeSet.Pdf2(p, wi)
+}
+
+func (l *DiffuseAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (Ls *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
+    //PBRT_AREA_LIGHT_STARTED_SAMPLE();
+    org, Ns := l.shapeSet.Sample(ls)
+    dir := UniformSampleSphere(u1, u2)
+    if DotVectorNormal(dir, Ns) < 0.0  { dir = dir.Negate() }
+    ray = CreateRay(org, dir, 1.0e-3, INFINITY, time, 0)
+    pdf = l.shapeSet.Pdf(org) * INV_TWOPI
+    Ls = l.L(org, Ns, dir)
+    //PBRT_AREA_LIGHT_FINISHED_SAMPLE()
+    return Ls, ray, Ns, pdf
+}
+func (l *DiffuseAreaLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)		
+}
+
+func (l *DiffuseAreaLight) NumSamples() int {
+	return l.nSamples
+}
+
+func (l *DiffuseAreaLight) L(p *Point, n *Normal, w *Vector) *Spectrum {
+	if DotNormalVector(n, w) > 0.0 {
+		return &l.Lemit
+	} else {
+		return NewSpectrum1(0.0)
+	}
+}
+
 func CreateDiffuseAreaLight(light2world *Transform, paramSet *ParamSet, shape Shape) AreaLight {
-	return nil
+     L := paramSet.FindSpectrumParam("L", *NewSpectrum1(1.0))
+     sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
+    nSamples := paramSet.FindIntParam("nsamples", 1)
+    if options.QuickRender { nSamples = Maxi(1, nSamples / 4) }
+    return NewDiffuseAreaLight(light2world, L.Mult(&sc), nSamples, shape)
 }
 
 func NewDistantLight(light2world *Transform, radiance *Spectrum, dir *Vector) *DistantLight {
@@ -295,6 +363,7 @@ func (l *GonioPhotometricLight) NumSamples() int {
 }
 
 func CreateGoniometricLight(light2world *Transform, paramSet *ParamSet) *GonioPhotometricLight {
+	Unimplemented()
 	return nil
 }
 
