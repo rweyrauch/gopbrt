@@ -123,29 +123,92 @@ type ExponentialDensity struct {
 	upDir  *Vector
 }
 
-func (r *ExponentialDensity) WorldBound() *BBox { return nil }
-func (r *ExponentialDensity) IntersectP(ray *Ray) (hit bool, t0, t1 float64) {
-	Unimplemented()
-	return false, 0.0, 0.0
-}
-func (r *ExponentialDensity) Sigma_a(p *Point, w *Vector, time float64) *Spectrum  { return nil }
-func (r *ExponentialDensity) Sigma_s(p *Point, w *Vector, time float64) *Spectrum  { return nil }
-func (r *ExponentialDensity) Lve(p *Point, w *Vector, time float64) *Spectrum      { return nil }
-func (r *ExponentialDensity) P(p *Point, w, wp *Vector, time float64) float64      { return 0.0 }
-func (r *ExponentialDensity) Sigma_t(p *Point, wo *Vector, time float64) *Spectrum { return nil }
-func (r *ExponentialDensity) Tau(ray *Ray, step, offset float64) *Spectrum         { return nil }
+func NewExponentialDensity(sa, ss *Spectrum, gg float64, emit *Spectrum, e *BBox,
+	v2w *Transform, aa, bb float64, up *Vector) *ExponentialDensity {
+	dens := new(ExponentialDensity)
+	dens.sig_a = sa
+	dens.sig_s = ss
+	dens.g = gg
+	dens.le = emit
+	dens.worldToVolume = InverseTransform(v2w)
+	dens.extent = e
+	dens.a = aa
+	dens.b = bb
+	dens.upDir = NormalizeVector(up)
 
-func (r *ExponentialDensity) Density(Pobj *Point) float64 {
-	if !r.extent.Inside(Pobj) {
+	return dens
+}
+
+func (dens *ExponentialDensity) WorldBound() *BBox {
+	return BBoxTransform(InverseTransform(dens.worldToVolume), dens.extent)
+}
+
+func (dens *ExponentialDensity) IntersectP(r *Ray) (hit bool, t0, t1 float64) {
+	ray := RayTransform(dens.worldToVolume, r)
+	return dens.extent.IntersectP(ray)
+}
+
+func (dens *ExponentialDensity) Sigma_a(p *Point, w *Vector, time float64) *Spectrum {
+	return dens.sig_a.Scale(dens.Density(PointTransform(dens.worldToVolume, p)))
+}
+
+func (dens *ExponentialDensity) Sigma_s(p *Point, w *Vector, time float64) *Spectrum {
+	return dens.sig_s.Scale(dens.Density(PointTransform(dens.worldToVolume, p)))
+}
+
+func (dens *ExponentialDensity) Lve(p *Point, w *Vector, time float64) *Spectrum {
+	return dens.le.Scale(dens.Density(PointTransform(dens.worldToVolume, p)))
+}
+
+func (dens *ExponentialDensity) P(p *Point, w, wp *Vector, time float64) float64 {
+	return PhaseHG(w, wp, dens.g)
+}
+
+func (dens *ExponentialDensity) Sigma_t(p *Point, wo *Vector, time float64) *Spectrum {
+	return (dens.sig_a.Add(dens.sig_s)).Scale(dens.Density(PointTransform(dens.worldToVolume, p)))
+}
+
+func (dens *ExponentialDensity) Tau(r *Ray, stepSize, offset float64) *Spectrum {
+	var t0, t1 float64
+	length := r.dir.Length()
+	if length == 0.0 {
+		return NewSpectrum1(0.0)
+	}
+	rn := CreateRay(&r.origin, r.dir.InvScale(length), r.mint*length, r.maxt*length, r.time, 0)
+	var hit bool
+	if hit, t0, t0 = dens.IntersectP(rn); !hit {
+		return NewSpectrum1(0.0)
+	}
+
+	tau := NewSpectrum1(0.0)
+	t0 += offset * stepSize
+	for t0 < t1 {
+		tau = tau.Add(dens.Sigma_t(rn.PointAt(t0), rn.dir.Negate(), r.time))
+		t0 += stepSize
+	}
+	return tau.Scale(stepSize)
+}
+
+func (dens *ExponentialDensity) Density(Pobj *Point) float64 {
+	if !dens.extent.Inside(Pobj) {
 		return 0.0
 	}
-	height := DotVector(Pobj.Sub(&r.extent.pMin), r.upDir)
-	return r.a * math.Exp(-r.b*height)
+	height := DotVector(Pobj.Sub(&dens.extent.pMin), dens.upDir)
+	return dens.a * math.Exp(-dens.b*height)
 }
 
 func CreateExponentialVolumeRegion(volume2world *Transform, params *ParamSet) *ExponentialDensity {
-	Unimplemented()
-	return nil
+	// Initialize common volume region parameters
+	sigma_a := params.FindSpectrumParam("sigma_a", *NewSpectrum1(0.0))
+	sigma_s := params.FindSpectrumParam("sigma_s", *NewSpectrum1(0.0))
+	g := params.FindFloatParam("g", 0.)
+	Le := params.FindSpectrumParam("Le", *NewSpectrum1(0.0))
+	p0 := params.FindPointParam("p0", Point{0, 0, 0})
+	p1 := params.FindPointParam("p1", Point{1, 1, 1})
+	a := params.FindFloatParam("a", 1.0)
+	b := params.FindFloatParam("b", 1.0)
+	up := params.FindVectorParam("updir", Vector{0, 1, 0})
+	return NewExponentialDensity(&sigma_a, &sigma_s, g, &Le, CreateBBoxFromPoints(&p0, &p1), volume2world, a, b, &up)
 }
 
 type HomogeneousVolumeDensity struct {
@@ -153,21 +216,85 @@ type HomogeneousVolumeDensity struct {
 	extent *BBox
 }
 
-func (r *HomogeneousVolumeDensity) WorldBound() *BBox { return nil }
-func (r *HomogeneousVolumeDensity) IntersectP(ray *Ray) (hit bool, t0, t1 float64) {
-	Unimplemented()
-	return false, 0.0, 0.0
+func NewHomogeneousVolumeDensity(sa, ss *Spectrum, gg float64, emit *Spectrum, e *BBox, v2w *Transform) *HomogeneousVolumeDensity {
+	dens := new(HomogeneousVolumeDensity)
+	dens.sig_a = sa
+	dens.sig_s = ss
+	dens.le = emit
+	dens.g = gg
+	dens.worldToVolume = InverseTransform(v2w)
+	dens.extent = e
+
+	return dens
 }
-func (r *HomogeneousVolumeDensity) Sigma_a(p *Point, w *Vector, time float64) *Spectrum  { return nil }
-func (r *HomogeneousVolumeDensity) Sigma_s(p *Point, w *Vector, time float64) *Spectrum  { return nil }
-func (r *HomogeneousVolumeDensity) Lve(p *Point, w *Vector, time float64) *Spectrum      { return nil }
-func (r *HomogeneousVolumeDensity) P(p *Point, w, wp *Vector, time float64) float64      { return 0.0 }
-func (r *HomogeneousVolumeDensity) Sigma_t(p *Point, wo *Vector, time float64) *Spectrum { return nil }
-func (r *HomogeneousVolumeDensity) Tau(ray *Ray, step, offset float64) *Spectrum         { return nil }
+
+func (dens *HomogeneousVolumeDensity) WorldBound() *BBox {
+	return BBoxTransform(InverseTransform(dens.worldToVolume), dens.extent)
+}
+
+func (dens *HomogeneousVolumeDensity) IntersectP(r *Ray) (hit bool, t0, t1 float64) {
+	ray := RayTransform(dens.worldToVolume, r)
+	return dens.extent.IntersectP(ray)
+}
+
+func (dens *HomogeneousVolumeDensity) Sigma_a(p *Point, w *Vector, time float64) *Spectrum {
+	if dens.extent.Inside(PointTransform(dens.worldToVolume, p)) {
+		return dens.sig_a
+	} else {
+		return NewSpectrum1(0.0)
+	}
+}
+
+func (dens *HomogeneousVolumeDensity) Sigma_s(p *Point, w *Vector, time float64) *Spectrum {
+	if dens.extent.Inside(PointTransform(dens.worldToVolume, p)) {
+		return dens.sig_s
+	} else {
+		return NewSpectrum1(0.0)
+	}
+}
+
+func (dens *HomogeneousVolumeDensity) Lve(p *Point, w *Vector, time float64) *Spectrum {
+	if dens.extent.Inside(PointTransform(dens.worldToVolume, p)) {
+		return dens.le
+	} else {
+		return NewSpectrum1(0.0)
+	}
+}
+
+func (dens *HomogeneousVolumeDensity) P(p *Point, wi, wo *Vector, time float64) float64 {
+	if !dens.extent.Inside(PointTransform(dens.worldToVolume, p)) {
+		return 0.0
+	} else {
+		return PhaseHG(wi, wo, dens.g)
+	}
+}
+
+func (dens *HomogeneousVolumeDensity) Sigma_t(p *Point, wo *Vector, time float64) *Spectrum {
+	if dens.extent.Inside(PointTransform(dens.worldToVolume, p)) {
+		return dens.sig_a.Add(dens.sig_s)
+	} else {
+		return NewSpectrum1(0.0)
+	}
+}
+
+func (dens *HomogeneousVolumeDensity) Tau(ray *Ray, step, offset float64) *Spectrum {
+	var t0, t1 float64
+	var hit bool
+	if hit, t0, t1 = dens.IntersectP(ray); !hit {
+		return NewSpectrum1(0.0)
+	}
+	return (dens.sig_a.Add(dens.sig_s)).Scale(DistancePoint(ray.PointAt(t0), ray.PointAt(t1)))
+}
 
 func CreateHomogeneousVolumeDensityRegion(volume2world *Transform, params *ParamSet) *HomogeneousVolumeDensity {
-	Unimplemented()
-	return nil
+	// Initialize common volume region parameters
+	sigma_a := params.FindSpectrumParam("sigma_a", *NewSpectrum1(0.0))
+	sigma_s := params.FindSpectrumParam("sigma_s", *NewSpectrum1(0.0))
+	g := params.FindFloatParam("g", 0.0)
+	Le := params.FindSpectrumParam("Le", *NewSpectrum1(0.0))
+	p0 := params.FindPointParam("p0", Point{0, 0, 0})
+	p1 := params.FindPointParam("p1", Point{1, 1, 1})
+	return NewHomogeneousVolumeDensity(&sigma_a, &sigma_s, g, &Le, CreateBBoxFromPoints(&p0, &p1), volume2world)
 }
 
 type VolumeGridDensity struct {
@@ -177,21 +304,124 @@ type VolumeGridDensity struct {
 	extent     *BBox
 }
 
-func (r *VolumeGridDensity) WorldBound() *BBox { return nil }
-func (r *VolumeGridDensity) IntersectP(ray *Ray) (hit bool, t0, t1 float64) {
-	return false, 0.0, 0.0
+func NewVolumeGridDensity(sa, ss *Spectrum, gg float64, emit *Spectrum, e *BBox, v2w *Transform, x, y, z int, d []float64) *VolumeGridDensity {
+	dens := new(VolumeGridDensity)
+	dens.sig_a = sa
+	dens.sig_s = ss
+	dens.le = emit
+	dens.g = gg
+	dens.worldToVolume = InverseTransform(v2w)
+	dens.nx = x
+	dens.ny = y
+	dens.nz = z
+	dens.density = make([]float64, x*y*z, x*y*z)
+	Assert(len(dens.density) == len(d))
+	copy(dens.density, d)
+	dens.extent = e
+
+	return dens
 }
-func (r *VolumeGridDensity) Sigma_a(p *Point, w *Vector, time float64) *Spectrum  { return nil }
-func (r *VolumeGridDensity) Sigma_s(p *Point, w *Vector, time float64) *Spectrum  { return nil }
-func (r *VolumeGridDensity) Lve(p *Point, w *Vector, time float64) *Spectrum      { return nil }
-func (r *VolumeGridDensity) P(p *Point, w, wp *Vector, time float64) float64      { return 0.0 }
-func (r *VolumeGridDensity) Sigma_t(p *Point, wo *Vector, time float64) *Spectrum { return nil }
-func (r *VolumeGridDensity) Tau(ray *Ray, step, offset float64) *Spectrum         { return nil }
-func (r *VolumeGridDensity) Density(Pobj *Point) float64                          { return 0.0 }
+
+func (dens *VolumeGridDensity) WorldBound() *BBox {
+	return BBoxTransform(InverseTransform(dens.worldToVolume), dens.extent)
+}
+
+func (dens *VolumeGridDensity) IntersectP(r *Ray) (hit bool, t0, t1 float64) {
+	ray := RayTransform(dens.worldToVolume, r)
+	return dens.extent.IntersectP(ray)
+}
+
+func (dens *VolumeGridDensity) Sigma_a(p *Point, w *Vector, time float64) *Spectrum {
+	return dens.sig_a.Scale(dens.Density(PointTransform(dens.worldToVolume, p)))
+}
+
+func (dens *VolumeGridDensity) Sigma_s(p *Point, w *Vector, time float64) *Spectrum {
+	return dens.sig_s.Scale(dens.Density(PointTransform(dens.worldToVolume, p)))
+}
+
+func (dens *VolumeGridDensity) Lve(p *Point, w *Vector, time float64) *Spectrum {
+	return dens.le.Scale(dens.Density(PointTransform(dens.worldToVolume, p)))
+}
+
+func (dens *VolumeGridDensity) P(p *Point, w, wp *Vector, time float64) float64 {
+	return PhaseHG(w, wp, dens.g)
+}
+
+func (dens *VolumeGridDensity) Sigma_t(p *Point, wo *Vector, time float64) *Spectrum {
+	return (dens.sig_a.Add(dens.sig_s)).Scale(dens.Density(PointTransform(dens.worldToVolume, p)))
+}
+
+func (dens *VolumeGridDensity) Tau(r *Ray, stepSize, offset float64) *Spectrum {
+	var t0, t1 float64
+	length := r.dir.Length()
+	if length == 0.0 {
+		return NewSpectrum1(0.0)
+	}
+	rn := CreateRay(&r.origin, r.dir.InvScale(length), r.mint*length, r.maxt*length, r.time, 0)
+	var hit bool
+	if hit, t0, t0 = dens.IntersectP(rn); !hit {
+		return NewSpectrum1(0.0)
+	}
+
+	tau := NewSpectrum1(0.0)
+	t0 += offset * stepSize
+	for t0 < t1 {
+		tau = tau.Add(dens.Sigma_t(rn.PointAt(t0), rn.dir.Negate(), r.time))
+		t0 += stepSize
+	}
+	return tau.Scale(stepSize)
+}
+
+func (dens *VolumeGridDensity) Density(Pobj *Point) float64 {
+	if !dens.extent.Inside(Pobj) {
+		return 0.0
+	}
+	// Compute voxel coordinates and offsets for _Pobj_
+	vox := dens.extent.Offset(Pobj)
+	vox.x = vox.x*float64(dens.nx) - 0.5
+	vox.y = vox.y*float64(dens.ny) - 0.5
+	vox.z = vox.z*float64(dens.nz) - 0.5
+	vx, vy, vz := Floor2Int(vox.x), Floor2Int(vox.y), Floor2Int(vox.z)
+	dx, dy, dz := vox.x-float64(vx), vox.y-float64(vy), vox.z-float64(vz)
+
+	// Trilinearly interpolate density values to compute local density
+	d00 := Lerp(dx, dens.D(vx, vy, vz), dens.D(vx+1, vy, vz))
+	d10 := Lerp(dx, dens.D(vx, vy+1, vz), dens.D(vx+1, vy+1, vz))
+	d01 := Lerp(dx, dens.D(vx, vy, vz+1), dens.D(vx+1, vy, vz+1))
+	d11 := Lerp(dx, dens.D(vx, vy+1, vz+1), dens.D(vx+1, vy+1, vz+1))
+	d0 := Lerp(dy, d00, d10)
+	d1 := Lerp(dy, d01, d11)
+	return Lerp(dz, d0, d1)
+}
+
+func (dens *VolumeGridDensity) D(x, y, z int) float64 {
+	x = Clampi(x, 0, dens.nx-1)
+	y = Clampi(y, 0, dens.ny-1)
+	z = Clampi(z, 0, dens.nz-1)
+	return dens.density[z*dens.nx*dens.ny+y*dens.nx+x]
+}
 
 func CreateGridVolumeRegion(volume2world *Transform, params *ParamSet) *VolumeGridDensity {
-	Unimplemented()
-	return nil
+	// Initialize common volume region parameters
+	sigma_a := params.FindSpectrumParam("sigma_a", *NewSpectrum1(0.0))
+	sigma_s := params.FindSpectrumParam("sigma_s", *NewSpectrum1(0.0))
+	g := params.FindFloatParam("g", 0.0)
+	Le := params.FindSpectrumParam("Le", *NewSpectrum1(0.0))
+	p0 := params.FindPointParam("p0", Point{0, 0, 0})
+	p1 := params.FindPointParam("p1", Point{1, 1, 1})
+	data := params.FindFloatArrayParam("density")
+	if data == nil || len(data) == 0 {
+		Error("No \"density\" values provided for volume grid?")
+		return nil
+	}
+	nx := params.FindIntParam("nx", 1)
+	ny := params.FindIntParam("ny", 1)
+	nz := params.FindIntParam("nz", 1)
+	if len(data) != nx*ny*nz {
+		Error("VolumeGridDensity has %d density values but nx*ny*nz = %d", len(data), nx*ny*nz)
+		return nil
+	}
+	return NewVolumeGridDensity(&sigma_a, &sigma_s, g, &Le, CreateBBoxFromPoints(&p0, &p1), volume2world, nx, ny, nz, data)
 }
 
 type AggregateVolume struct {
@@ -199,18 +429,78 @@ type AggregateVolume struct {
 	bound   *BBox
 }
 
-func (v *AggregateVolume) WorldBound() *BBox                                    { return nil }
-func (v *AggregateVolume) IntersectP(ray *Ray) (hit bool, t0, t1 float64)       { return false, 0.0, 0.0 }
-func (v *AggregateVolume) Sigma_a(p *Point, w *Vector, time float64) *Spectrum  { return nil }
-func (v *AggregateVolume) Sigma_s(p *Point, w *Vector, time float64) *Spectrum  { return nil }
-func (v *AggregateVolume) Lve(p *Point, w *Vector, time float64) *Spectrum      { return nil }
-func (v *AggregateVolume) P(p *Point, w, wp *Vector, time float64) float64      { return 0.0 }
-func (v *AggregateVolume) Sigma_t(p *Point, wo *Vector, time float64) *Spectrum { return nil }
-func (v *AggregateVolume) Tau(ray *Ray, step, offset float64) *Spectrum         { return nil }
+func NewAggregateVolume(regions []VolumeRegion) *AggregateVolume {
+	vol := &AggregateVolume{regions, CreateEmptyBBox()}
+	for _, r := range vol.regions {
+		vol.bound = UnionBBoxes(vol.bound, r.WorldBound())
+	}
+	return vol
+}
 
-func CreateAggregateVolume(regions []VolumeRegion) *AggregateVolume {
-	Unimplemented()
-	return nil
+func (v *AggregateVolume) WorldBound() *BBox {
+	return v.bound
+}
+
+func (v *AggregateVolume) IntersectP(ray *Ray) (hit bool, t0, t1 float64) {
+	t0 = INFINITY
+	t1 = -INFINITY
+	var tr0, tr1 float64
+	for _, region := range v.regions {
+		if hit, tr0, tr1 = region.IntersectP(ray); hit {
+			t0 = math.Min(t0, tr0)
+			t1 = math.Max(t1, tr1)
+		}
+	}
+	return (t0 < t1), t0, t1
+}
+
+func (v *AggregateVolume) Sigma_a(p *Point, w *Vector, time float64) *Spectrum {
+	s := NewSpectrum1(0.0)
+	for _, region := range v.regions {
+		s = s.Add(region.Sigma_a(p, w, time))
+	}
+	return s
+}
+
+func (v *AggregateVolume) Sigma_s(p *Point, w *Vector, time float64) *Spectrum {
+	s := NewSpectrum1(0.0)
+	for _, region := range v.regions {
+		s = s.Add(region.Sigma_s(p, w, time))
+	}
+	return s
+}
+
+func (v *AggregateVolume) Lve(p *Point, w *Vector, time float64) *Spectrum {
+	L := NewSpectrum1(0.0)
+	for _, region := range v.regions {
+		L = L.Add(region.Lve(p, w, time))
+	}
+	return L
+}
+
+func (v *AggregateVolume) P(p *Point, w, wp *Vector, time float64) float64 {
+	ph, sumWt := 0.0, 0.0
+	for _, region := range v.regions {
+		wt := region.Sigma_s(p, w, time).Y()
+		sumWt += wt
+		ph += wt * region.P(p, w, wp, time)
+	}
+	return ph / sumWt
+}
+
+func (v *AggregateVolume) Sigma_t(p *Point, wo *Vector, time float64) *Spectrum {
+	s := NewSpectrum1(0.0)
+	for _, region := range v.regions {
+		s = s.Add(region.Sigma_t(p, wo, time))
+	}
+	return s
+}
+func (v *AggregateVolume) Tau(ray *Ray, step, offset float64) *Spectrum {
+	t := NewSpectrum1(0.0)
+	for _, region := range v.regions {
+		t = t.Add(region.Tau(ray, step, offset))
+	}
+	return t
 }
 
 type VolumeIntegrator interface {

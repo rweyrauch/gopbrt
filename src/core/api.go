@@ -1014,7 +1014,7 @@ func (ro *RenderOptions) MakeScene() *Scene {
 	} else if len(ro.volumeRegions) == 1 {
 		volumeRegion = ro.volumeRegions[0]
 	} else {
-		volumeRegion = CreateAggregateVolume(ro.volumeRegions)
+		volumeRegion = NewAggregateVolume(ro.volumeRegions)
 	}
 	accelerator := MakeAccelerator(ro.AcceleratorName, ro.primitives, ro.AcceleratorParams)
 	if accelerator == nil {
