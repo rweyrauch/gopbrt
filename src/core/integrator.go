@@ -57,25 +57,10 @@ type (
 		B              []Spectrum
 	}
 
-	IGIIntegrator struct {
-		// Declare sample parameters for light source sampling
-		lightSampleOffsets      []LightSampleOffsets
-		bsdfSampleOffsets       []BSDFSampleOffsets
-		nLightPaths, nLightSets int
-		gLimit                  float64
-		nGatherSamples          int
-		rrThreshold             float64
-		maxSpecularDepth        int
-		vlSetOffset             int
-		gatherSampleOffset      BSDFSampleOffsets
-		//virtualLights [][]VirtualLight
-	}
-
 	IrradianceCacheIntegrator struct {
 		minSamplePixelSpacing, maxSamplePixelSpacing float64
 		minWeight, cosMaxSampleAngleDifference       float64
 		nSamples, maxSpecularDepth, maxIndirectDepth int
-		//mutex RWMutex
 
 		// Declare sample parameters for light source sampling
 		lightSampleOffsets []LightSampleOffsets
@@ -306,18 +291,6 @@ func (integrator *GlossyPRTIntegrator) Li(scene *Scene, renderer Renderer, ray *
     L = L.Add(Li.Clamp(0.0, INFINITY))
 
     return L
-}
-
-func NewIGIIntegrator(nLightPaths, nLightSets int, rrThresh float64, maxDepth int, glimit float64, gatherSamples int) *IGIIntegrator {
-	Unimplemented()
-	return nil
-}
-func (integrator *IGIIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
-func (integrator *IGIIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
-func (integrator *IGIIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
-	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	Unimplemented()
-	return nil
 }
 
 func NewIrradianceCacheIntegrator(minWeight, minSpacing, maxSpacing, maxAngle float64,
@@ -620,17 +593,6 @@ func CreateGlossyPRTIntegratorSurfaceIntegrator(params *ParamSet) *GlossyPRTInte
      Ks := params.FindSpectrumParam("Ks", *NewSpectrum1(0.25))
      roughness := params.FindFloatParam("roughness", 0.1)
     return NewGlossyPRTIntegrator(Kd, Ks, roughness, lmax, ns)
-}
-
-func CreateIGISurfaceIntegrator(params *ParamSet) *IGIIntegrator { 
-    nLightPaths := params.FindIntParam("nlights", 64)
-    if options.QuickRender { nLightPaths = Maxi(1, nLightPaths / 4) }
-    nLightSets := params.FindIntParam("nsets", 4)
-    rrThresh := params.FindFloatParam("rrthreshold", 0.0001)
-    maxDepth := params.FindIntParam("maxdepth", 5)
-    glimit := params.FindFloatParam("glimit", 10.0)
-    gatherSamples := params.FindIntParam("gathersamples", 16)
-    return NewIGIIntegrator(nLightPaths, nLightSets, rrThresh, maxDepth, glimit, gatherSamples)
 }
 	
 func CreateIrradianceCacheIntegrator(params *ParamSet) *IrradianceCacheIntegrator {
