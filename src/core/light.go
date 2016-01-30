@@ -349,26 +349,77 @@ func CreateDistantLight(light2world *Transform, paramSet *ParamSet) *DistantLigh
 	return NewDistantLight(light2world, L.Mult(&sc), dir)
 }
 
-func (l *GonioPhotometricLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (s *Spectrum, wi *Vector, pdf float64) {
-	return nil, nil, 0.0
+func NewGonioPhotometricLight(light2world *Transform, L *Spectrum, texname string) *GonioPhotometricLight {
+	light := new(GonioPhotometricLight)
+	light.nSamples = 1
+	light.LightToWorld = light2world
+	light.WorldToLight = InverseTransform(light2world)
+
+	// Create _mipmap_ for _GonioPhotometricLight_
+	texels, width, height := ReadImage(texname)
+	if texels != nil {
+		light.mipmap = NewMIPMapSpectrum(width, height, texels, false, 8.0, TEXTURE_REPEAT)
+	} else {
+		light.mipmap = nil
+	}
+
+	return light
 }
-func (l *GonioPhotometricLight) Power(scene *Scene) *Spectrum      { return nil }
-func (l *GonioPhotometricLight) IsDeltaLight() bool                { return false }
-func (l *GonioPhotometricLight) Le(ray *RayDifferential) *Spectrum { return NewSpectrum1(0.0) }
-func (l *GonioPhotometricLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
-func (l *GonioPhotometricLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
-	return nil, nil, nil, 0.0
+
+func (light *GonioPhotometricLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (Ls *Spectrum, wi *Vector, pdf float64) {
+	wi = NormalizeVector(light.lightPos.Sub(p))
+	pdf = 1.0
+	vis.SetSegment(p, pEpsilon, &light.lightPos, 0.0, time)
+	Ls = light.Intensity.Mult(light.scale(wi.Negate()).InvScale(DistanceSquaredPoint(&light.lightPos, p)))
+	return Ls, wi, pdf
 }
-func (l *GonioPhotometricLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
-	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)
+
+func (light *GonioPhotometricLight) Power(scene *Scene) *Spectrum {
+	s := NewSpectrum1(1.0)
+	if light.mipmap != nil {
+		s = light.mipmap.Lookup(0.5, 0.5, 0.5)
+	}
+	return light.Intensity.Mult(s).Scale(4.0 * math.Pi)
 }
-func (l *GonioPhotometricLight) NumSamples() int {
-	return l.nSamples
+
+func (*GonioPhotometricLight) IsDeltaLight() bool                { return true }
+func (*GonioPhotometricLight) Le(ray *RayDifferential) *Spectrum { return NewSpectrum1(0.0) }
+func (*GonioPhotometricLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
+
+func (light *GonioPhotometricLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (Ls *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
+	ray = CreateRay(&light.lightPos, UniformSampleSphere(ls.uPos[0], ls.uPos[1]), 0.0, INFINITY, time, 0)
+	Ns = CreateNormalFromVector(&ray.dir)
+	pdf = UniformSpherePdf()
+	Ls = light.Intensity.Mult(light.scale(&ray.dir))
+	return Ls, ray, Ns, pdf
+}
+
+func (light *GonioPhotometricLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
+	return LightSHProject(light, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)
+}
+
+func (light *GonioPhotometricLight) NumSamples() int {
+	return light.nSamples
+}
+
+func (light *GonioPhotometricLight) scale(w *Vector) *Spectrum {
+	if light.mipmap != nil {
+		wp := NormalizeVector(VectorTransform(light.WorldToLight, w))
+		wp.y, wp.z = wp.z, wp.y
+		theta := SphericalTheta(wp)
+		phi := SphericalPhi(wp)
+		s, t := phi*INV_TWOPI, theta*INV_PI
+		return light.mipmap.Lookup(s, t, 0.0)
+	} else {
+		return NewSpectrum1(1.0)
+	}
 }
 
 func CreateGoniometricLight(light2world *Transform, paramSet *ParamSet) *GonioPhotometricLight {
-	Unimplemented()
-	return nil
+	I := paramSet.FindSpectrumParam("I", *NewSpectrum1(1.0))
+	sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
+	texname := paramSet.FindFilenameParam("mapname", "")
+	return NewGonioPhotometricLight(light2world, I.Mult(&sc), texname)
 }
 
 func NewInfiniteAreaLight(light2world *Transform, L *Spectrum, ns int, texmap string) *InfiniteAreaLight {
