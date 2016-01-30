@@ -460,8 +460,8 @@ type RegularHalfangleBRDF struct { // BxDF
 }
 
 type BSSRDF struct {
-	e             float64
-	sig_a, sigp_s *Spectrum
+	eta                    float64
+	sigma_a, sigma_prime_s *Spectrum
 }
 
 func NewBSSRDF(sa, sps *Spectrum, et float64) *BSSRDF {

@@ -42,3 +42,7 @@ func (r *SurfacePointsRenderer) Transmittance(scene *Scene, ray *RayDifferential
 
 func CreateRadianceProbesRenderer(camera Camera, surf SurfaceIntegrator, vol VolumeIntegrator, params *ParamSet) *CreateRadianceProbes { return nil }	
 func CreateSurfacePointsRenderer(params *ParamSet, pCamera *Point, time float64) *SurfacePointsRenderer { return nil }
+
+func FindPoissonPointDistribution(pCamera *Point, time,minDist float64, scene *Scene, points *[]SurfacePoint) {
+	Unimplemented()
+}
