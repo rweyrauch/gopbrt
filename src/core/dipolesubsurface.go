@@ -148,32 +148,6 @@ func (node *SubsurfaceOctreeNode) InitHierarchy() {
 	}
 }
 
-func octreeChildBound(child int, nodeBound *BBox, pMid *Point) BBox {
-	var childBound BBox
-	if child&4 != 0 {
-		childBound.pMin.x = pMid.x
-		childBound.pMax.x = nodeBound.pMax.x
-	} else {
-		childBound.pMin.x = nodeBound.pMin.x
-		childBound.pMax.x = pMid.x
-	}
-	if child&2 != 0 {
-		childBound.pMin.y = pMid.y
-		childBound.pMax.y = nodeBound.pMax.y
-	} else {
-		childBound.pMin.y = nodeBound.pMin.y
-		childBound.pMax.y = pMid.y
-	}
-	if child&1 != 0 {
-		childBound.pMin.z = pMid.z
-		childBound.pMax.z = nodeBound.pMax.z
-	} else {
-		childBound.pMin.z = nodeBound.pMin.z
-		childBound.pMax.z = pMid.z
-	}
-	return childBound
-}
-
 func (node *SubsurfaceOctreeNode) Mo(nodeBound *BBox, pt *Point, Rd *DiffusionReflectance, maxError float64) *Spectrum {
 	// Compute $M_\roman{o}$ at node if error is low enough
 	dw := node.sumArea / DistanceSquaredPoint(pt, &node.p)

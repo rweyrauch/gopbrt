@@ -20,6 +20,13 @@ type Options struct {
 	ImageFile                               string
 }
 
+
+type Renderer interface {
+	Render(scene *Scene)
+	Li(scene *Scene, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li *Spectrum, isect *Intersection, T *Spectrum) 
+	Transmittance(scene *Scene, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum
+}
+
 // Global Inline Functions
 func Lerp(t, v1, v2 float64) float64 {
 	return (1.0-t)*v1 + t*v2
