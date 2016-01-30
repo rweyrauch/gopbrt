@@ -22,31 +22,31 @@ type LightData struct {
 
 func LightSHProject(light Light, p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
 	coeffs = make([]Spectrum, SHTerms(lmax), SHTerms(lmax))
-    for i, _ := range coeffs {
-        coeffs[i] = *NewSpectrum1(0.0)
-    }
-    
-    ns := RoundUpPow2(uint32(light.NumSamples()))
-    scramble1D := rng.RandomUInt()
-    scramble2D := [2]uint32{ rng.RandomUInt(), rng.RandomUInt() }
-    Ylm := make([]float64, SHTerms(lmax), SHTerms(lmax))
-    var i uint32
-    for i = 0; i < ns; i++ {
-        // Compute incident radiance sample from _light_, update SH _coeffs_
-        u := [2]float64{0.0, 0.0}
-        Sample02(i, scramble2D, u[:])
-        lightSample := &LightSample{u, VanDerCorput(i, scramble1D)}
-        var vis VisibilityTester
-        Li, wi, pdf := light.Sample_L(p, pEpsilon, lightSample, time, &vis)
-        if !Li.IsBlack() && pdf > 0.0 && (!computeLightVisibility || vis.Unoccluded(scene)) {
-            // Add light sample contribution to MC estimate of SH coefficients
-            SHEvaluate(wi, lmax, Ylm)
-            for j := 0; j < SHTerms(lmax); j++ {
-                coeffs[j] = *coeffs[j].Add(Li.Scale(Ylm[j] / (pdf * float64(ns))))
-            }    
-        }
-    }
-    return coeffs
+	for i, _ := range coeffs {
+		coeffs[i] = *NewSpectrum1(0.0)
+	}
+
+	ns := RoundUpPow2(uint32(light.NumSamples()))
+	scramble1D := rng.RandomUInt()
+	scramble2D := [2]uint32{rng.RandomUInt(), rng.RandomUInt()}
+	Ylm := make([]float64, SHTerms(lmax), SHTerms(lmax))
+	var i uint32
+	for i = 0; i < ns; i++ {
+		// Compute incident radiance sample from _light_, update SH _coeffs_
+		u := [2]float64{0.0, 0.0}
+		Sample02(i, scramble2D, u[:])
+		lightSample := &LightSample{u, VanDerCorput(i, scramble1D)}
+		var vis VisibilityTester
+		Li, wi, pdf := light.Sample_L(p, pEpsilon, lightSample, time, &vis)
+		if !Li.IsBlack() && pdf > 0.0 && (!computeLightVisibility || vis.Unoccluded(scene)) {
+			// Add light sample contribution to MC estimate of SH coefficients
+			SHEvaluate(wi, lmax, Ylm)
+			for j := 0; j < SHTerms(lmax); j++ {
+				coeffs[j] = *coeffs[j].Add(Li.Scale(Ylm[j] / (pdf * float64(ns))))
+			}
+		}
+	}
+	return coeffs
 }
 
 type VisibilityTester struct {
@@ -103,36 +103,36 @@ type ShapeSet struct {
 
 func NewShapeSet(s Shape) *ShapeSet {
 	ss := new(ShapeSet)
-	
+
 	ss.shapes = make([]Shape, 0, 4)
 	ss.areas = make([]float64, 0, 4)
-	
-    todo := make([]Shape, 1, 1)
-    todo[0] = s
-    
-    for len(todo) != 0 {
+
+	todo := make([]Shape, 1, 1)
+	todo[0] = s
+
+	for len(todo) != 0 {
 		sh := todo[len(todo)-1]
 		todo = todo[:len(todo)-1] // pop off of stack
-        if sh.CanIntersect() {
-            ss.shapes = append(ss.shapes, sh)
-        } else {
-            todo = sh.Refine(todo)
-		}            
-    }
-    if len(ss.shapes) > 64 {
-        Warning("Area light geometry turned into %d shapes; may be very inefficient.", len(ss.shapes))
+		if sh.CanIntersect() {
+			ss.shapes = append(ss.shapes, sh)
+		} else {
+			todo = sh.Refine(todo)
+		}
 	}
-    
-    // Compute total area of shapes in _ShapeSet_ and area CDF
-    ss.sumArea = 0.0
-    for _, s := range ss.shapes {
-        a := s.Area()
-        ss.areas = append(ss.areas, a)
-        ss.sumArea += a
-    }
-    ss.areaDistribution = NewDistribution1D(ss.areas)
-    
-    return ss
+	if len(ss.shapes) > 64 {
+		Warning("Area light geometry turned into %d shapes; may be very inefficient.", len(ss.shapes))
+	}
+
+	// Compute total area of shapes in _ShapeSet_ and area CDF
+	ss.sumArea = 0.0
+	for _, s := range ss.shapes {
+		a := s.Area()
+		ss.areas = append(ss.areas, a)
+		ss.sumArea += a
+	}
+	ss.areaDistribution = NewDistribution1D(ss.areas)
+
+	return ss
 }
 
 func (s *ShapeSet) Area() float64 {
@@ -222,20 +222,20 @@ func NewDiffuseAreaLight(light2world *Transform, Le *Spectrum, ns int, shape Sha
 	light.WorldToLight = InverseTransform(light2world)
 	light.Lemit = *Le
 	light.shapeSet = NewShapeSet(shape)
-    light.area = light.shapeSet.Area()
+	light.area = light.shapeSet.Area()
 
 	return light
-} 
+}
 
 func (l *DiffuseAreaLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (Ls *Spectrum, wi *Vector, pdf float64) {
-    //PBRT_AREA_LIGHT_STARTED_SAMPLE()
-    ps, ns := l.shapeSet.SampleAt(p, ls)
-    wi = NormalizeVector(ps.Sub(p))
-    pdf = l.shapeSet.Pdf2(p, wi)
-    vis.SetSegment(p, pEpsilon, ps, 1.0e-3, time)
-    Ls = l.L(ps, ns, wi.Negate())
-    //PBRT_AREA_LIGHT_FINISHED_SAMPLE()
-    return Ls, wi, pdf
+	//PBRT_AREA_LIGHT_STARTED_SAMPLE()
+	ps, ns := l.shapeSet.SampleAt(p, ls)
+	wi = NormalizeVector(ps.Sub(p))
+	pdf = l.shapeSet.Pdf2(p, wi)
+	vis.SetSegment(p, pEpsilon, ps, 1.0e-3, time)
+	Ls = l.L(ps, ns, wi.Negate())
+	//PBRT_AREA_LIGHT_FINISHED_SAMPLE()
+	return Ls, wi, pdf
 }
 
 func (l *DiffuseAreaLight) Power(scene *Scene) *Spectrum {
@@ -253,18 +253,20 @@ func (l *DiffuseAreaLight) Pdf(p *Point, wi *Vector) float64 {
 }
 
 func (l *DiffuseAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (Ls *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
-    //PBRT_AREA_LIGHT_STARTED_SAMPLE();
-    org, Ns := l.shapeSet.Sample(ls)
-    dir := UniformSampleSphere(u1, u2)
-    if DotVectorNormal(dir, Ns) < 0.0  { dir = dir.Negate() }
-    ray = CreateRay(org, dir, 1.0e-3, INFINITY, time, 0)
-    pdf = l.shapeSet.Pdf(org) * INV_TWOPI
-    Ls = l.L(org, Ns, dir)
-    //PBRT_AREA_LIGHT_FINISHED_SAMPLE()
-    return Ls, ray, Ns, pdf
+	//PBRT_AREA_LIGHT_STARTED_SAMPLE();
+	org, Ns := l.shapeSet.Sample(ls)
+	dir := UniformSampleSphere(u1, u2)
+	if DotVectorNormal(dir, Ns) < 0.0 {
+		dir = dir.Negate()
+	}
+	ray = CreateRay(org, dir, 1.0e-3, INFINITY, time, 0)
+	pdf = l.shapeSet.Pdf(org) * INV_TWOPI
+	Ls = l.L(org, Ns, dir)
+	//PBRT_AREA_LIGHT_FINISHED_SAMPLE()
+	return Ls, ray, Ns, pdf
 }
 func (l *DiffuseAreaLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
-	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)		
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)
 }
 
 func (l *DiffuseAreaLight) NumSamples() int {
@@ -280,11 +282,13 @@ func (l *DiffuseAreaLight) L(p *Point, n *Normal, w *Vector) *Spectrum {
 }
 
 func CreateDiffuseAreaLight(light2world *Transform, paramSet *ParamSet, shape Shape) AreaLight {
-     L := paramSet.FindSpectrumParam("L", *NewSpectrum1(1.0))
-     sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
-    nSamples := paramSet.FindIntParam("nsamples", 1)
-    if options.QuickRender { nSamples = Maxi(1, nSamples / 4) }
-    return NewDiffuseAreaLight(light2world, L.Mult(&sc), nSamples, shape)
+	L := paramSet.FindSpectrumParam("L", *NewSpectrum1(1.0))
+	sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
+	nSamples := paramSet.FindIntParam("nsamples", 1)
+	if options.QuickRender {
+		nSamples = Maxi(1, nSamples/4)
+	}
+	return NewDiffuseAreaLight(light2world, L.Mult(&sc), nSamples, shape)
 }
 
 func NewDistantLight(light2world *Transform, radiance *Spectrum, dir *Vector) *DistantLight {
@@ -329,7 +333,7 @@ func (l *DistantLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time flo
 }
 
 func (l *DistantLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
-	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)	
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)
 }
 
 func (l *DistantLight) NumSamples() int {
@@ -356,7 +360,7 @@ func (l *GonioPhotometricLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2,
 	return nil, nil, nil, 0.0
 }
 func (l *GonioPhotometricLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
-	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)		
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)
 }
 func (l *GonioPhotometricLight) NumSamples() int {
 	return l.nSamples
@@ -502,7 +506,7 @@ func (l *InfiniteAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, tim
 }
 
 func (l *InfiniteAreaLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
-	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)	
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)
 }
 
 func (l *InfiniteAreaLight) NumSamples() int {
@@ -551,7 +555,7 @@ func (l *PointLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float
 }
 
 func (l *PointLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
-	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)		
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)
 }
 
 func (l *PointLight) NumSamples() int {
@@ -566,28 +570,111 @@ func CreatePointLight(light2world *Transform, paramSet *ParamSet) *PointLight {
 	return NewPointLight(l2w, I.Mult(&sc))
 }
 
-func (l *ProjectionLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (s *Spectrum, wi *Vector, pdf float64) {
-	Unimplemented()
-	return nil, nil, 0.0
+func NewProjectionLight(light2world *Transform, intensity *Spectrum, texname string, fov float64) *ProjectionLight {
+	light := new(ProjectionLight)
+	light.nSamples = 1
+	light.LightToWorld = light2world
+	light.WorldToLight = InverseTransform(light2world)
+	light.lightPos = *PointTransform(light2world, CreatePoint(0, 0, 0))
+	light.Intensity = *intensity
+	// Create _ProjectionLight_ MIP-map
+	texels, width, height := ReadImage(texname)
+	if texels != nil {
+		light.projectionMap = NewMIPMapSpectrum(width, height, texels, false, 8.0, TEXTURE_REPEAT)
+	} else {
+		light.projectionMap = nil
+	}
+
+	// Initialize _ProjectionLight_ projection matrix
+	aspect := 1.0
+	if light.projectionMap != nil {
+		aspect = float64(width) / float64(height)
+	}
+	if aspect > 1.0 {
+		light.screenX0 = -aspect
+		light.screenX1 = aspect
+		light.screenY0 = -1.0
+		light.screenY1 = 1.0
+	} else {
+		light.screenX0 = -1.0
+		light.screenX1 = 1.0
+		light.screenY0 = -1.0 / aspect
+		light.screenY1 = 1.0 / aspect
+	}
+	light.hither = 1.0e-3
+	light.yon = 1.0e30
+	light.lightProjection = PerspectiveTransform(fov, light.hither, light.yon)
+
+	// Compute cosine of cone surrounding projection directions
+	opposite := math.Tan(Radians(fov) / 2.0)
+	tanDiag := opposite * math.Sqrt(1.0+1.0/(aspect*aspect))
+	light.cosTotalWidth = math.Cos(math.Atan(tanDiag))
+
+	return light
 }
-func (l *ProjectionLight) Power(scene *Scene) *Spectrum      { return nil }
-func (l *ProjectionLight) IsDeltaLight() bool                { return false }
-func (l *ProjectionLight) Le(ray *RayDifferential) *Spectrum { return nil }
-func (l *ProjectionLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
-func (l *ProjectionLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
-	Unimplemented()
-	return nil, nil, nil, 0.0
+
+func (light *ProjectionLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (Ls *Spectrum, wi *Vector, pdf float64) {
+	wi = NormalizeVector(light.lightPos.Sub(p))
+	pdf = 1.0
+	vis.SetSegment(p, pEpsilon, &light.lightPos, 0.0, time)
+	Ls = light.Intensity.Mult(light.Projection(wi.Negate()).InvScale(DistanceSquaredPoint(&light.lightPos, p)))
+	return Ls, wi, pdf
+}
+
+func (light *ProjectionLight) Power(scene *Scene) *Spectrum {
+	if light.projectionMap != nil {
+		return light.projectionMap.Lookup(0.5, 0.5, 0.5)
+	} else {
+		return NewSpectrum1(1.0).Mult(light.Intensity.Scale(2.0 * math.Pi * (1.0 - light.cosTotalWidth)))
+	}
+}
+
+func (*ProjectionLight) IsDeltaLight() bool                { return true }
+func (*ProjectionLight) Le(ray *RayDifferential) *Spectrum { return NewSpectrum1(0.0) }
+func (*ProjectionLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
+
+func (light *ProjectionLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (Ls *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
+	v := UniformSampleCone(ls.uPos[0], ls.uPos[1], light.cosTotalWidth)
+	ray = CreateRay(&light.lightPos, VectorTransform(light.LightToWorld, v), 0.0, INFINITY, time, 0)
+	Ns = CreateNormalFromVector(&ray.dir)
+	pdf = UniformConePdf(light.cosTotalWidth)
+	Ls = light.Intensity.Mult(light.Projection(&ray.dir))
+	return Ls, ray, Ns, pdf
 }
 func (l *ProjectionLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
-	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)	
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)
 }
 func (l *ProjectionLight) NumSamples() int {
 	return l.nSamples
 }
 
+func (light *ProjectionLight) Projection(w *Vector) *Spectrum {
+	wl := VectorTransform(light.WorldToLight, w)
+	// Discard directions behind projection light
+	if wl.z < light.hither {
+		return NewSpectrum1(0.0)
+	}
+
+	// Project point onto projection plane and compute light
+	Pl := PointTransform(light.lightProjection, CreatePoint(wl.x, wl.y, wl.z))
+	if Pl.x < light.screenX0 || Pl.x > light.screenX1 ||
+		Pl.y < light.screenY0 || Pl.y > light.screenY1 {
+		return NewSpectrum1(0.0)
+	}
+	if light.projectionMap == nil {
+		return NewSpectrum1(1.0)
+	}
+	s := (Pl.x - light.screenX0) / (light.screenX1 - light.screenX0)
+	t := (Pl.y - light.screenY0) / (light.screenY1 - light.screenY0)
+	return light.projectionMap.Lookup(s, t, 0.0)
+}
+
 func CreateProjectionLight(light2world *Transform, paramSet *ParamSet) *ProjectionLight {
-	Unimplemented()
-	return nil
+	I := paramSet.FindSpectrumParam("I", *NewSpectrum1(1.0))
+	sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
+	fov := paramSet.FindFloatParam("fov", 45.0)
+	texname := paramSet.FindFilenameParam("mapname", "")
+	return NewProjectionLight(light2world, I.Mult(&sc), texname, fov)
 }
 
 func NewSpotLight(light2world *Transform, intensity *Spectrum, width, fall float64) *SpotLight {
@@ -596,38 +683,38 @@ func NewSpotLight(light2world *Transform, intensity *Spectrum, width, fall float
 	light.LightToWorld = light2world
 	light.WorldToLight = InverseTransform(light2world)
 	light.lightPos = *PointTransform(light2world, CreatePoint(0, 0, 0))
-    light.Intensity = *intensity
-    light.cosTotalWidth = math.Cos(Radians(width))
-    light.cosFalloffStart = math.Cos(Radians(fall))
-	
+	light.Intensity = *intensity
+	light.cosTotalWidth = math.Cos(Radians(width))
+	light.cosFalloffStart = math.Cos(Radians(fall))
+
 	return light
 }
 
 func (l *SpotLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (Ls *Spectrum, wi *Vector, pdf float64) {
-    wi = NormalizeVector(l.lightPos.Sub(p))
-    pdf = 1.0
-    vis.SetSegment(p, pEpsilon, &l.lightPos, 0.0, time)
-    Ls = l.Intensity.Scale(l.falloff(wi.Negate()) / DistanceSquaredPoint(&l.lightPos, p))
-    return Ls, wi, pdf
+	wi = NormalizeVector(l.lightPos.Sub(p))
+	pdf = 1.0
+	vis.SetSegment(p, pEpsilon, &l.lightPos, 0.0, time)
+	Ls = l.Intensity.Scale(l.falloff(wi.Negate()) / DistanceSquaredPoint(&l.lightPos, p))
+	return Ls, wi, pdf
 }
 
-func (l *SpotLight) Power(scene *Scene) *Spectrum      { 
-    return l.Intensity.Scale(2.0 * math.Pi * (1.0 - 0.5 * (l.cosFalloffStart + l.cosTotalWidth)))
+func (l *SpotLight) Power(scene *Scene) *Spectrum {
+	return l.Intensity.Scale(2.0 * math.Pi * (1.0 - 0.5*(l.cosFalloffStart+l.cosTotalWidth)))
 }
 
 func (l *SpotLight) IsDeltaLight() bool                { return true }
 func (l *SpotLight) Le(ray *RayDifferential) *Spectrum { return NewSpectrum1(0.0) }
 func (l *SpotLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
 func (l *SpotLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (Ls *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
-    v := UniformSampleCone(ls.uPos[0], ls.uPos[1], l.cosTotalWidth)
-    ray = CreateRay(&l.lightPos, VectorTransform(l.LightToWorld, v), 0.0, INFINITY, time, 0)
-    Ns = CreateNormalFromVector(&ray.dir)
-    pdf = UniformConePdf(l.cosTotalWidth)
-    Ls = l.Intensity.Scale(l.falloff(&ray.dir))
-    return Ls, ray, Ns, pdf
+	v := UniformSampleCone(ls.uPos[0], ls.uPos[1], l.cosTotalWidth)
+	ray = CreateRay(&l.lightPos, VectorTransform(l.LightToWorld, v), 0.0, INFINITY, time, 0)
+	Ns = CreateNormalFromVector(&ray.dir)
+	pdf = UniformConePdf(l.cosTotalWidth)
+	Ls = l.Intensity.Scale(l.falloff(&ray.dir))
+	return Ls, ray, Ns, pdf
 }
 func (l *SpotLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
-	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)	
+	return LightSHProject(l, p, pEpsilon, lmax, scene, computeLightVisibility, time, rng)
 }
 
 func (l *SpotLight) NumSamples() int {
@@ -635,30 +722,34 @@ func (l *SpotLight) NumSamples() int {
 }
 
 func (l *SpotLight) falloff(w *Vector) float64 {
-     wl := NormalizeVector(VectorTransform(l.WorldToLight, w))
-     costheta := wl.z
-    if costheta < l.cosTotalWidth   {  return 0.0 }
-    if costheta > l.cosFalloffStart  { return 1.0 }
-    // Compute falloff inside spotlight cone
-    delta := (costheta - l.cosTotalWidth) / (l.cosFalloffStart - l.cosTotalWidth)
-    return delta*delta*delta*delta
+	wl := NormalizeVector(VectorTransform(l.WorldToLight, w))
+	costheta := wl.z
+	if costheta < l.cosTotalWidth {
+		return 0.0
+	}
+	if costheta > l.cosFalloffStart {
+		return 1.0
+	}
+	// Compute falloff inside spotlight cone
+	delta := (costheta - l.cosTotalWidth) / (l.cosFalloffStart - l.cosTotalWidth)
+	return delta * delta * delta * delta
 }
 
 func CreateSpotLight(l2w *Transform, paramSet *ParamSet) *SpotLight {
-     I := paramSet.FindSpectrumParam("I", *NewSpectrum1(1.0))
-     sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
-     coneangle := paramSet.FindFloatParam("coneangle", 30.0)
-     conedelta := paramSet.FindFloatParam("conedeltaangle", 5.0)
-    // Compute spotlight world to light transformation
-     from := paramSet.FindPointParam("from", Point{0,0,0})
-     to := paramSet.FindPointParam("to", Point{0,0,1})
-     dir := NormalizeVector(to.Sub(&from))
-    
-    du, dv := CoordinateSystem(dir)
-    dirToZ, _  := NewTransform(NewMatrix4x4( du.x,  du.y,  du.z, 0.0,
-                             dv.x,  dv.y,  dv.z, 0.0,
-                            dir.x, dir.y, dir.z, 0.0,
-                                0,     0,     0, 1.0))
-    light2world := l2w.MultTransform(TranslateTransform(CreateVector(from.x, from.y, from.z))).MultTransform(InverseTransform(dirToZ))
-    return NewSpotLight(light2world, I.Mult(&sc), coneangle, coneangle-conedelta)
+	I := paramSet.FindSpectrumParam("I", *NewSpectrum1(1.0))
+	sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
+	coneangle := paramSet.FindFloatParam("coneangle", 30.0)
+	conedelta := paramSet.FindFloatParam("conedeltaangle", 5.0)
+	// Compute spotlight world to light transformation
+	from := paramSet.FindPointParam("from", Point{0, 0, 0})
+	to := paramSet.FindPointParam("to", Point{0, 0, 1})
+	dir := NormalizeVector(to.Sub(&from))
+
+	du, dv := CoordinateSystem(dir)
+	dirToZ, _ := NewTransform(NewMatrix4x4(du.x, du.y, du.z, 0.0,
+		dv.x, dv.y, dv.z, 0.0,
+		dir.x, dir.y, dir.z, 0.0,
+		0, 0, 0, 1.0))
+	light2world := l2w.MultTransform(TranslateTransform(CreateVector(from.x, from.y, from.z))).MultTransform(InverseTransform(dirToZ))
+	return NewSpotLight(light2world, I.Mult(&sc), coneangle, coneangle-conedelta)
 }
