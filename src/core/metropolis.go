@@ -172,28 +172,29 @@ func (r *MetropolisRenderer) Render(scene *Scene) {
 		nTasks := r.largeStepsPerPixel
 		largeStepRate := r.nPixelSamples / r.largeStepsPerPixel
 		Info("MLT running %d tasks, large step rate %d", nTasks, largeStepRate)
-		/*
-		   ProgressReporter progress(nTasks * largeStepRate, "Metropolis");
-		   vector<Task *> tasks;
-		   Mutex *filmMutex = Mutex::Create();
-		   Assert(IsPowerOf2(nTasks));
-		   uint32_t scramble[2] = { rng.RandomUInt(), rng.RandomUInt() };
-		   uint32_t pfreq = (x1-x0) * (y1-y0);
-		   for (uint32_t i = 0; i < nTasks; ++i) {
-		       float d[2];
-		       Sample02(i, scramble, d);
-		       tasks.push_back(new MLTTask(progress, pfreq, i,
-		           d[0], d[1], x0, x1, y0, y1, t0, t1, b, initialSample,
-		           scene, camera, this, filmMutex, lightDistribution));
-		   }
-		   EnqueueTasks(tasks);
-		   WaitForAllTasks();
-		   for (uint32_t i = 0; i < tasks.size(); ++i)
-		       delete tasks[i];
-		   progress.Done();
-		   Mutex::Destroy(filmMutex);
-		   delete lightDistribution;
-		*/
+		
+		progress := NewProgressReporter(nTasks * largeStepRate, "Metropolis", TerminalWidth())
+		//vector<Task *> tasks;
+		//Mutex *filmMutex = Mutex::Create();
+		Assert(IsPowerOf2(nTasks))
+		scramble := [2]uint32{ rng.RandomUInt(), rng.RandomUInt() }
+		pfreq := (x1-x0) * (y1-y0)
+		var i uint32
+		for i = 0; i < uint32(nTasks); i++ {
+	       var d [2]float64
+	       Sample02(i, scramble, d[:])
+	       mlt := NewMLTTask(progress, pfreq, int(i),
+	           d[0], d[1], x0, x1, y0, y1, t0, t1, b, initialSample,
+	           scene, r.camera, r, lightDistribution)
+	       mlt.run()
+	    }
+	   	//EnqueueTasks(tasks);
+	   	//WaitForAllTasks();
+	   	//for (uint32_t i = 0; i < tasks.size(); ++i)
+	    //   delete tasks[i];
+	    progress.Done()
+	   	//Mutex::Destroy(filmMutex);
+	   	//delete lightDistribution;		
 	}
 	r.camera.Film().WriteImage(1.0)
 	//PBRT_MLT_FINISHED_RENDERING();
@@ -224,8 +225,11 @@ func (r *MetropolisRenderer) PathL(sample *MLTSample, scene *Scene, arena *Memor
 	cameraRay, cameraWt := camera.GenerateRayDifferential(&sample.cameraSample)
 	cameraRay.ScaleDifferentials(1.0 / math.Sqrt(float64(r.nPixelSamples)))
 	//PBRT_FINISHED_GENERATING_CAMERA_RAY((CameraSample *)(&sample.cameraSample), &cameraRay, cameraWt);
-	cameraLength, escapedRay, escapedAlpha := GeneratePath(cameraRay, NewSpectrum1(cameraWt), scene, arena,
-		sample.cameraPathSamples, &cameraPath)
+	var cameraLength int
+	var escapedRay *RayDifferential
+	var escapedAlpha *Spectrum
+	cameraPath, cameraLength, escapedRay, escapedAlpha = GeneratePath(cameraRay, NewSpectrum1(cameraWt), scene, arena,
+		sample.cameraPathSamples, cameraPath)
 	if !r.bidirectional {
 		// Compute radiance along path using path tracing
 		return r.Lpath(scene, cameraPath, cameraLength, arena,
@@ -253,8 +257,9 @@ func (r *MetropolisRenderer) PathL(sample *MLTSample, scene *Scene, arena *Memor
 		} else {
 			// Compute radiance along paths using bidirectional path tracing
 			lightWt = lightWt.Scale(AbsDotNormalVector(NormalizeNormal(Nl), &lightRay.dir) / (lightPdf * lightRayPdf))
-			lightLength, _, _ := GeneratePath(CreateRayDifferentialFromRay(lightRay), lightWt,
-				scene, arena, sample.lightPathSamples, &lightPath)
+			var lightLength int
+			lightPath, lightLength, _, _ = GeneratePath(CreateRayDifferentialFromRay(lightRay), lightWt,
+				scene, arena, sample.lightPathSamples, lightPath)
 
 			return r.Lbidir(scene, cameraPath, cameraLength, lightPath, lightLength,
 				arena, sample.lightingSamples, rng, sample.cameraSample.time,
@@ -414,9 +419,9 @@ func CreateMetropolisRenderer(params *ParamSet, camera Camera) *MetropolisRender
 
 func NewMLTSample(maxLength int) *MLTSample {
 	sample := new(MLTSample)
-	sample.cameraPathSamples = make([]PathSample, 0, maxLength)
-	sample.lightPathSamples = make([]PathSample, 0, maxLength)
-	sample.lightingSamples = make([]LightingSample, 0, maxLength)
+	sample.cameraPathSamples = make([]PathSample, maxLength, maxLength)
+	sample.lightPathSamples = make([]PathSample, maxLength, maxLength)
+	sample.lightingSamples = make([]LightingSample, maxLength, maxLength)
 	return sample
 }
 
@@ -530,7 +535,7 @@ func SmallStep(rng *RNG, sample *MLTSample, maxDepth, x0, x1, y0, y1 int, t0, t1
 
 
 func GeneratePath(r *RayDifferential, a *Spectrum, scene *Scene, arena *MemoryArena, samples []PathSample,
-	path *[]PathVertex) (pathLen int, escapedRay *RayDifferential, escapedAlpha *Spectrum) {
+	path []PathVertex) (gpath []PathVertex, pathLen int, escapedRay *RayDifferential, escapedAlpha *Spectrum) {
 	//PBRT_MLT_STARTED_GENERATE_PATH();
 	ray := r
 	alpha := a
@@ -540,7 +545,7 @@ func GeneratePath(r *RayDifferential, a *Spectrum, scene *Scene, arena *MemoryAr
 	var isect *Intersection
 	for ; length < len(samples); length++ {
 		// Try to generate next vertex of ray path
-		v := (*path)[length]
+		v := &path[length]
 		if hit, isect = scene.Intersect(ray); !hit {
 			// Handle ray that leaves the scene during path generation
 			escapedAlpha = alpha
@@ -562,7 +567,7 @@ func GeneratePath(r *RayDifferential, a *Spectrum, scene *Scene, arena *MemoryAr
 		v.nSpecularComponents = bsdf.NumComponentsMatching(BxDFType(BSDF_SPECULAR | BSDF_REFLECTION | BSDF_TRANSMISSION))
 		if f.IsBlack() || pdf == 0.0 {
 			//PBRT_MLT_FINISHED_GENERATE_PATH();
-			return length + 1, escapedRay, escapedAlpha
+			return path, length + 1, escapedRay, escapedAlpha
 		}
 
 		// Terminate path with RR or prepare for finding next vertex
@@ -572,14 +577,14 @@ func GeneratePath(r *RayDifferential, a *Spectrum, scene *Scene, arena *MemoryAr
 		rrSurviveProb := math.Min(1.0, pathScale.Y())
 		if samples[length].rrSample > rrSurviveProb {
 			//PBRT_MLT_FINISHED_GENERATE_PATH();
-			return length + 1, escapedRay, escapedAlpha
+			return path, length + 1, escapedRay, escapedAlpha
 		}
 		alpha = alpha.Mult(pathScale.InvScale(rrSurviveProb))
 		//alpha *= renderer->Transmittance(scene, ray, NULL, rng, arena);
 		ray = CreateChildRayDifferential(p, &v.wNext, CreateRayFromRayDifferential(ray), v.isect.rayEpsilon, INFINITY)
 	}
 	//PBRT_MLT_FINISHED_GENERATE_PATH()
-	return length, escapedRay, escapedAlpha
+	return path, length, escapedRay, escapedAlpha
 }
 
 func NewMLTTask(prog *ProgressReporter, pfreq, taskNum int,
