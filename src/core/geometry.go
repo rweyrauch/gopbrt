@@ -164,6 +164,9 @@ func (p1 *Point) AddPoint(p2 *Point) *Point {
 func (p1 *Point) Sub(p2 *Point) *Vector {
 	return &Vector{p1.x - p2.x, p1.y - p2.y, p1.z - p2.z}
 }
+func (p1 *Point) SubVector(v2 *Vector) *Point {
+	return &Point{p1.x - v2.x, p1.y - v2.y, p1.z - v2.z}	
+}
 func (p *Point) Scale(s float64) *Point {
 	return &Point{s * p.x, s * p.y, s * p.z}
 }
