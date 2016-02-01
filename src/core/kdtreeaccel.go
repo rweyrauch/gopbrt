@@ -183,30 +183,30 @@ func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Inte
 					hit = true
 					isect = rayIsect
 					Info("Hit at %f", ray.maxt)
-				} else {
-					for _, ip := range node.primitives {
-						prim := accel.primitives[ip]
-						// Check one primitive inside leaf node
-						//PBRT_KDTREE_INTERSECTION_PRIMITIVE_TEST(const_cast<Primitive *>(prim.GetPtr()));
-						if rayHit, rayIsect := prim.Intersect(ray); rayHit {
-							//PBRT_KDTREE_INTERSECTION_HIT(const_cast<Primitive *>(prim.GetPtr()));
-							hit = true
-							isect = rayIsect
-							Info("Hit at %f", ray.maxt)
-						}
+				}	
+			} else {
+				for _, ip := range node.primitives {
+					prim := accel.primitives[ip]
+					// Check one primitive inside leaf node
+					//PBRT_KDTREE_INTERSECTION_PRIMITIVE_TEST(const_cast<Primitive *>(prim.GetPtr()));
+					if rayHit, rayIsect := prim.Intersect(ray); rayHit {
+						//PBRT_KDTREE_INTERSECTION_HIT(const_cast<Primitive *>(prim.GetPtr()));
+						hit = true
+						isect = rayIsect
+						Info("Hit at %f", ray.maxt)
 					}
 				}
-
-				// Grab next node to process from todo list
-				if todoPos > 0 {
-					todoPos--
-					curNodeIdx = todo[todoPos].nodeIdx
-					tmin = todo[todoPos].tmin
-					tmax = todo[todoPos].tmax
-				} else {
-					break
-				}
 			}
+
+			// Grab next node to process from todo list
+			if todoPos > 0 {
+				todoPos--
+				curNodeIdx = todo[todoPos].nodeIdx
+				tmin = todo[todoPos].tmin
+				tmax = todo[todoPos].tmax
+			} else {
+				break
+			}		
 		}
 	}
 	//PBRT_KDTREE_INTERSECTION_FINISHED();
