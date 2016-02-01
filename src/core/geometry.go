@@ -91,8 +91,9 @@ func (v *Vector) Set(i int, val float64) {
 		v.y = val
 	} else if i == 2 {
 		v.z = val
-	}
-	panic(fmt.Errorf("Vector.Set: Invalid index %d", i))	
+	} else {
+		panic(fmt.Errorf("Vector.Set: Invalid index %d", i))
+	}	
 }
 func EqualVector(v1, v2 *Vector) bool {
 	return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z
@@ -200,8 +201,9 @@ func (p *Point) Set(i int, val float64) {
 		p.y = val
 	} else if i == 2 {
 		p.z = val
-	}
-	panic(fmt.Errorf("Point.Set: Invalid index %d", i))	
+	} else {
+		panic(fmt.Errorf("Point.Set: Invalid index %d", i))
+	}	
 }
 
 func EqualPoint(p1, p2 *Point) bool {
@@ -345,7 +347,10 @@ func (ray *Ray) HasNaNs() bool {
 }
 
 func (r *Ray) String() string {
-	return fmt.Sprintf("ray[origin: %v dir: %v start: %f end: %f time: %f", r.origin, r.dir, r.mint, r.maxt, r.time)
+	return fmt.Sprintf("ray[origin:%v dir:%v start:%f end:%f time:%f depth:%d]", &r.origin, &r.dir, r.mint, r.maxt, r.time, r.depth)
+}
+func (r *RayDifferential) String() string {
+	return fmt.Sprintf("raydiff[origin:%v dir:%v start:%f end:%f time:%f depth:%d diffs:%s]", &r.origin, &r.dir, r.mint, r.maxt, r.time, r.depth, r.hasDifferentials)
 }
 
 func CreateRayDifferential(origin *Point, direction *Vector, start, end, t float64, d int) *RayDifferential {
@@ -484,5 +489,5 @@ func NotEqualBBox(b1, b2 *BBox) bool {
 	return NotEqualPoint(&b1.pMin, &b2.pMin) || NotEqualPoint(&b1.pMax, &b2.pMax)
 }
 func (b *BBox) String() string {
-	return fmt.Sprintf("bbox[ min: %v max: %v ]", b.pMin, b.pMax)
+	return fmt.Sprintf("bbox[ min: %v max: %v ]", &b.pMin, &b.pMax)
 }
