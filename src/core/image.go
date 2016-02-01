@@ -126,9 +126,9 @@ func (f *ImageFilm) Splat(sample *Sample, L *Spectrum) {
 	}
 
 	pixel := f.pixelAt(x-f.xPixelStart, y-f.yPixelStart)
-	AtomicAdd(&pixel.splatXYZ[0], xyz[0])
-	AtomicAdd(&pixel.splatXYZ[1], xyz[1])
-	AtomicAdd(&pixel.splatXYZ[2], xyz[2])
+	pixel.splatXYZ[0] += xyz[0]
+	pixel.splatXYZ[1] += xyz[1]
+	pixel.splatXYZ[2] += xyz[2]
 }
 
 func (f *ImageFilm) GetSampleExtent() (xstart, xend, ystart, yend int) {

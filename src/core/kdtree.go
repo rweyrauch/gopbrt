@@ -11,7 +11,7 @@ const (
 	SPLIT_X    SplitAxis = 0
 	SPLIT_Y              = 1
 	SPLIT_Z              = 2
-	SPLIT_NONE           = 3
+	SPLIT_LEAF           		 = 3
 )
 const (
 	NO_RIGHT_CHILD = math.MaxInt64
@@ -97,7 +97,7 @@ func (kdtree *KdTree) privateLookup(nodeNum int, p *Point, process KdTreeLookupP
     node := &kdtree.nodes[nodeNum]
     // Process kd-tree node's children
     axis := node.splitAxis
-    if axis != SPLIT_NONE {
+    if axis != SPLIT_LEAF {
         dist2 := (p.At(int(axis)) - node.splitPos) * (p.At(int(axis)) - node.splitPos)
         if p.At(int(axis)) <= node.splitPos {
             if node.hasLeftChild {
@@ -151,7 +151,7 @@ func (kdnode *KdNode) init(p float64, axis SplitAxis) {
 }
 
 func (kdnode *KdNode) initLeaf() {
-	kdnode.splitAxis = SPLIT_NONE
+	kdnode.splitAxis = SPLIT_LEAF
 	kdnode.rightChild = NO_RIGHT_CHILD
 	kdnode.hasLeftChild = false
 }

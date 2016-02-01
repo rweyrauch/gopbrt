@@ -84,7 +84,16 @@ func (v *Vector) At(i int) float64 {
 	}
 	panic(fmt.Errorf("Vector.At: Invalid index %d", i))
 }
-
+func (v *Vector) Set(i int, val float64) {
+	if i == 0 {
+		v.x = val
+	} else if i == 1 {
+		v.y = val
+	} else if i == 2 {
+		v.z = val
+	}
+	panic(fmt.Errorf("Vector.Set: Invalid index %d", i))	
+}
 func EqualVector(v1, v2 *Vector) bool {
 	return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z
 }
@@ -183,6 +192,16 @@ func (p *Point) At(i int) float64 {
 		return p.z
 	}
 	panic(fmt.Errorf("Point.At: Invalid index %d", i))
+}
+func (p *Point) Set(i int, val float64) {
+	if i == 0 {
+		p.x = val
+	} else if i == 1 {
+		p.y = val
+	} else if i == 2 {
+		p.z = val
+	}
+	panic(fmt.Errorf("Point.Set: Invalid index %d", i))	
 }
 
 func EqualPoint(p1, p2 *Point) bool {
