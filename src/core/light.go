@@ -60,7 +60,7 @@ func LightSHProject(light Light, p *Point, pEpsilon float64, lmax int, scene *Sc
 	for i = 0; i < ns; i++ {
 		// Compute incident radiance sample from _light_, update SH _coeffs_
 		u := [2]float64{0.0, 0.0}
-		Sample02(i, scramble2D, u[:])
+		u[0], u[1] = Sample02(i, scramble2D)
 		lightSample := &LightSample{u, VanDerCorput(i, scramble1D)}
 		var vis VisibilityTester
 		Li, wi, pdf := light.Sample_L(p, pEpsilon, lightSample, time, &vis)

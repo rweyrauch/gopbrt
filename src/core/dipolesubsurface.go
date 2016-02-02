@@ -283,7 +283,7 @@ func (integrator *DipoleSubsurfaceIntegrator) Preprocess(scene *Scene, camera Ca
 			var s uint32
 			for s = 0; s < nSamples; s++ {
 				lpos := [2]float64{0.0, 0.0}
-				Sample02(s, scramble, lpos[:])
+				lpos[0], lpos[1] = Sample02(s, scramble)
 				lcomp := VanDerCorput(s, compScramble)
 				ls := &LightSample{lpos, lcomp}
 				var vis VisibilityTester

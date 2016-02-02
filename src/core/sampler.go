@@ -411,10 +411,10 @@ again:
 
 	// Compute integrator samples for best-candidate sample
 	for i := 0; i < len(sample[0].n1D); i++ {
-		LDShuffleScrambled1D(sample[0].n1D[i], 1, sample[0].oneD[i], rng)
+		LDShuffleScrambled1D(sample[0].n1D[i], 1, &sample[0].oneD[i], rng)
 	}
 	for i := 0; i < len(sample[0].n2D); i++ {
-		LDShuffleScrambled2D(sample[0].n2D[i], 1, sample[0].twoD[i], rng)
+		LDShuffleScrambled2D(sample[0].n2D[i], 1, &sample[0].twoD[i], rng)
 	}
 	s.tableOffset++
 	return 1
@@ -714,8 +714,8 @@ func (s *StratifiedSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
 	}
 
 	// Decorrelate sample dimensions
-	Shuffle(lensSamples, uint32(nSamples), 2, rng)
-	Shuffle(timeSamples, uint32(nSamples), 1, rng)
+	Shuffle(&lensSamples, uint32(nSamples), 2, rng)
+	Shuffle(&timeSamples, uint32(nSamples), 1, rng)
 
 	// Initialize stratified _samples_ with sample values
 	for i := 0; i < nSamples; i++ {

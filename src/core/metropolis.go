@@ -207,10 +207,9 @@ func (r *MetropolisRenderer) Render(scene *Scene) {
 		pfreq := (x1 - x0) * (y1 - y0)
 		var i uint32
 		for i = 0; i < uint32(nTasks); i++ {
-			var d [2]float64
-			Sample02(i, scramble, d[:])
+			d0,d1 := Sample02(i, scramble)
 			mlt := NewMLTTask(progress, pfreq, int(i),
-				d[0], d[1], x0, x1, y0, y1, t0, t1, b, initialSample,
+				d0, d1, x0, x1, y0, y1, t0, t1, b, initialSample,
 				scene, r.camera, r, lightDistribution)
 			mlt.run()
 		}

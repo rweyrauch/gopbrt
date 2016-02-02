@@ -243,9 +243,8 @@ func SHProjectIncidentIndirectRadiance(p *Point, pEpsilon, time float64, rendere
 	var i uint32
 	for i = 0; i < nSamples; i++ {
 		// Sample incident direction for radiance probe
-		u := [2]float64{0.0, 0.0}
-		Sample02(i, scramble, u[:])
-		wi := UniformSampleSphere(u[0], u[1])
+		u0, u1 := Sample02(i, scramble)
+		wi := UniformSampleSphere(u0, u1)
 		pdf := UniformSpherePdf()
 
 		// Compute incident radiance along direction for probe
@@ -354,9 +353,8 @@ func SHComputeDiffuseTransfer(p *Point, n *Normal, rayEpsilon float64, scene *Sc
 	var i uint32
 	for i = 0; i < uint32(nSamples); i++ {
 		// Sample _i_th direction and compute estimate for transfer coefficients
-		u := [2]float64{0.0, 0.0}
-		Sample02(i, scramble, u[:])
-		w := UniformSampleSphere(u[0], u[1])
+		u0, u1 := Sample02(i, scramble)
+		w := UniformSampleSphere(u0, u1)
 		pdf := UniformSpherePdf()
 		if DotVectorNormal(w, n) > 0.0 && !scene.IntersectP(CreateRay(p, w, rayEpsilon, INFINITY, 0.0, 0)) {
 			// Accumulate contribution of direction $\w{}$ to transfer coefficients
@@ -379,9 +377,8 @@ func SHComputeTransferMatrix(p *Point, rayEpsilon float64, scene *Scene, rng *RN
 	var i uint32
 	for i = 0; i < uint32(nSamples); i++ {
 		// Compute Monte Carlo estimate of $i$th sample for transfer matrix
-		u := [2]float64{0.0, 0.0}
-		Sample02(i, scramble, u[:])
-		w := UniformSampleSphere(u[0], u[1])
+		u0, u1 := Sample02(i, scramble)
+		w := UniformSampleSphere(u0, u1)
 		pdf := UniformSpherePdf()
 		if !scene.IntersectP(CreateRay(p, w, rayEpsilon, INFINITY, 0.0, 0)) {
 			// Update transfer matrix for unoccluded direction
@@ -414,9 +411,8 @@ func SHComputeBSDFMatrix(Kd, Ks *Spectrum, roughness float64, rng *RNG, nSamples
 	scramble := [2]uint32{rng.RandomUInt(), rng.RandomUInt()}
 	var i uint32
 	for i = 0; i < uint32(nSamples); i++ {
-		u := [2]float64{0.0, 0.0}
-		Sample02(i, scramble, u[:])
-		w[i] = *UniformSampleSphere(u[0], u[1])
+		u0, u1 := Sample02(i, scramble)
+		w[i] = *UniformSampleSphere(u0, u1)
 		SHEvaluate(&w[int(i)], lmax, Ylm[SHTerms(lmax)*int(i):])
 	}
 

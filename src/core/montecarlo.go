@@ -299,30 +299,30 @@ func RadicalInverse(n, base int) float64 {
 	return val
 }
 
-func Shufflei(samp []uint32, count, dims uint32, rng *RNG) {
+func Shufflei(samp *[]uint32, count, dims uint32, rng *RNG) {
 	var i, j uint32
 	for i = 0; i < count; i++ {
 		other := i + (rng.RandomUInt() % (count - i))
 		for j = 0; j < dims; j++ {
-			samp[dims*i+j], samp[dims*other+j] = samp[dims*other+j], samp[dims*i+j]
+			(*samp)[dims*i+j], (*samp)[dims*other+j] = (*samp)[dims*other+j], (*samp)[dims*i+j]
 		}
 	}
 }
 
-func Shuffle(samp []float64, count, dims uint32, rng *RNG) {
+func Shuffle(samp *[]float64, count, dims uint32, rng *RNG) {
 	var i, j uint32
 	for i = 0; i < count; i++ {
 		other := i + (rng.RandomUInt() % (count - i))
 		for j = 0; j < dims; j++ {
-			samp[dims*i+j], samp[dims*other+j] = samp[dims*other+j], samp[dims*i+j]
+			(*samp)[dims*i+j], (*samp)[dims*other+j] = (*samp)[dims*other+j], (*samp)[dims*i+j]
 		}
 	}
 }
 
-func GeneratePermutation(buf []uint32, b uint32, rng *RNG) {
+func GeneratePermutation(buf *[]uint32, b uint32, rng *RNG) {
 	var i uint32
 	for i = 0; i < b; i++ {
-		buf[i] = i
+		(*buf)[i] = i
 	}
 	Shufflei(buf, b, 1, rng)
 }
@@ -355,44 +355,42 @@ func LDPixelSampleFloatsNeeded(sample *Sample, nPixelSamples int) int {
 func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamples int, samples []Sample, buf []float64, rng *RNG) {
 	Assert(len(buf) >= nPixelSamples*5)
 
+	bufOffset := 0
 	// Prepare temporary array pointers for low-discrepancy camera samples
-	imageSamples := buf[:2*nPixelSamples]
-	lensSamples := buf[2*nPixelSamples : 4*nPixelSamples]
-	timeSamples := buf[4*nPixelSamples : 5*nPixelSamples]
+	imageSamples := buf[bufOffset : bufOffset+2*nPixelSamples]; bufOffset += 2*nPixelSamples
+	lensSamples := buf[bufOffset : bufOffset+2*nPixelSamples]; bufOffset += 2*nPixelSamples
+	timeSamples := buf[bufOffset : bufOffset+nPixelSamples]; bufOffset += nPixelSamples
 	Assert(len(imageSamples) == 2*nPixelSamples)
 	Assert(len(lensSamples) == 2*nPixelSamples)
 	Assert(len(timeSamples) == nPixelSamples)
-/*
+
 	// Prepare temporary array pointers for low-discrepancy integrator samples
 	count1D := len(samples[0].n1D)
 	count2D := len(samples[0].n2D)
 
-   	const uint32_t *n1D = count1D > 0 ? &samples[0].n1D[0] : NULL;
-   	const uint32_t *n2D = count2D > 0 ? &samples[0].n2D[0] : NULL;
    	oneDSamples := make([][]float64, count1D, count1D)
    	twoDSamples := make([][]float64, count2D, count2D)
    	for i := 0; i < count1D; i++ {
-       	oneDSamples[i] = buf
-       	buf += n1D[i] * nPixelSamples
+       	oneDSamples[i] = buf[bufOffset : bufOffset + samples[0].n1D[i] * nPixelSamples]
+       	bufOffset += samples[0].n1D[i] * nPixelSamples
    	}
-   	for (uint32_t i = 0; i < count2D; ++i) {
-       	twoDSamples[i] = buf;
-       	buf += 2 * n2D[i] * nPixelSamples;
+   	for i := 0; i < count2D; i++ {
+       	twoDSamples[i] = buf[bufOffset : bufOffset + 2 * samples[0].n2D[i] * nPixelSamples]
+       	bufOffset += 2 * samples[0].n2D[i] * nPixelSamples
    	}
-*/	
+
 	// Generate low-discrepancy pixel samples
-	LDShuffleScrambled2D(1, nPixelSamples, imageSamples, rng)
-	LDShuffleScrambled2D(1, nPixelSamples, lensSamples, rng)
-	LDShuffleScrambled1D(1, nPixelSamples, timeSamples, rng)
-	
-/*	
+	LDShuffleScrambled2D(1, nPixelSamples, &imageSamples, rng)
+	LDShuffleScrambled2D(1, nPixelSamples, &lensSamples, rng)
+	LDShuffleScrambled1D(1, nPixelSamples, &timeSamples, rng)
+		
    	for i := 0; i < count1D; i++ {
-       	LDShuffleScrambled1D(n1D[i], nPixelSamples, oneDSamples[i], rng)
+       	LDShuffleScrambled1D(samples[0].n1D[i], nPixelSamples, &oneDSamples[i], rng)
    	}    
    	for i := 0; i < count2D; i++ {
-       	LDShuffleScrambled2D(n2D[i], nPixelSamples, twoDSamples[i], rng)
+       	LDShuffleScrambled2D(samples[0].n2D[i], nPixelSamples, &twoDSamples[i], rng)
 	}
-*/	
+	
 	// Initialize _samples_ with computed sample values
 	for i := 0; i < nPixelSamples; i++ {
 		samples[i].imageX = float64(xPos) + imageSamples[2*i]
@@ -400,28 +398,29 @@ func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamp
 		samples[i].time = Lerp(timeSamples[i], shutterOpen, shutterClose)
 		samples[i].lensU = lensSamples[2*i]
 		samples[i].lensV = lensSamples[2*i+1]
-/*		
+		
 	   // Copy integrator samples into _samples[i]_
 	   for j := 0; j < count1D; j++ {
-	       startSamp := n1D[j] * i;
-	       for k := 0; k < n1D[j]; k++ {
+	       startSamp := samples[0].n1D[j] * i;
+	       for k := 0; k < samples[0].n1D[j]; k++ {
 	           samples[i].oneD[j][k] = oneDSamples[j][startSamp+k]
 	        }
 	   }
+	   
 	   for j := 0; j < count2D; j++ {
-	       startSamp := 2 * n2D[j] * i;
-	       for k := 0; k < 2*n2D[j]; k++ {
+	       startSamp := 2 * samples[0].n2D[j] * i;
+	       for k := 0; k < 2*samples[0].n2D[j]; k++ {
 	           samples[i].twoD[j][k] = twoDSamples[j][startSamp+k]
 	       }
-	   }
-*/	   
+	   }	   
 	}
 }
 
 // Sampling Inline Functions
-func Sample02(n uint32, scramble [2]uint32, sample []float64) {
-	sample[0] = VanDerCorput(n, scramble[0])
-	sample[1] = Sobol2(n, scramble[1])
+func Sample02(n uint32, scramble [2]uint32) (s0, s1 float64) {
+	s0 = VanDerCorput(n, scramble[0])
+	s1 = Sobol2(n, scramble[1])
+	return s0, s1
 }
 
 func VanDerCorput(n, scramble uint32) float64 {
@@ -446,25 +445,27 @@ func Sobol2(n, scramble uint32) float64 {
 	return math.Min((float64((scramble>>8)&0xffffff))/float64(1<<24), OneMinusEpsilon)
 }
 
-func LDShuffleScrambled1D(nSamples, nPixel int, samples []float64, rng *RNG) {
+func LDShuffleScrambled1D(nSamples, nPixel int, samples *[]float64, rng *RNG) {
 	scramble := rng.RandomUInt()
 	for i := 0; i < nSamples*nPixel; i++ {
-		samples[i] = VanDerCorput(uint32(i), scramble)
+		(*samples)[i] = VanDerCorput(uint32(i), scramble)
 	}
 	for i := 0; i < nPixel; i++ {
-		Shuffle(samples[i*nSamples:], uint32(nSamples), 1, rng)
+		tmp := (*samples)[i*nSamples:]
+		Shuffle(&tmp, uint32(nSamples), 1, rng)
 	}
 	Shuffle(samples, uint32(nPixel), uint32(nSamples), rng)
 }
 
-func LDShuffleScrambled2D(nSamples, nPixel int, samples []float64, rng *RNG) {
+func LDShuffleScrambled2D(nSamples, nPixel int, samples *[]float64, rng *RNG) {
 	scramble := [2]uint32{rng.RandomUInt(), rng.RandomUInt()}
 	for i := 0; i < nSamples*nPixel; i++ {
-		Sample02(uint32(i), scramble, samples[2*i:])
+		(*samples)[2*i], (*samples)[2*i+1] = Sample02(uint32(i), scramble)
 	}
 
 	for i := 0; i < nPixel; i++ {
-		Shuffle(samples[2*i*nSamples:], uint32(nSamples), 2, rng)
+		tmp := (*samples)[2*i*nSamples:]
+		Shuffle(&tmp, uint32(nSamples), 2, rng)
 	}
 	Shuffle(samples, uint32(nPixel), uint32(2*nSamples), rng)
 }
