@@ -91,7 +91,7 @@ func NewKdTreeAccel(prims []Primitive, icost, tcost int, ebonus float64, maxp, m
 
 	// Start recursive construction of kd-tree
 	accel.buildTree(0, accel.bounds, primBounds, primNums, len(accel.primitives),
-		accel.maxDepth, edges, prims0, prims1, 0)
+		accel.maxDepth, &edges, prims0, prims1, 0)
 
 	Info("KdTreeAccel: %s", accel)
 	for i := 0; i < accel.nextFreeNode-1; i++ {
@@ -182,7 +182,6 @@ func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Inte
 					//PBRT_KDTREE_INTERSECTION_HIT(const_cast<Primitive *>(prim.GetPtr()));
 					hit = true
 					isect = rayIsect
-					Info("Hit at %f", ray.maxt)
 				}	
 			} else {
 				for _, ip := range node.primitives {
@@ -193,7 +192,6 @@ func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Inte
 						//PBRT_KDTREE_INTERSECTION_HIT(const_cast<Primitive *>(prim.GetPtr()));
 						hit = true
 						isect = rayIsect
-						Info("Hit at %f", ray.maxt)
 					}
 				}
 			}
@@ -244,7 +242,6 @@ func (accel *KdTreeAccel) IntersectP(ray *Ray) bool {
 				//PBRT_KDTREE_INTERSECTIONP_PRIMITIVE_TEST(const_cast<Primitive *>(prim.GetPtr()));
 				if hit = prim.IntersectP(ray); hit {
 					//PBRT_KDTREE_INTERSECTIONP_HIT(const_cast<Primitive *>(prim.GetPtr()));
-					Info("Hit at %f", ray.maxt)
 					return true
 				}
 			} else {
@@ -253,7 +250,6 @@ func (accel *KdTreeAccel) IntersectP(ray *Ray) bool {
 					//PBRT_KDTREE_INTERSECTIONP_PRIMITIVE_TEST(const_cast<Primitive *>(prim.GetPtr()));
 					if hit = prim.IntersectP(ray); hit {
 						//PBRT_KDTREE_INTERSECTIONP_HIT(const_cast<Primitive *>(prim.GetPtr()));
-						Info("Hit at %f", ray.maxt)
 						return true
 					}
 				}
@@ -347,7 +343,7 @@ func (accel *KdTreeAccel) String() string {
 		accel.isectCost, accel.traversalCost, accel.maxPrims, accel.maxDepth, accel.emptyBonus, len(accel.primitives), accel.nAllocedNodes, accel.nextFreeNode, &accel.bounds)	
 }
 
-func (accel *KdTreeAccel) buildTree(nodeNum int, nodeBounds BBox, allPrimBounds []BBox, primNums []int, nPrimitives, depth int, edges [3][]BoundEdge, prims0, prims1 []int, badRefines int) {
+func (accel *KdTreeAccel) buildTree(nodeNum int, nodeBounds BBox, allPrimBounds []BBox, primNums []int, nPrimitives, depth int, edges *[3][]BoundEdge, prims0, prims1 []int, badRefines int) {
 	Assert(nodeNum == accel.nextFreeNode)
 	// Get next free node from _nodes_ array
 	if accel.nextFreeNode == accel.nAllocedNodes {
@@ -510,6 +506,9 @@ func (s *boundEdgeSorter) Swap(i, j int) {
 	s.nodes[i], s.nodes[j] = s.nodes[j], s.nodes[i]
 }
 func (s *boundEdgeSorter) Less(i, j int) bool {
+	if s.nodes[i].t == s.nodes[j].t {
+		return s.nodes[i].edgeType < s.nodes[j].edgeType
+	}
 	return s.nodes[i].t < s.nodes[j].t
 }
 
