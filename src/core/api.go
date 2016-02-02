@@ -1,3 +1,29 @@
+/*
+	gopbrt
+
+	Port of pbrt v2.0.0 by Matt Pharr and Greg Humphreys to the go language.
+    pbrt source code Copyright(c) 1998-2012 Matt Pharr and Greg Humphreys.
+
+	The MIT License (MIT)
+	Copyright (c) 2016 Rick Weyrauch
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of
+	this software and associated documentation files (the "Software"), to deal in
+	the Software without restriction, including without limitation the rights to
+	use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+	of the Software, and to permit persons to whom the Software is furnished to do
+	so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+	OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 package core
 
 import (
@@ -137,22 +163,22 @@ func CreateGraphicsState() *GraphicsState {
 }
 
 func (gs *GraphicsState) CreateMaterial(params *ParamSet) Material {
-    mp := CreateTextureParams(params, gs.materialParams, gs.floatTextures, gs.spectrumTextures)
-    
-    var mtl Material
-    if len(gs.currentNamedMaterial) != 0 {
-        mtl = gs.namedMaterials[gs.currentNamedMaterial]    	
-    }
-    if mtl == nil {
-        mtl = MakeMaterial(gs.material, curTransform.t[0], mp)
-	}        
-    if mtl == nil {
-        mtl = MakeMaterial("matte", curTransform.t[0], mp)
-	}        
-    if mtl == nil {
-        Severe("Unable to create \"matte\" material?!")
-	}        
-    return mtl
+	mp := CreateTextureParams(params, gs.materialParams, gs.floatTextures, gs.spectrumTextures)
+
+	var mtl Material
+	if len(gs.currentNamedMaterial) != 0 {
+		mtl = gs.namedMaterials[gs.currentNamedMaterial]
+	}
+	if mtl == nil {
+		mtl = MakeMaterial(gs.material, curTransform.t[0], mp)
+	}
+	if mtl == nil {
+		mtl = MakeMaterial("matte", curTransform.t[0], mp)
+	}
+	if mtl == nil {
+		Severe("Unable to create \"matte\" material?!")
+	}
+	return mtl
 }
 
 // API Static Data
@@ -471,7 +497,7 @@ func MakeAccelerator(name string, prims []Primitive, paramSet *ParamSet) Primiti
 	} else if strings.Compare(name, "kdtree") == 0 {
 		accel = CreateKdTreeAccelerator(prims, paramSet)
 	} else if strings.Compare(name, "none") == 0 {
-		accel = CreateNoneAccelerator(prims, paramSet)	
+		accel = CreateNoneAccelerator(prims, paramSet)
 	} else {
 		Warning("Accelerator \"%s\" unknown.", name)
 	}
@@ -726,10 +752,10 @@ func PbrtAttributeEnd() {
 
 	graphicsState = pushedGraphicsStates[len(pushedGraphicsStates)-1]
 	pushedGraphicsStates = pushedGraphicsStates[:len(pushedGraphicsStates)-1]
-	
+
 	curTransform = pushedTransforms[len(pushedTransforms)-1]
 	pushedTransforms = pushedTransforms[:len(pushedTransforms)-1]
-	
+
 	activeTransformBits = pushedActiveTransformBits[len(pushedActiveTransformBits)-1]
 	pushedActiveTransformBits = pushedActiveTransformBits[:len(pushedActiveTransformBits)-1]
 }
@@ -792,7 +818,7 @@ func PbrtMakeNamedMaterial(name string, params *ParamSet) {
 	VERIFY_WORLD("MakeNamedMaterial")
 	// error checking, warning if replace, what to use for transform?
 	mp := CreateTextureParams(params, graphicsState.materialParams, graphicsState.floatTextures, graphicsState.spectrumTextures)
-	matName := mp.FindString("type", ""); 
+	matName := mp.FindString("type", "")
 	WARN_IF_ANIMATED_TRANSFORM("MakeNamedMaterial")
 	if len(matName) == 0 {
 		Error("No parameter string \"type\" found in MakeNamedMaterial")

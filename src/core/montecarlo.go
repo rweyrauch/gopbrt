@@ -1,3 +1,29 @@
+/*
+	gopbrt
+
+	Port of pbrt v2.0.0 by Matt Pharr and Greg Humphreys to the go language.
+    pbrt source code Copyright(c) 1998-2012 Matt Pharr and Greg Humphreys.
+
+	The MIT License (MIT)
+	Copyright (c) 2016 Rick Weyrauch
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of
+	this software and associated documentation files (the "Software"), to deal in
+	the Software without restriction, including without limitation the rights to
+	use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+	of the Software, and to permit persons to whom the Software is furnished to do
+	so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+	OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 package core
 
 import (
@@ -26,6 +52,7 @@ type PermutedHalton struct {
 }
 
 func (ph *PermutedHalton) Sample(n int, out []float64) {
+	Unimplemented()
 	/*
 	   	p := 0
 	       for i := 0; i < ph.dims; i++ {
@@ -326,7 +353,6 @@ func LDPixelSampleFloatsNeeded(sample *Sample, nPixelSamples int) int {
 }
 
 func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamples int, samples []Sample, buf []float64, rng *RNG) {
-
 	Assert(len(buf) >= nPixelSamples*5)
 
 	// Prepare temporary array pointers for low-discrepancy camera samples
@@ -336,36 +362,37 @@ func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamp
 	Assert(len(imageSamples) == 2*nPixelSamples)
 	Assert(len(lensSamples) == 2*nPixelSamples)
 	Assert(len(timeSamples) == nPixelSamples)
-
+/*
 	// Prepare temporary array pointers for low-discrepancy integrator samples
-	//count1D := len(samples[0].n1D)
-	//count2D := len(samples[0].n2D)
+	count1D := len(samples[0].n1D)
+	count2D := len(samples[0].n2D)
 
-	/*
-	   const uint32_t *n1D = count1D > 0 ? &samples[0].n1D[0] : NULL;
-	   const uint32_t *n2D = count2D > 0 ? &samples[0].n2D[0] : NULL;
-	   float **oneDSamples = ALLOCA(float *, count1D);
-	   float **twoDSamples = ALLOCA(float *, count2D);
-	   for (uint32_t i = 0; i < count1D; ++i) {
-	       oneDSamples[i] = buf;
-	       buf += n1D[i] * nPixelSamples;
-	   }
-	   for (uint32_t i = 0; i < count2D; ++i) {
-	       twoDSamples[i] = buf;
-	       buf += 2 * n2D[i] * nPixelSamples;
-	   }
-	*/
+   	const uint32_t *n1D = count1D > 0 ? &samples[0].n1D[0] : NULL;
+   	const uint32_t *n2D = count2D > 0 ? &samples[0].n2D[0] : NULL;
+   	oneDSamples := make([][]float64, count1D, count1D)
+   	twoDSamples := make([][]float64, count2D, count2D)
+   	for i := 0; i < count1D; i++ {
+       	oneDSamples[i] = buf
+       	buf += n1D[i] * nPixelSamples
+   	}
+   	for (uint32_t i = 0; i < count2D; ++i) {
+       	twoDSamples[i] = buf;
+       	buf += 2 * n2D[i] * nPixelSamples;
+   	}
+*/	
 	// Generate low-discrepancy pixel samples
 	LDShuffleScrambled2D(1, nPixelSamples, imageSamples, rng)
 	LDShuffleScrambled2D(1, nPixelSamples, lensSamples, rng)
 	LDShuffleScrambled1D(1, nPixelSamples, timeSamples, rng)
-
-	/*
-	   for (uint32_t i = 0; i < count1D; ++i)
-	       LDShuffleScrambled1D(n1D[i], nPixelSamples, oneDSamples[i], rng);
-	   for (uint32_t i = 0; i < count2D; ++i)
-	       LDShuffleScrambled2D(n2D[i], nPixelSamples, twoDSamples[i], rng);
-	*/
+	
+/*	
+   	for i := 0; i < count1D; i++ {
+       	LDShuffleScrambled1D(n1D[i], nPixelSamples, oneDSamples[i], rng)
+   	}    
+   	for i := 0; i < count2D; i++ {
+       	LDShuffleScrambled2D(n2D[i], nPixelSamples, twoDSamples[i], rng)
+	}
+*/	
 	// Initialize _samples_ with computed sample values
 	for i := 0; i < nPixelSamples; i++ {
 		samples[i].imageX = float64(xPos) + imageSamples[2*i]
@@ -373,21 +400,21 @@ func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamp
 		samples[i].time = Lerp(timeSamples[i], shutterOpen, shutterClose)
 		samples[i].lensU = lensSamples[2*i]
 		samples[i].lensV = lensSamples[2*i+1]
-		/*
-		   // Copy integrator samples into _samples[i]_
-		   for j := 0; j < count1D; j++ {
-		       startSamp := n1D[j] * i;
-		       for k := 0; k < n1D[j]; k++ {
-		           samples[i].oneD[j][k] = oneDSamples[j][startSamp+k]
-		        }
-		   }
-		   for j := 0; j < count2D; j++ {
-		       startSamp := 2 * n2D[j] * i;
-		       for k := 0; k < 2*n2D[j]; k++ {
-		           samples[i].twoD[j][k] = twoDSamples[j][startSamp+k]
-		       }
-		   }
-		*/
+/*		
+	   // Copy integrator samples into _samples[i]_
+	   for j := 0; j < count1D; j++ {
+	       startSamp := n1D[j] * i;
+	       for k := 0; k < n1D[j]; k++ {
+	           samples[i].oneD[j][k] = oneDSamples[j][startSamp+k]
+	        }
+	   }
+	   for j := 0; j < count2D; j++ {
+	       startSamp := 2 * n2D[j] * i;
+	       for k := 0; k < 2*n2D[j]; k++ {
+	           samples[i].twoD[j][k] = twoDSamples[j][startSamp+k]
+	       }
+	   }
+*/	   
 	}
 }
 

@@ -1,9 +1,35 @@
+/*
+	gopbrt
+
+	Port of pbrt v2.0.0 by Matt Pharr and Greg Humphreys to the go language.
+    pbrt source code Copyright(c) 1998-2012 Matt Pharr and Greg Humphreys.
+
+	The MIT License (MIT)
+	Copyright (c) 2016 Rick Weyrauch
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of
+	this software and associated documentation files (the "Software"), to deal in
+	the Software without restriction, including without limitation the rights to
+	use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+	of the Software, and to permit persons to whom the Software is furnished to do
+	so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+	OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 package core
 
 import (
+	"fmt"
 	"math"
 	"strings"
-	"fmt"
 )
 
 type Sampler interface {
@@ -68,12 +94,12 @@ func NewSample(sampler Sampler, surf SurfaceIntegrator, vol VolumeIntegrator, sc
 
 func (s *Sample) Add1D(n int) int {
 	s.n1D = append(s.n1D, n)
-	return len(s.n1D)-1
+	return len(s.n1D) - 1
 }
 
 func (s *Sample) Add2D(n int) int {
 	s.n2D = append(s.n2D, n)
-	return len(s.n2D)-1
+	return len(s.n2D) - 1
 }
 
 func (s *Sample) Duplicate(count int) []Sample {
@@ -90,7 +116,7 @@ func (s *Sample) Duplicate(count int) []Sample {
 
 func (s *Sample) String() string {
 	return fmt.Sprintf("sample[img(%3.2f,%3.2f) lens(%3.2f,%3.2f) time(%3.2f) Num1D: %d(%d) Num2D: %d(%d)]",
-		s.imageX, s.imageY, s.lensU, s.lensV, s.time, len(s.n1D), len(s.oneD), len(s.n2D), len(s.twoD))	
+		s.imageX, s.imageY, s.lensU, s.lensV, s.time, len(s.n1D), len(s.oneD), len(s.n2D), len(s.twoD))
 }
 
 func (s *Sample) allocateSampleMemory() {
@@ -669,8 +695,8 @@ func (s *StratifiedSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
 	if s.yPos == s.yPixelEnd {
 		return 0
 	}
-	nSamples := s.xPixelSamples * s.yPixelSamples	
-	
+	nSamples := s.xPixelSamples * s.yPixelSamples
+
 	// Generate stratified camera samples for _(xPos, yPos)_
 
 	// Generate initial stratified samples into _sampleBuf_ memory

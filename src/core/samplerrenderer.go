@@ -1,3 +1,29 @@
+/*
+	gopbrt
+
+	Port of pbrt v2.0.0 by Matt Pharr and Greg Humphreys to the go language.
+    pbrt source code Copyright(c) 1998-2012 Matt Pharr and Greg Humphreys.
+
+	The MIT License (MIT)
+	Copyright (c) 2016 Rick Weyrauch
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of
+	this software and associated documentation files (the "Software"), to deal in
+	the Software without restriction, including without limitation the rights to
+	use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+	of the Software, and to permit persons to whom the Software is furnished to do
+	so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+	OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 package core
 
 import (
@@ -28,13 +54,9 @@ func NewSamplerRenderer(sampler Sampler, camera Camera, surf SurfaceIntegrator, 
 }
 
 func (r *SamplerRenderer) Render(scene *Scene) {
-	//PBRT_FINISHED_PARSING();
 	// Allow integrators to do preprocessing for the scene
-	//PBRT_STARTED_PREPROCESSING();
 	r.surfaceIntegrator.Preprocess(scene, r.camera, r)
 	r.volumeIntegrator.Preprocess(scene, r.camera, r)
-	//PBRT_FINISHED_PREPROCESSING();
-	//PBRT_STARTED_RENDERING();
 	// Allocate and initialize _sample_
 	sample := NewSample(r.sampler, r.surfaceIntegrator, r.volumeIntegrator, scene)
 
@@ -53,7 +75,6 @@ func (r *SamplerRenderer) Render(scene *Scene) {
 	}
 	reporter.Done()
 
-	//PBRT_FINISHED_RENDERING();
 	// Clean up after rendering and store final image
 	r.camera.Film().WriteImage(1.0)
 }
@@ -64,7 +85,7 @@ func (r *SamplerRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample,
 	// Allocate local variables for _isect_ and _T_ if needed
 	li := NewSpectrum1(0.0)
 	var isect *Intersection
-	
+
 	var hit bool
 	if hit, isect = scene.Intersect(ray); hit {
 		li = r.surfaceIntegrator.Li(scene, r, ray, isect, sample, rng, arena)
@@ -106,12 +127,10 @@ func newSamplerRendererTask(scene *Scene, renderer Renderer, camera Camera,
 }
 
 func (t *samplerRendererTask) run() {
-	//PBRT_STARTED_RENDERTASK(taskNum);
 	// Get sub-_Sampler_ for _SamplerRendererTask_
 	sampler := t.mainSampler.GetSubSampler(t.taskNum, t.taskCount)
 	if sampler == nil {
 		t.reporter.Update(1)
-		//PBRT_FINISHED_RENDERTASK(taskNum)
 		return
 	}
 
@@ -133,14 +152,11 @@ func (t *samplerRendererTask) run() {
 		// Generate camera rays and compute radiance along rays
 		for i := 0; i < sampleCount; i++ {
 			// Find camera ray for _sample[i]_
-			//PBRT_STARTED_GENERATING_CAMERA_RAY(&samples[i]);
 			var rayWeight float64
 			rays[i], rayWeight = t.camera.GenerateRayDifferential(&samples[i])
 			rays[i].ScaleDifferentials(1.0 / math.Sqrt(float64(sampler.SamplesPerPixel())))
-			//PBRT_FINISHED_GENERATING_CAMERA_RAY(&samples[i], &rays[i], rayWeight)
 
 			// Evaluate radiance along camera ray
-			//PBRT_STARTED_CAMERA_RAY_INTEGRATION(&rays[i], &samples[i]);
 			if t.visualizeObjectIds {
 				if rayWeight > 0.0 {
 					var hit bool
@@ -177,20 +193,17 @@ func (t *samplerRendererTask) run() {
 				} else if Ls[i].Y() < -1.0e-5 {
 					Error("Negative luminance value, %f, returned for image sample.  Setting to black.", Ls[i].Y())
 					Ls[i] = NewSpectrum1(0.0)
-					//} else if math.IsInf(Ls[i].Y(),0) {
-					//	Error("Infinite luminance value returned for image sample.  Setting to black.")
-					//	Ls[i] = *NewSpectrum1(0.0)
+				} else if math.IsInf(Ls[i].Y(), 0) {
+					Error("Infinite luminance value returned for image sample.  Setting to black.")
+					Ls[i] = NewSpectrum1(0.0)
 				}
 			}
-			//PBRT_FINISHED_CAMERA_RAY_INTEGRATION(&rays[i], &samples[i], &Ls[i]);
 		}
 
 		// Report sample results to _Sampler_, add contributions to image
 		if sampler.ReportResults(samples, rays, Ls, isects, sampleCount) {
 			for i := 0; i < sampleCount; i++ {
-				//PBRT_STARTED_ADDING_IMAGE_SAMPLE(&samples[i], &rays[i], &Ls[i], &Ts[i]);
 				t.camera.Film().AddSample(&samples[i], Ls[i])
-				//PBRT_FINISHED_ADDING_IMAGE_SAMPLE();
 			}
 		}
 
@@ -201,5 +214,4 @@ func (t *samplerRendererTask) run() {
 	xstart, xend, ystart, yend := sampler.PixelRegion()
 	t.camera.Film().UpdateDisplay(xstart, ystart, xend+1, yend+1, 1.0)
 	t.reporter.Update(1)
-	//PBRT_FINISHED_RENDERTASK(taskNum);
 }

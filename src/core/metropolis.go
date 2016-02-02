@@ -1,3 +1,29 @@
+/*
+	gopbrt
+
+	Port of pbrt v2.0.0 by Matt Pharr and Greg Humphreys to the go language.
+    pbrt source code Copyright(c) 1998-2012 Matt Pharr and Greg Humphreys.
+
+	The MIT License (MIT)
+	Copyright (c) 2016 Rick Weyrauch
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of
+	this software and associated documentation files (the "Software"), to deal in
+	the Software without restriction, including without limitation the rights to
+	use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+	of the Software, and to permit persons to whom the Software is furnished to do
+	so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+	OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 package core
 
 import (
@@ -172,29 +198,29 @@ func (r *MetropolisRenderer) Render(scene *Scene) {
 		nTasks := r.largeStepsPerPixel
 		largeStepRate := r.nPixelSamples / r.largeStepsPerPixel
 		Info("MLT running %d tasks, large step rate %d", nTasks, largeStepRate)
-		
-		progress := NewProgressReporter(nTasks * largeStepRate, "Metropolis", TerminalWidth())
+
+		progress := NewProgressReporter(nTasks*largeStepRate, "Metropolis", TerminalWidth())
 		//vector<Task *> tasks;
 		//Mutex *filmMutex = Mutex::Create();
 		Assert(IsPowerOf2(nTasks))
-		scramble := [2]uint32{ rng.RandomUInt(), rng.RandomUInt() }
-		pfreq := (x1-x0) * (y1-y0)
+		scramble := [2]uint32{rng.RandomUInt(), rng.RandomUInt()}
+		pfreq := (x1 - x0) * (y1 - y0)
 		var i uint32
 		for i = 0; i < uint32(nTasks); i++ {
-	       var d [2]float64
-	       Sample02(i, scramble, d[:])
-	       mlt := NewMLTTask(progress, pfreq, int(i),
-	           d[0], d[1], x0, x1, y0, y1, t0, t1, b, initialSample,
-	           scene, r.camera, r, lightDistribution)
-	       mlt.run()
-	    }
-	   	//EnqueueTasks(tasks);
-	   	//WaitForAllTasks();
-	   	//for (uint32_t i = 0; i < tasks.size(); ++i)
-	    //   delete tasks[i];
-	    progress.Done()
-	   	//Mutex::Destroy(filmMutex);
-	   	//delete lightDistribution;		
+			var d [2]float64
+			Sample02(i, scramble, d[:])
+			mlt := NewMLTTask(progress, pfreq, int(i),
+				d[0], d[1], x0, x1, y0, y1, t0, t1, b, initialSample,
+				scene, r.camera, r, lightDistribution)
+			mlt.run()
+		}
+		//EnqueueTasks(tasks);
+		//WaitForAllTasks();
+		//for (uint32_t i = 0; i < tasks.size(); ++i)
+		//   delete tasks[i];
+		progress.Done()
+		//Mutex::Destroy(filmMutex);
+		//delete lightDistribution;
 	}
 	r.camera.Film().WriteImage(1.0)
 	//PBRT_MLT_FINISHED_RENDERING();
@@ -471,68 +497,74 @@ const (
 	a = 1.0 / 1024.0
 	b = 1.0 / 64.0
 )
-	
-var	logRatio float64 = -math.Log(b/a)
 
+var logRatio float64 = -math.Log(b / a)
 
 func mutate(rng *RNG, v *float64, min, max float64) {
-    if min == max { *v = min; return }
-    Assert(min < max)
-    delta := (max - min) * b * math.Exp(logRatio * rng.RandomFloat())
-    if rng.RandomFloat() < 0.5 {
-        *v += delta
-        if *v >= max { *v = min + (*v - max) }
-    } else {
-        *v -= delta
-        if *v < min { *v = max - (min - *v) }
-    }
-    if *v < min || *v >= max { *v = min }
+	if min == max {
+		*v = min
+		return
+	}
+	Assert(min < max)
+	delta := (max - min) * b * math.Exp(logRatio*rng.RandomFloat())
+	if rng.RandomFloat() < 0.5 {
+		*v += delta
+		if *v >= max {
+			*v = min + (*v - max)
+		}
+	} else {
+		*v -= delta
+		if *v < min {
+			*v = max - (min - *v)
+		}
+	}
+	if *v < min || *v >= max {
+		*v = min
+	}
 }
-
 
 func SmallStep(rng *RNG, sample *MLTSample, maxDepth, x0, x1, y0, y1 int, t0, t1 float64,
-        bidirectional bool) {
-    mutate(rng, &sample.cameraSample.imageX, float64(x0), float64(x1))
-    mutate(rng, &sample.cameraSample.imageY, float64(y0), float64(y1))
-    mutate(rng, &sample.cameraSample.time, t0, t1)
-    mutate(rng, &sample.cameraSample.lensU, 0.0, 1.0)
-    mutate(rng, &sample.cameraSample.lensV, 0.0, 1.0)
-    // Apply small step mutation to camera, lighting, and light samples
-    for i := 0; i < maxDepth; i++ {
-        // Apply small step to $i$th camera _PathSample_
-        eps := &sample.cameraPathSamples[i]
-        mutate(rng, &eps.bsdfSample.uComponent, 0.0, 1.0)
-        mutate(rng, &eps.bsdfSample.uDir[0], 0.0, 1.0)
-        mutate(rng, &eps.bsdfSample.uDir[1], 0.0, 1.0)
-        mutate(rng, &eps.rrSample, 0.0, 1.0)
+	bidirectional bool) {
+	mutate(rng, &sample.cameraSample.imageX, float64(x0), float64(x1))
+	mutate(rng, &sample.cameraSample.imageY, float64(y0), float64(y1))
+	mutate(rng, &sample.cameraSample.time, t0, t1)
+	mutate(rng, &sample.cameraSample.lensU, 0.0, 1.0)
+	mutate(rng, &sample.cameraSample.lensV, 0.0, 1.0)
+	// Apply small step mutation to camera, lighting, and light samples
+	for i := 0; i < maxDepth; i++ {
+		// Apply small step to $i$th camera _PathSample_
+		eps := &sample.cameraPathSamples[i]
+		mutate(rng, &eps.bsdfSample.uComponent, 0.0, 1.0)
+		mutate(rng, &eps.bsdfSample.uDir[0], 0.0, 1.0)
+		mutate(rng, &eps.bsdfSample.uDir[1], 0.0, 1.0)
+		mutate(rng, &eps.rrSample, 0.0, 1.0)
 
-        // Apply small step to $i$th _LightingSample_
-        ls := &sample.lightingSamples[i]
-        mutate(rng, &ls.bsdfSample.uComponent, 0.0, 1.0)
-        mutate(rng, &ls.bsdfSample.uDir[0], 0.0, 1.0)
-        mutate(rng, &ls.bsdfSample.uDir[1], 0.0, 1.0)
-        mutate(rng, &ls.lightNum, 0.0, 1.0)
-        mutate(rng, &ls.lightSample.uComponent, 0.0, 1.0)
-        mutate(rng, &ls.lightSample.uPos[0], 0.0, 1.0)
-        mutate(rng, &ls.lightSample.uPos[1], 0.0, 1.0)
-    }
-    
-    if bidirectional {
-        mutate(rng, &sample.lightNumSample, 0.0, 1.0)
-        for i := 0; i < 5; i++ {
-            mutate(rng, &sample.lightRaySamples[i], 0.0, 1.0)
-		}            
-        for i := 0; i < maxDepth; i++ {
-            // Apply small step to $i$th light _PathSample_
-            lps := &sample.lightPathSamples[i]
-            mutate(rng, &lps.bsdfSample.uComponent, 0.0, 1.0)
-            mutate(rng, &lps.bsdfSample.uDir[0], 0.0, 1.0)
-            mutate(rng, &lps.bsdfSample.uDir[1], 0.0, 1.0)
-            mutate(rng, &lps.rrSample, 0.0, 1.0)
-        }
-    }
+		// Apply small step to $i$th _LightingSample_
+		ls := &sample.lightingSamples[i]
+		mutate(rng, &ls.bsdfSample.uComponent, 0.0, 1.0)
+		mutate(rng, &ls.bsdfSample.uDir[0], 0.0, 1.0)
+		mutate(rng, &ls.bsdfSample.uDir[1], 0.0, 1.0)
+		mutate(rng, &ls.lightNum, 0.0, 1.0)
+		mutate(rng, &ls.lightSample.uComponent, 0.0, 1.0)
+		mutate(rng, &ls.lightSample.uPos[0], 0.0, 1.0)
+		mutate(rng, &ls.lightSample.uPos[1], 0.0, 1.0)
+	}
+
+	if bidirectional {
+		mutate(rng, &sample.lightNumSample, 0.0, 1.0)
+		for i := 0; i < 5; i++ {
+			mutate(rng, &sample.lightRaySamples[i], 0.0, 1.0)
+		}
+		for i := 0; i < maxDepth; i++ {
+			// Apply small step to $i$th light _PathSample_
+			lps := &sample.lightPathSamples[i]
+			mutate(rng, &lps.bsdfSample.uComponent, 0.0, 1.0)
+			mutate(rng, &lps.bsdfSample.uDir[0], 0.0, 1.0)
+			mutate(rng, &lps.bsdfSample.uDir[1], 0.0, 1.0)
+			mutate(rng, &lps.rrSample, 0.0, 1.0)
+		}
+	}
 }
-
 
 func GeneratePath(r *RayDifferential, a *Spectrum, scene *Scene, arena *MemoryArena, samples []PathSample,
 	path []PathVertex) (gpath []PathVertex, pathLen int, escapedRay *RayDifferential, escapedAlpha *Spectrum) {
@@ -590,144 +622,146 @@ func GeneratePath(r *RayDifferential, a *Spectrum, scene *Scene, arena *MemoryAr
 func NewMLTTask(prog *ProgressReporter, pfreq, taskNum int,
 	ddx, ddy float64, xx0, xx1, yy0, yy1 int, tt0, tt1, bb float64, is *MLTSample, sc *Scene, camera Camera,
 	renderer *MetropolisRenderer, lightDistribution *Distribution1D) *MLTTask {
-		
+
 	mlt := new(MLTTask)
-	
-    mlt.progress = prog
-    mlt.initialSample = is
-    	
-    mlt.progressUpdateFrequency = pfreq
-    mlt.taskNum = taskNum
-    mlt.dx = ddx
-    mlt.dy = ddy
-    mlt.x0 = xx0
-    mlt.x1 = xx1
-    mlt.y0 = yy0
-    mlt.y1 = yy1
-    mlt.t0 = tt0
-    mlt.t1 = tt1
-    mlt.currentPixelSample = 0
-    mlt.b = bb
-    mlt.scene = sc
-    mlt.camera = camera
-    mlt.renderer = renderer
-    //mlt.filmMutex = fm;
-    mlt.lightDistribution = lightDistribution
-    
-    return mlt
+
+	mlt.progress = prog
+	mlt.initialSample = is
+
+	mlt.progressUpdateFrequency = pfreq
+	mlt.taskNum = taskNum
+	mlt.dx = ddx
+	mlt.dy = ddy
+	mlt.x0 = xx0
+	mlt.x1 = xx1
+	mlt.y0 = yy0
+	mlt.y1 = yy1
+	mlt.t0 = tt0
+	mlt.t1 = tt1
+	mlt.currentPixelSample = 0
+	mlt.b = bb
+	mlt.scene = sc
+	mlt.camera = camera
+	mlt.renderer = renderer
+	//mlt.filmMutex = fm;
+	mlt.lightDistribution = lightDistribution
+
+	return mlt
 }
 
 func (mlt *MLTTask) run() {
-    //PBRT_MLT_STARTED_MLT_TASK(this);
-    // Declare basic _MLTTask_ variables and prepare for sampling
-    //PBRT_MLT_STARTED_TASK_INIT();
-    nPixels := (mlt.x1-mlt.x0) * (mlt.y1-mlt.y0)
-    nPixelSamples := mlt.renderer.nPixelSamples
-    largeStepRate := nPixelSamples / mlt.renderer.largeStepsPerPixel
-    Assert(largeStepRate > 1)
-    nTaskSamples := nPixels * largeStepRate
-    consecutiveRejects := 0
-    progressCounter := mlt.progressUpdateFrequency
+	//PBRT_MLT_STARTED_MLT_TASK(this);
+	// Declare basic _MLTTask_ variables and prepare for sampling
+	//PBRT_MLT_STARTED_TASK_INIT();
+	nPixels := (mlt.x1 - mlt.x0) * (mlt.y1 - mlt.y0)
+	nPixelSamples := mlt.renderer.nPixelSamples
+	largeStepRate := nPixelSamples / mlt.renderer.largeStepsPerPixel
+	Assert(largeStepRate > 1)
+	nTaskSamples := nPixels * largeStepRate
+	consecutiveRejects := 0
+	progressCounter := mlt.progressUpdateFrequency
 
-    // Declare variables for storing and computing MLT samples
-    var arena *MemoryArena
-    rng := NewRNG(int64(mlt.taskNum))
-    cameraPath := make([]PathVertex, mlt.renderer.maxDepth, mlt.renderer.maxDepth) 
-    lightPath := make([]PathVertex, mlt.renderer.maxDepth, mlt.renderer.maxDepth)
-    var samples [2]MLTSample
-    samples[0] = *NewMLTSample(mlt.renderer.maxDepth)
-    samples[1] = *NewMLTSample(mlt.renderer.maxDepth)
- 
-    var L [2]Spectrum
-    var I [2]float64
-    var current uint = 0
-    var proposed uint = 1
+	// Declare variables for storing and computing MLT samples
+	var arena *MemoryArena
+	rng := NewRNG(int64(mlt.taskNum))
+	cameraPath := make([]PathVertex, mlt.renderer.maxDepth, mlt.renderer.maxDepth)
+	lightPath := make([]PathVertex, mlt.renderer.maxDepth, mlt.renderer.maxDepth)
+	var samples [2]MLTSample
+	samples[0] = *NewMLTSample(mlt.renderer.maxDepth)
+	samples[1] = *NewMLTSample(mlt.renderer.maxDepth)
 
-    // Compute _L[current]_ for initial sample
-    samples[current] = *mlt.initialSample
-    L[current] = *mlt.renderer.PathL(mlt.initialSample, mlt.scene, arena, mlt.camera,
-                     mlt.lightDistribution, cameraPath, lightPath, rng)
-    I[current] = L[current].Y()
-    //arena.FreeAll();
+	var L [2]Spectrum
+	var I [2]float64
+	var current uint = 0
+	var proposed uint = 1
 
-    // Compute randomly permuted table of pixel indices for large steps
-    pixelNumOffset := 0
-    largeStepPixelNum := make([]int, 0, nPixels)
-    for i := 0; i < nPixels; i++ { largeStepPixelNum = append(largeStepPixelNum, i) }
-    //Shuffle(&largeStepPixelNum[0], nPixels, 1, rng)
-    //PBRT_MLT_FINISHED_TASK_INIT();
-    for s := 0; s < nTaskSamples; s++ {
-        // Compute proposed mutation to current sample
-        //PBRT_MLT_STARTED_MUTATION();
-        samples[proposed] = samples[current]
-        largeStep := ((s % largeStepRate) == 0)
-        if largeStep {
-            x := float64(mlt.x0 + largeStepPixelNum[pixelNumOffset] % (mlt.x1 - mlt.x0))
-            y := float64(mlt.y0 + largeStepPixelNum[pixelNumOffset] / (mlt.x1 - mlt.x0))
-            LargeStep(rng, &samples[proposed], mlt.renderer.maxDepth,
-                      x + mlt.dx, y + mlt.dy, mlt.t0, mlt.t1, mlt.renderer.bidirectional)
-            pixelNumOffset++
-        } else {
-            SmallStep(rng, &samples[proposed], mlt.renderer.maxDepth,
-                      mlt.x0, mlt.x1, mlt.y0, mlt.y1, mlt.t0, mlt.t1, mlt.renderer.bidirectional)
-		}            
-        //PBRT_MLT_FINISHED_MUTATION();
+	// Compute _L[current]_ for initial sample
+	samples[current] = *mlt.initialSample
+	L[current] = *mlt.renderer.PathL(mlt.initialSample, mlt.scene, arena, mlt.camera,
+		mlt.lightDistribution, cameraPath, lightPath, rng)
+	I[current] = L[current].Y()
+	//arena.FreeAll();
 
-        // Compute contribution of proposed sample
-        L[proposed] = *mlt.renderer.PathL(&samples[proposed], mlt.scene, arena, mlt.camera,
-                         mlt.lightDistribution, cameraPath, lightPath, rng)
-        I[proposed] = L[proposed].Y()
-        //arena.FreeAll();
+	// Compute randomly permuted table of pixel indices for large steps
+	pixelNumOffset := 0
+	largeStepPixelNum := make([]int, 0, nPixels)
+	for i := 0; i < nPixels; i++ {
+		largeStepPixelNum = append(largeStepPixelNum, i)
+	}
+	//Shuffle(&largeStepPixelNum[0], nPixels, 1, rng)
+	//PBRT_MLT_FINISHED_TASK_INIT();
+	for s := 0; s < nTaskSamples; s++ {
+		// Compute proposed mutation to current sample
+		//PBRT_MLT_STARTED_MUTATION();
+		samples[proposed] = samples[current]
+		largeStep := ((s % largeStepRate) == 0)
+		if largeStep {
+			x := float64(mlt.x0 + largeStepPixelNum[pixelNumOffset]%(mlt.x1-mlt.x0))
+			y := float64(mlt.y0 + largeStepPixelNum[pixelNumOffset]/(mlt.x1-mlt.x0))
+			LargeStep(rng, &samples[proposed], mlt.renderer.maxDepth,
+				x+mlt.dx, y+mlt.dy, mlt.t0, mlt.t1, mlt.renderer.bidirectional)
+			pixelNumOffset++
+		} else {
+			SmallStep(rng, &samples[proposed], mlt.renderer.maxDepth,
+				mlt.x0, mlt.x1, mlt.y0, mlt.y1, mlt.t0, mlt.t1, mlt.renderer.bidirectional)
+		}
+		//PBRT_MLT_FINISHED_MUTATION();
 
-        // Compute acceptance probability for proposed sample
-        a := math.Min(1.0, I[proposed] / I[current])
+		// Compute contribution of proposed sample
+		L[proposed] = *mlt.renderer.PathL(&samples[proposed], mlt.scene, arena, mlt.camera,
+			mlt.lightDistribution, cameraPath, lightPath, rng)
+		I[proposed] = L[proposed].Y()
+		//arena.FreeAll();
 
-        // Splat current and proposed samples to _Film_
-        //PBRT_MLT_STARTED_SAMPLE_SPLAT();
-        if I[current] > 0.0 {
-            if !math.IsInf(1.0 / I[current], 0) {
-            	contrib := L[current].InvScale(I[current]).Scale(b / float64(nPixelSamples))
-            	mlt.camera.Film().Splat(&samples[current].cameraSample, contrib.Scale(1.0 - a))
-        	}
-        }
-        if I[proposed] > 0.0 {
-            if !math.IsInf(1.0 / I[proposed], 0) {
-            	contrib :=  L[proposed].InvScale(I[proposed]).Scale(b / float64(nPixelSamples))
-            	mlt.camera.Film().Splat(&samples[proposed].cameraSample, contrib.Scale(a))
-        	}
-        }
-        //PBRT_MLT_FINISHED_SAMPLE_SPLAT();
+		// Compute acceptance probability for proposed sample
+		a := math.Min(1.0, I[proposed]/I[current])
 
-        // Randomly accept proposed path mutation (or not)
-        if consecutiveRejects >= mlt.renderer.maxConsecutiveRejects ||
-            rng.RandomFloat() < a {
-            //PBRT_MLT_ACCEPTED_MUTATION(a, &samples[current], &samples[proposed]);
-            current ^= 1
-            proposed ^= 1
-            consecutiveRejects = 0
-        } else {
-            //PBRT_MLT_REJECTED_MUTATION(a, &samples[current], &samples[proposed]);
-            consecutiveRejects++
-        }
-        progressCounter--
-        if progressCounter == 0 {
-            mlt.progress.Update(1)
-            progressCounter = mlt.progressUpdateFrequency
-        }
-    }
-    Assert(pixelNumOffset == nPixels)
-    // Update display for recently computed Metropolis samples
-    //PBRT_MLT_STARTED_DISPLAY_UPDATE();
-    //int ntf = AtomicAdd(&renderer->nTasksFinished, 1);
-    mlt.renderer.nTasksFinished++
-    ntf := mlt.renderer.nTasksFinished
-    totalSamples := nPixels * nPixelSamples
-    splatScale := float64(totalSamples) / float64(ntf * nTaskSamples)
-    mlt.camera.Film().UpdateDisplay(mlt.x0, mlt.y0, mlt.x1, mlt.y1, splatScale)
-    if (mlt.taskNum % 8) == 0 {
-        //MutexLock lock(*filmMutex);
-        mlt.camera.Film().WriteImage(splatScale)
-    }
-    //PBRT_MLT_FINISHED_DISPLAY_UPDATE();
-    //PBRT_MLT_FINISHED_MLT_TASK(this);
+		// Splat current and proposed samples to _Film_
+		//PBRT_MLT_STARTED_SAMPLE_SPLAT();
+		if I[current] > 0.0 {
+			if !math.IsInf(1.0/I[current], 0) {
+				contrib := L[current].InvScale(I[current]).Scale(b / float64(nPixelSamples))
+				mlt.camera.Film().Splat(&samples[current].cameraSample, contrib.Scale(1.0-a))
+			}
+		}
+		if I[proposed] > 0.0 {
+			if !math.IsInf(1.0/I[proposed], 0) {
+				contrib := L[proposed].InvScale(I[proposed]).Scale(b / float64(nPixelSamples))
+				mlt.camera.Film().Splat(&samples[proposed].cameraSample, contrib.Scale(a))
+			}
+		}
+		//PBRT_MLT_FINISHED_SAMPLE_SPLAT();
+
+		// Randomly accept proposed path mutation (or not)
+		if consecutiveRejects >= mlt.renderer.maxConsecutiveRejects ||
+			rng.RandomFloat() < a {
+			//PBRT_MLT_ACCEPTED_MUTATION(a, &samples[current], &samples[proposed]);
+			current ^= 1
+			proposed ^= 1
+			consecutiveRejects = 0
+		} else {
+			//PBRT_MLT_REJECTED_MUTATION(a, &samples[current], &samples[proposed]);
+			consecutiveRejects++
+		}
+		progressCounter--
+		if progressCounter == 0 {
+			mlt.progress.Update(1)
+			progressCounter = mlt.progressUpdateFrequency
+		}
+	}
+	Assert(pixelNumOffset == nPixels)
+	// Update display for recently computed Metropolis samples
+	//PBRT_MLT_STARTED_DISPLAY_UPDATE();
+	//int ntf = AtomicAdd(&renderer->nTasksFinished, 1);
+	mlt.renderer.nTasksFinished++
+	ntf := mlt.renderer.nTasksFinished
+	totalSamples := nPixels * nPixelSamples
+	splatScale := float64(totalSamples) / float64(ntf*nTaskSamples)
+	mlt.camera.Film().UpdateDisplay(mlt.x0, mlt.y0, mlt.x1, mlt.y1, splatScale)
+	if (mlt.taskNum % 8) == 0 {
+		//MutexLock lock(*filmMutex);
+		mlt.camera.Film().WriteImage(splatScale)
+	}
+	//PBRT_MLT_FINISHED_DISPLAY_UPDATE();
+	//PBRT_MLT_FINISHED_MLT_TASK(this);
 }

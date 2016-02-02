@@ -1,3 +1,29 @@
+/*
+	gopbrt
+
+	Port of pbrt v2.0.0 by Matt Pharr and Greg Humphreys to the go language.
+    pbrt source code Copyright(c) 1998-2012 Matt Pharr and Greg Humphreys.
+
+	The MIT License (MIT)
+	Copyright (c) 2016 Rick Weyrauch
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of
+	this software and associated documentation files (the "Software"), to deal in
+	the Software without restriction, including without limitation the rights to
+	use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+	of the Software, and to permit persons to whom the Software is furnished to do
+	so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+	OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 package core
 
 import (
@@ -89,8 +115,8 @@ func TestSpecularReflection(t *testing.T) {
 
 	u1 := 0.5
 	u2 := 0.25
-	wo := CreateVector(0.000000,-0.866025,0.500000)
-	wi := CreateVector(0.000000,0.866025,0.500000)
+	wo := CreateVector(0.000000, -0.866025, 0.500000)
+	wi := CreateVector(0.000000, 0.866025, 0.500000)
 
 	r := NewSpectrum1(0.333)
 	ei := 0.5
@@ -117,28 +143,28 @@ func TestSpecularReflection(t *testing.T) {
 		t.Errorf("SpecularReflection.Sample_f() failed.")
 		t.Logf("Output: F{%f, %f, %f}, pdf: %f  Expected: F{%f, %f, %f}, pdf: %f", sampF.c[0], sampF.c[1], sampF.c[2], pdf, outSampF[0], outSampF[1], outSampF[2], outSampPdf)
 	}
-	
+
 	ei = 1.0
 	et = 1.0
-	
+
 	tx := NewSpectrum1(0.22)
 	trans := &SpecularTransmission{BxDFData{BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR)}, tx, ei, et, &FresnelDielectric{ei, et}}
-	
+
 	outTransF := [3]float64{0.000000, 0.000000, 0.000000}
 	outTransPdf := 0.0
-	outTransSampF := [3]float64{0.440000, 0.440000, 0.440000 }
+	outTransSampF := [3]float64{0.440000, 0.440000, 0.440000}
 	outTransSampPdf := 1.0
-		
+
 	transF := trans.F(wo, wi)
 	if !AlmostEqualRelative(transF.c[0], outTransF[0], tol) || !AlmostEqualRelative(transF.c[1], outTransF[1], tol) || !AlmostEqualRelative(transF.c[2], outTransF[2], tol) {
 		t.Errorf("SpecularTransmission.F() failed.")
 	}
-	
+
 	transPdf := trans.Pdf(wo, wi)
 	if !AlmostEqualRelative(transPdf, outTransPdf, tol) {
 		t.Errorf("SpecularTransmission.Pdf() failed.")
 	}
-	
+
 	_, transSampF, pdf := trans.Sample_f(wo, u1, u2)
 	if !AlmostEqualRelative(transSampF.c[0], outTransSampF[0], tol) || !AlmostEqualRelative(transSampF.c[1], outTransSampF[1], tol) || !AlmostEqualRelative(transSampF.c[2], outTransSampF[2], tol) ||
 		!AlmostEqualRelative(pdf, outTransSampPdf, tol) {

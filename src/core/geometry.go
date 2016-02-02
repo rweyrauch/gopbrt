@@ -1,3 +1,29 @@
+/*
+	gopbrt
+
+	Port of pbrt v2.0.0 by Matt Pharr and Greg Humphreys to the go language.
+    pbrt source code Copyright(c) 1998-2012 Matt Pharr and Greg Humphreys.
+
+	The MIT License (MIT)
+	Copyright (c) 2016 Rick Weyrauch
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of
+	this software and associated documentation files (the "Software"), to deal in
+	the Software without restriction, including without limitation the rights to
+	use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+	of the Software, and to permit persons to whom the Software is furnished to do
+	so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+	OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 package core
 
 import (
@@ -93,7 +119,7 @@ func (v *Vector) Set(i int, val float64) {
 		v.z = val
 	} else {
 		panic(fmt.Errorf("Vector.Set: Invalid index %d", i))
-	}	
+	}
 }
 func EqualVector(v1, v2 *Vector) bool {
 	return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z
@@ -175,7 +201,7 @@ func (p1 *Point) Sub(p2 *Point) *Vector {
 	return &Vector{p1.x - p2.x, p1.y - p2.y, p1.z - p2.z}
 }
 func (p1 *Point) SubVector(v2 *Vector) *Point {
-	return &Point{p1.x - v2.x, p1.y - v2.y, p1.z - v2.z}	
+	return &Point{p1.x - v2.x, p1.y - v2.y, p1.z - v2.z}
 }
 func (p *Point) Scale(s float64) *Point {
 	return &Point{s * p.x, s * p.y, s * p.z}
@@ -203,7 +229,7 @@ func (p *Point) Set(i int, val float64) {
 		p.z = val
 	} else {
 		panic(fmt.Errorf("Point.Set: Invalid index %d", i))
-	}	
+	}
 }
 
 func EqualPoint(p1, p2 *Point) bool {
@@ -387,7 +413,7 @@ func CreateBBoxFromPoint(p *Point) *BBox {
 func CreateBBoxFromPoints(p1, p2 *Point) *BBox {
 	bbox := new(BBox)
 	bbox.pMin.x, bbox.pMin.y, bbox.pMin.z = math.Min(p1.x, p2.x), math.Min(p1.y, p2.y), math.Min(p1.z, p2.z)
-    bbox.pMax.x, bbox.pMax.y, bbox.pMax.z = math.Max(p1.x, p2.x), math.Max(p1.y, p2.y), math.Max(p1.z, p2.z)
+	bbox.pMax.x, bbox.pMax.y, bbox.pMax.z = math.Max(p1.x, p2.x), math.Max(p1.y, p2.y), math.Max(p1.z, p2.z)
 	return bbox
 }
 func UnionBBoxPoint(b *BBox, p *Point) *BBox {
