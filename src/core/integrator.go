@@ -148,7 +148,7 @@ func (integrator *AmbientOcclusionIntegrator) Li(scene *Scene, renderer Renderer
 	nClear := 0
 	var i uint32
 	for i = 0; i < uint32(integrator.nSamples); i++ {
-		Sample02(i, scramble, u[:])
+		u[0], u[1] = Sample02(i, scramble)
 		w := UniformSampleSphere(u[0], u[1])
 		if DotVectorNormal(w, n) < 0.0 {
 			w = w.Negate()

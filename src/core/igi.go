@@ -79,10 +79,10 @@ func (integrator *IGIIntegrator) Preprocess(scene *Scene, camera Camera, rendere
 	lightSampPos := make([]float64, 2*integrator.nLightPaths*integrator.nLightSets, 2*integrator.nLightPaths*integrator.nLightSets)
 	lightSampComp := make([]float64, integrator.nLightPaths*integrator.nLightSets, integrator.nLightPaths*integrator.nLightSets)
 	lightSampDir := make([]float64, 2*integrator.nLightPaths*integrator.nLightSets, 2*integrator.nLightPaths*integrator.nLightSets)
-	LDShuffleScrambled1D(integrator.nLightPaths, integrator.nLightSets, lightNum, rng)
-	LDShuffleScrambled2D(integrator.nLightPaths, integrator.nLightSets, lightSampPos, rng)
-	LDShuffleScrambled1D(integrator.nLightPaths, integrator.nLightSets, lightSampComp, rng)
-	LDShuffleScrambled2D(integrator.nLightPaths, integrator.nLightSets, lightSampDir, rng)
+	LDShuffleScrambled1D(integrator.nLightPaths, integrator.nLightSets, &lightNum, rng)
+	LDShuffleScrambled2D(integrator.nLightPaths, integrator.nLightSets, &lightSampPos, rng)
+	LDShuffleScrambled1D(integrator.nLightPaths, integrator.nLightSets, &lightSampComp, rng)
+	LDShuffleScrambled2D(integrator.nLightPaths, integrator.nLightSets, &lightSampDir, rng)
 
 	// Precompute information for light sampling densities
 	lightDistribution := ComputeLightSamplingCDF(scene)
