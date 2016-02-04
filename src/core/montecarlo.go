@@ -360,9 +360,9 @@ func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamp
 	imageSamples := buf[bufOffset : bufOffset+2*nPixelSamples]; bufOffset += 2*nPixelSamples
 	lensSamples := buf[bufOffset : bufOffset+2*nPixelSamples]; bufOffset += 2*nPixelSamples
 	timeSamples := buf[bufOffset : bufOffset+nPixelSamples]; bufOffset += nPixelSamples
-	Assert(len(imageSamples) == 2*nPixelSamples)
-	Assert(len(lensSamples) == 2*nPixelSamples)
-	Assert(len(timeSamples) == nPixelSamples)
+	//Assert(len(imageSamples) == 2*nPixelSamples)
+	//Assert(len(lensSamples) == 2*nPixelSamples)
+	//Assert(len(timeSamples) == nPixelSamples)
 
 	// Prepare temporary array pointers for low-discrepancy integrator samples
 	count1D := len(samples[0].n1D)

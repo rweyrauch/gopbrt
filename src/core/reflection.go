@@ -47,14 +47,131 @@ const (
 	MAX_BxDFS = 8
 )
 
-type BSDFSample struct {
-	uDir       [2]float64
-	uComponent float64
-}
+type (
+	Fresnel interface {
+		Evaluate(cosi float64) *Spectrum
+	}
 
-type BSDFSampleOffsets struct {
-	nSamples, componentOffset, dirOffset int
-}
+	FresnelConductor struct {
+		k, eta *Spectrum
+	}
+
+	FresnelNoOp struct {
+	}
+
+	FresnelDielectric struct {
+		eta_i, eta_t float64
+	}
+
+	BSDFSample struct {
+		uDir       [2]float64
+		uComponent float64
+	}
+
+	BSDFSampleOffsets struct {
+		nSamples, componentOffset, dirOffset int
+	}
+
+
+	IrregIsotropicBRDFSample struct {
+		p Point
+		v Spectrum
+	}
+
+	MicrofacetDistribution interface {
+		D(wh *Vector) float64
+		Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, pdf float64)
+		Pdf(wo, wi *Vector) float64
+	}
+
+	Blinn struct { // MicrofacetDistribution
+		exponent float64
+	}
+
+	Anisotropic struct { // MicrofacetDistribution
+		ex, ey float64
+	}
+
+	BxDF interface {
+		F(wo, wi *Vector) *Spectrum
+		Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64)
+		Rho(wo *Vector, nSamples int, samples []float64) *Spectrum
+		Rho2(nSamples int, samples1, samples2 []float64) *Spectrum
+		Pdf(wi, wo *Vector) float64
+		Type() BxDFType
+	}
+	BxDFData struct {
+		bxdftype BxDFType
+	}
+
+	BRDFToBTDF struct { // BxDF
+		BxDFData
+		brdf BxDF
+	}
+
+	ScaledBxDF struct { // BxDF
+		BxDFData
+		bxdf BxDF
+		s    *Spectrum
+	}
+
+	SpecularReflection struct { // BxDF
+		BxDFData
+		R       *Spectrum
+		fresnel Fresnel
+	}
+
+	SpecularTransmission struct { // BxDF
+		BxDFData
+		T          *Spectrum
+		etai, etat float64
+		fresnel    *FresnelDielectric
+	}
+
+	Lambertian struct { // BxDF
+		BxDFData
+		R *Spectrum
+	}
+
+	OrenNayar struct { // BxDF
+		BxDFData
+		R    *Spectrum
+		A, B float64
+	}
+
+	Microfacet struct { // BxDF
+		BxDFData
+		R            *Spectrum
+		distribution MicrofacetDistribution
+		fresnel      Fresnel
+	}
+
+	FresnelBlend struct { // BxDF
+		BxDFData
+		Rd, Rs       *Spectrum
+		distribution MicrofacetDistribution
+	}
+
+	RegularHalfangleBRDF struct { // BxDF
+		BxDFData
+		brdf                    []float64
+		nThetaH, nThetaD, nPhiD int
+	}
+
+	BSDF struct {
+		dgShading DifferentialGeometry
+		eta       float64
+		nn, ng    Normal
+		sn, tn    Vector
+		nBxDFs    int
+		bxdfs     [MAX_BxDFS]BxDF
+	}
+
+	BSSRDF struct {
+		eta                    float64
+		sigma_a, sigma_prime_s *Spectrum
+	}
+)
 
 func CreateBSDFSampleOffsets(count int, sample *Sample) *BSDFSampleOffsets {
 	return &BSDFSampleOffsets{count, sample.Add1D(count), sample.Add2D(count)}
@@ -65,28 +182,16 @@ func CreateRandomBSDFSample(rng *RNG) *BSDFSample {
 }
 
 func CreateBSDFSample(sample *Sample, offsets *BSDFSampleOffsets, n int) *BSDFSample {
-	Assert(n < sample.n2D[offsets.dirOffset])
-	Assert(n < sample.n1D[offsets.componentOffset])
+	//Assert(n < sample.n2D[offsets.dirOffset])
+	//Assert(n < sample.n1D[offsets.componentOffset])
 	bsdfSample := new(BSDFSample)
 	bsdfSample.uDir[0] = sample.twoD[offsets.dirOffset][2*n]
 	bsdfSample.uDir[1] = sample.twoD[offsets.dirOffset][2*n+1]
 	bsdfSample.uComponent = sample.oneD[offsets.componentOffset][n]
-	Assert(bsdfSample.uDir[0] >= 0.0 && bsdfSample.uDir[0] < 1.0)
-	Assert(bsdfSample.uDir[1] >= 0.0 && bsdfSample.uDir[1] < 1.0)
-	Assert(bsdfSample.uComponent >= 0.0 && bsdfSample.uComponent < 1.0)
+	//Assert(bsdfSample.uDir[0] >= 0.0 && bsdfSample.uDir[0] < 1.0)
+	//Assert(bsdfSample.uDir[1] >= 0.0 && bsdfSample.uDir[1] < 1.0)
+	//Assert(bsdfSample.uComponent >= 0.0 && bsdfSample.uComponent < 1.0)
 	return bsdfSample
-}
-
-type BxDF interface {
-	F(wo, wi *Vector) *Spectrum
-	Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64)
-	Rho(wo *Vector, nSamples int, samples []float64) *Spectrum
-	Rho2(nSamples int, samples1, samples2 []float64) *Spectrum
-	Pdf(wi, wo *Vector) float64
-	Type() BxDFType
-}
-type BxDFData struct {
-	bxdftype BxDFType
 }
 
 func BxDFSample_f(bxdf BxDF, wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
@@ -136,11 +241,6 @@ func matchesFlags(bxdf BxDF, flags BxDFType) bool {
 	return (bxdf.Type() & flags) == bxdf.Type()
 }
 
-type BRDFToBTDF struct { // BxDF
-	BxDFData
-	brdf BxDF
-}
-
 func NewBRDFToBTDF(brdf BxDF) *BRDFToBTDF {
 	return &BRDFToBTDF{BxDFData{brdf.Type() ^ (BSDF_REFLECTION | BSDF_TRANSMISSION)}, brdf}
 }
@@ -169,12 +269,6 @@ func (b *BRDFToBTDF) otherHemisphere(w *Vector) *Vector {
 	return CreateVector(w.x, w.y, -w.z)
 }
 
-type ScaledBxDF struct { // BxDF
-	BxDFData
-	bxdf BxDF
-	s    *Spectrum
-}
-
 func NewScaledBxDF(bxdf BxDF, s *Spectrum) *ScaledBxDF {
 	return &ScaledBxDF{BxDFData{bxdf.Type()}, bxdf, s}
 }
@@ -197,20 +291,8 @@ func (b *ScaledBxDF) Pdf(wi, wo *Vector) float64 {
 }
 func (b *ScaledBxDF) Type() BxDFType { return b.bxdftype }
 
-type Fresnel interface {
-	Evaluate(cosi float64) *Spectrum
-}
-
-type FresnelConductor struct {
-	k, eta *Spectrum
-}
-
 func (fresnel *FresnelConductor) Evaluate(cosi float64) *Spectrum {
 	return FrCond(math.Abs(cosi), fresnel.eta, fresnel.k)
-}
-
-type FresnelDielectric struct {
-	eta_i, eta_t float64
 }
 
 func (fresnel *FresnelDielectric) Evaluate(cosi float64) *Spectrum {
@@ -234,20 +316,8 @@ func (fresnel *FresnelDielectric) Evaluate(cosi float64) *Spectrum {
 	}
 }
 
-type FresnelNoOp struct {
-}
-
 func (fresnel *FresnelNoOp) Evaluate(cosi float64) *Spectrum {
 	return NewSpectrum1(1.0)
-}
-
-type BSDF struct {
-	dgShading DifferentialGeometry
-	eta       float64
-	nn, ng    Normal
-	sn, tn    Vector
-	nBxDFs    int
-	bxdfs     [MAX_BxDFS]BxDF
 }
 
 func NewBSDF(dg *DifferentialGeometry, ngeom *Normal, eta float64) *BSDF {
@@ -428,75 +498,8 @@ func (bsdf *BSDF) rho2(wo *Vector, rng *RNG, flags BxDFType, sqrtSamples int) *S
 	return ret
 }
 
-type SpecularReflection struct { // BxDF
-	BxDFData
-	R       *Spectrum
-	fresnel Fresnel
-}
-
-type SpecularTransmission struct { // BxDF
-	BxDFData
-	T          *Spectrum
-	etai, etat float64
-	fresnel    *FresnelDielectric
-}
-
-type Lambertian struct { // BxDF
-	BxDFData
-	R *Spectrum
-}
-
-type OrenNayar struct { // BxDF
-	BxDFData
-	R    *Spectrum
-	A, B float64
-}
-
-type MicrofacetDistribution interface {
-	D(wh *Vector) float64
-	Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, pdf float64)
-	Pdf(wo, wi *Vector) float64
-}
-
-type Microfacet struct { // BxDF
-	BxDFData
-	R            *Spectrum
-	distribution MicrofacetDistribution
-	fresnel      Fresnel
-}
-
-type Blinn struct { // MicrofacetDistribution
-	exponent float64
-}
-
-type Anisotropic struct { // MicrofacetDistribution
-	ex, ey float64
-}
-
-type FresnelBlend struct { // BxDF
-	BxDFData
-	Rd, Rs       *Spectrum
-	distribution MicrofacetDistribution
-}
-
-type RegularHalfangleBRDF struct { // BxDF
-	BxDFData
-	brdf                    []float64
-	nThetaH, nThetaD, nPhiD int
-}
-
-type BSSRDF struct {
-	eta                    float64
-	sigma_a, sigma_prime_s *Spectrum
-}
-
 func NewBSSRDF(sa, sps *Spectrum, et float64) *BSSRDF {
 	return &BSSRDF{et, sa, sps}
-}
-
-type IrregIsotropicBRDFSample struct {
-	p *Point
-	v *Spectrum
 }
 
 func FrDiel(cosi, cost float64, etai, etat *Spectrum) *Spectrum {
