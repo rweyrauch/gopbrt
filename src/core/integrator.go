@@ -727,7 +727,7 @@ func UniformSampleAllLights(scene *Scene, renderer Renderer,
 				rayEpsilon, time, bsdf, rng, lightSample, bsdfSample,
 				BxDFType(BSDF_ALL^BSDF_SPECULAR)))
 		}
-		L = L.Add(Ld.InvScale(1.0 / float64(nSamples)))
+		L = L.Add(Ld.InvScale(float64(nSamples)))
 	}
 	return L
 }
