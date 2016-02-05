@@ -58,7 +58,7 @@ func ReadImage(name string) (pixels []Spectrum, xSize, ySize int) {
 func WriteImage(name string, pixels, alpha []float32, XRes, YRes, totalXRes, totalYRes, xOffset, yOffset int) {
 	ext := strings.ToLower(filepath.Ext(name))
 	if strings.Compare(ext, ".exr") == 0 {
-		Warning("EXR file save not implemented.")
+		writeImageExr(name, pixels, XRes, YRes)
 	} else if strings.Compare(ext, ".pfm") == 0 {
 		Warning("PFM file save not implemented.")
 	} else if strings.Compare(ext, ".tga") == 0 {
@@ -156,4 +156,7 @@ func readImageExr(filename string) (image []Spectrum, width, height int) {
 }
 
 func writeImageExr(filename string, pixels []float32, xres, yres int) {
+	//tinyexr.WriteImageEXR(filename, xres, yres, 3, pixels)
+	// Save as a PNG for now.
+	writeImagePng(filepath.Base(filename) + ".png", pixels, xres, yres)
 }

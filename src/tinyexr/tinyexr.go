@@ -42,6 +42,14 @@ const (
 	TINYEXR_PIXELTYPE_FLOAT = 2
 )
 
+const (
+	TINYEXR_COMPRESSIONTYPE_NONE = 0
+	TINYEXR_COMPRESSIONTYPE_RLE = 1  // not supported yet
+	TINYEXR_COMPRESSIONTYPE_ZIPS = 2
+	TINYEXR_COMPRESSIONTYPE_ZIP = 3
+	TINYEXR_COMPRESSIONTYPE_PIZ = 4
+)
+
 func initEXRImage(exrImage *C.EXRImage) {
 	C.InitEXRImage(exrImage)
 }
@@ -109,14 +117,45 @@ func ReadImageEXR(filename string) (width, height, channels int, planarRGBA []fl
 	return width, height, channels, planarRGBA
 }
 
-func WriteImageEXR(filename string, width, height, channels int, pixels []float32) {
+func WriteImageEXR(filename string, width, height, channels int, planarRGBA []float32) {
 	var exrImage C.EXRImage
 
+	if channels != 3 {
+		panic("Only 3-channel export implemented.")
+	}
+	
 	initEXRImage(&exrImage)
 	defer freeEXRImage(&exrImage)
 
 	exrImage.width = C.int(width)
 	exrImage.height = C.int(height)
 	exrImage.num_channels = C.int(channels)
-
+	exrImage.compression = TINYEXR_COMPRESSIONTYPE_ZIP
+	pixel_types := make([]C.int, channels, channels)
+	requested_pixel_types := make([]C.int, channels, channels)
+	for i := 0; i < channels; i++ {
+		pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT
+		requested_pixel_types[i] = TINYEXR_PIXELTYPE_HALF
+	}
+	exrImage.pixel_types = (*C.int)(unsafe.Pointer(&pixel_types[0]))
+	exrImage.requested_pixel_types = (*C.int)(unsafe.Pointer(&requested_pixel_types[0]))
+	
+	imageR := make([]float32, width*height, width*height)
+	imageG := make([]float32, width*height, width*height)
+	imageB := make([]float32, width*height, width*height)
+	for i, _ := range imageR {
+		imageR[i] = planarRGBA[i*channels+0]
+		imageB[i] = planarRGBA[i*channels+1]
+		imageG[i] = planarRGBA[i*channels+2]
+	}
+	imagePtrs := make([]*float32, channels, channels)
+	imagePtrs[0] = &imageR[0]
+	imagePtrs[1] = &imageG[0]
+	imagePtrs[2] = &imageB[0]
+	exrImage.images = (**C.uchar)(unsafe.Pointer(&imagePtrs[0]))
+	
+	res, errmsg := saveMultiChannelEXRToFile(&exrImage, filename)
+	if res != 0 {
+		fmt.Printf("Failed to save EXR to file %s.  Error: %s\n", filename, errmsg)
+	}
 }
