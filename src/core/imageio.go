@@ -27,7 +27,7 @@
 package core
 
 import (
-	"github.com/rweyrauch/gopbrt/src/tinyexr"
+	"github.com/rweyrauch/gopbrt/src/openexr"
 	"image"
 	"image/color"
 	"image/png"
@@ -57,6 +57,7 @@ func ReadImage(name string) (pixels []Spectrum, xSize, ySize int) {
 
 func WriteImage(name string, pixels, alpha []float32, XRes, YRes, totalXRes, totalYRes, xOffset, yOffset int) {
 	ext := strings.ToLower(filepath.Ext(name))
+	Debug("Writing image: %s", name)
 	if strings.Compare(ext, ".exr") == 0 {
 		writeImageExr(name, pixels, XRes, YRes)
 	} else if strings.Compare(ext, ".pfm") == 0 {
@@ -133,7 +134,7 @@ func readImagePng(filename string) (image []Spectrum, width, height int) {
 func readImageExr(filename string) (image []Spectrum, width, height int) {
 	var planarRGBA []float32
 	var channels int
-	width, height, channels, planarRGBA = tinyexr.ReadImageEXR(filename)
+	width, height, channels, planarRGBA = openexr.ReadImageEXR(filename)
 	if planarRGBA != nil {
 		Debug("Read EXR image (%dx%dx%d)", width, height, channels)
 		image = make([]Spectrum, width*height, width*height)
@@ -156,7 +157,6 @@ func readImageExr(filename string) (image []Spectrum, width, height int) {
 }
 
 func writeImageExr(filename string, pixels []float32, xres, yres int) {
-	//tinyexr.WriteImageEXR(filename, xres, yres, 3, pixels)
-	// Save as a PNG for now.
-	writeImagePng(filepath.Base(filename) + ".png", pixels, xres, yres)
+	Debug("Write EXR image (%dx%dx%d)", xres, yres, 3)
+	openexr.WriteImageEXR(filename, xres, yres, 3, pixels)
 }

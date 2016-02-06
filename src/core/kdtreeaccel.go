@@ -119,10 +119,10 @@ func NewKdTreeAccel(prims []Primitive, icost, tcost int, ebonus float64, maxp, m
 	accel.buildTree(0, accel.bounds, primBounds, primNums, len(accel.primitives),
 		accel.maxDepth, &edges, prims0, prims1, 0)
 
-	Info("KdTreeAccel: %s", accel)
-	for i := 0; i < accel.nextFreeNode-1; i++ {
-		Info("Node[%d]: %s", i, &accel.nodes[i])
-	}
+	//Info("KdTreeAccel: %s", accel)
+	//for i := 0; i < accel.nextFreeNode-1; i++ {
+	//	Info("Node[%d]: %s", i, &accel.nodes[i])
+	//}
 	//PBRT_KDTREE_FINISHED_CONSTRUCTION(this);
 
 	return accel

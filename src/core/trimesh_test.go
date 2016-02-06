@@ -70,8 +70,7 @@ func TestTriangleMeshShape(t *testing.T) {
 
 		tri, ok := s.(*Triangle)
 		if ok {
-			var uvs [3][2]float64
-			tri.GetUVs(&uvs)
+			uvs := tri.GetUVs()
 			fmt.Printf("Tri UVS: %v\n", uvs)
 		}
 	}
