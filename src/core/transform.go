@@ -250,7 +250,7 @@ func HasScaleTransform(t *Transform) bool {
 }
 
 func PointTransform(t *Transform, pt *Point) *Point {
-	x, y, z := pt.x, pt.y, pt.z
+	x, y, z := pt.X, pt.Y, pt.Z
 	xp := t.m.m[0][0]*x + t.m.m[0][1]*y + t.m.m[0][2]*z + t.m.m[0][3]
 	yp := t.m.m[1][0]*x + t.m.m[1][1]*y + t.m.m[1][2]*z + t.m.m[1][3]
 	zp := t.m.m[2][0]*x + t.m.m[2][1]*y + t.m.m[2][2]*z + t.m.m[2][3]
@@ -264,14 +264,14 @@ func PointTransform(t *Transform, pt *Point) *Point {
 }
 
 func VectorTransform(t *Transform, v *Vector) *Vector {
-	x, y, z := v.x, v.y, v.z
+	x, y, z := v.X, v.Y, v.Z
 	return &Vector{t.m.m[0][0]*x + t.m.m[0][1]*y + t.m.m[0][2]*z,
 		t.m.m[1][0]*x + t.m.m[1][1]*y + t.m.m[1][2]*z,
 		t.m.m[2][0]*x + t.m.m[2][1]*y + t.m.m[2][2]*z}
 }
 
 func NormalTransform(t *Transform, n *Normal) *Normal {
-	x, y, z := n.x, n.y, n.z
+	x, y, z := n.X, n.Y, n.Z
 	return &Normal{t.mInv.m[0][0]*x + t.mInv.m[1][0]*y + t.mInv.m[2][0]*z,
 		t.mInv.m[0][1]*x + t.mInv.m[1][1]*y + t.mInv.m[2][1]*z,
 		t.mInv.m[0][2]*x + t.mInv.m[1][2]*y + t.mInv.m[2][2]*z}
@@ -315,13 +315,13 @@ func SwapsHandednessTransform(t *Transform) bool {
 }
 
 func TranslateTransform(delta *Vector) *Transform {
-	m := NewMatrix4x4(1, 0, 0, delta.x,
-		0, 1, 0, delta.y,
-		0, 0, 1, delta.z,
+	m := NewMatrix4x4(1, 0, 0, delta.X,
+		0, 1, 0, delta.Y,
+		0, 0, 1, delta.Z,
 		0, 0, 0, 1)
-	minv := NewMatrix4x4(1, 0, 0, -delta.x,
-		0, 1, 0, -delta.y,
-		0, 0, 1, -delta.z,
+	minv := NewMatrix4x4(1, 0, 0, -delta.X,
+		0, 1, 0, -delta.Y,
+		0, 0, 1, -delta.Z,
 		0, 0, 0, 1)
 	return &Transform{m, minv}
 }
@@ -373,9 +373,9 @@ func RotateTransform(angle float64, axis *Vector) *Transform {
 	s := math.Sin(Radians(angle))
 	c := math.Cos(Radians(angle))
 
-	mat := NewMatrix4x4((a.x*a.x + (1.0-a.x*a.x)*c), (a.x*a.y*(1.0-c) - a.z*s), (a.x*a.z*(1.0-c) + a.y*s), 0,
-		(a.x*a.y*(1.0-c) + a.z*s), (a.y*a.y + (1.0-a.y*a.y)*c), (a.y*a.z*(1.0-c) - a.x*s), 0,
-		(a.x*a.z*(1.0-c) - a.y*s), (a.y*a.z*(1.0-c) + a.x*s), (a.z*a.z + (1.0-a.z*a.z)*c), 0,
+	mat := NewMatrix4x4((a.X*a.X + (1.0-a.X*a.X)*c), (a.X*a.Y*(1.0-c) - a.Z*s), (a.X*a.Z*(1.0-c) + a.Y*s), 0,
+		(a.X*a.Y*(1.0-c) + a.Z*s), (a.Y*a.Y + (1.0-a.Y*a.Y)*c), (a.Y*a.Z*(1.0-c) - a.X*s), 0,
+		(a.X*a.Z*(1.0-c) - a.Y*s), (a.Y*a.Z*(1.0-c) + a.X*s), (a.Z*a.Z + (1.0-a.Z*a.Z)*c), 0,
 		0, 0, 0, 1)
 
 	return &Transform{mat, TransposeMatrix4x4(mat)}
@@ -385,29 +385,29 @@ func LookAtTransform(pos, look *Point, up *Vector) (*Transform, error) {
 	// Initialize first three columns of viewing matrix
 	dir := NormalizeVector(look.Sub(pos))
 	if CrossVector(NormalizeVector(up), dir).Length() == 0 {
-		return nil, fmt.Errorf("\"up\" vector (%f, %f, %f) and viewing direction (%f, %f, %f) passed to LookAt are pointing in the same direction.  Using the identity transformation.", up.x, up.y, up.z, dir.x, dir.y, dir.z)
+		return nil, fmt.Errorf("\"up\" vector (%f, %f, %f) and viewing direction (%f, %f, %f) passed to LookAt are pointing in the same direction.  Using the identity transformation.", up.X, up.Y, up.Z, dir.X, dir.Y, dir.Z)
 	}
 
 	camToWorld := new(Matrix4x4)
 	// Initialize fourth column of viewing matrix
-	camToWorld.m[0][3] = pos.x
-	camToWorld.m[1][3] = pos.y
-	camToWorld.m[2][3] = pos.z
+	camToWorld.m[0][3] = pos.X
+	camToWorld.m[1][3] = pos.Y
+	camToWorld.m[2][3] = pos.Z
 	camToWorld.m[3][3] = 1
 
 	left := NormalizeVector(CrossVector(NormalizeVector(up), dir))
 	newUp := CrossVector(dir, left)
-	camToWorld.m[0][0] = left.x
-	camToWorld.m[1][0] = left.y
-	camToWorld.m[2][0] = left.z
+	camToWorld.m[0][0] = left.X
+	camToWorld.m[1][0] = left.Y
+	camToWorld.m[2][0] = left.Z
 	camToWorld.m[3][0] = 0.0
-	camToWorld.m[0][1] = newUp.x
-	camToWorld.m[1][1] = newUp.y
-	camToWorld.m[2][1] = newUp.z
+	camToWorld.m[0][1] = newUp.X
+	camToWorld.m[1][1] = newUp.Y
+	camToWorld.m[2][1] = newUp.Z
 	camToWorld.m[3][1] = 0.0
-	camToWorld.m[0][2] = dir.x
-	camToWorld.m[1][2] = dir.y
-	camToWorld.m[2][2] = dir.z
+	camToWorld.m[0][2] = dir.X
+	camToWorld.m[1][2] = dir.Y
+	camToWorld.m[2][2] = dir.Z
 	camToWorld.m[3][2] = 0.0
 	worldToCam, err := InverseMatrix4x4(camToWorld)
 	if err != nil {

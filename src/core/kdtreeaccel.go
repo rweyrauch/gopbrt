@@ -147,7 +147,7 @@ func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Inte
 	}
 
 	// Prepare to traverse kd-tree for ray
-	invDir := CreateVector(1.0/ray.dir.x, 1.0/ray.dir.y, 1.0/ray.dir.z)
+	invDir := CreateVector(1.0/ray.dir.X, 1.0/ray.dir.Y, 1.0/ray.dir.Z)
 
 	var todo [MAX_TODO]KdToDo
 	todoPos := 0
@@ -249,7 +249,7 @@ func (accel *KdTreeAccel) IntersectP(ray *Ray) bool {
 	}
 
 	// Prepare to traverse kd-tree for ray
-	invDir := CreateVector(1.0/ray.dir.x, 1.0/ray.dir.y, 1.0/ray.dir.z)
+	invDir := CreateVector(1.0/ray.dir.X, 1.0/ray.dir.Y, 1.0/ray.dir.Z)
 
 	var todo [MAX_TODO]KdToDo
 	todoPos := 0

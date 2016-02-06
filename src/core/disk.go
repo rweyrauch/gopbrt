@@ -76,23 +76,23 @@ func (d *Disk) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 	ray := RayTransform(d.worldToObject, r)
 
 	// Compute plane intersection for disk
-	if math.Abs(ray.dir.z) < 1.0e-7 {
+	if math.Abs(ray.dir.Z) < 1.0e-7 {
 		return false, 0.0, 0.0, nil
 	}
-	thit := (d.height - ray.origin.z) / ray.dir.z
+	thit := (d.height - ray.origin.Z) / ray.dir.Z
 	if thit < ray.mint || thit > ray.maxt {
 		return false, 0.0, 0.0, nil
 	}
 
 	// See if hit point is inside disk radii and $\phimax$
 	phit := ray.PointAt(thit)
-	dist2 := phit.x*phit.x + phit.y*phit.y
+	dist2 := phit.X*phit.X + phit.Y*phit.Y
 	if dist2 > d.radius*d.radius || dist2 < d.innerRadius*d.innerRadius {
 		return false, 0.0, 0.0, nil
 	}
 
 	// Test disk $\phi$ value against $\phimax$
-	phi := math.Atan2(phit.y, phit.x)
+	phi := math.Atan2(phit.Y, phit.X)
 	if phi < 0.0 {
 		phi += 2.0 * math.Pi
 	}
@@ -107,8 +107,8 @@ func (d *Disk) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 	oneMinusV := ((R - d.innerRadius) / (d.radius - d.innerRadius))
 	v := 1.0 - oneMinusV
 
-	dpdu := CreateVector(-d.phiMax*phit.y, d.phiMax*phit.x, 0.0)
-	dpdv := CreateVector(phit.x, phit.y, 0.0)
+	dpdu := CreateVector(-d.phiMax*phit.Y, d.phiMax*phit.X, 0.0)
+	dpdv := CreateVector(phit.X, phit.Y, 0.0)
 	dpdv.Scale((d.innerRadius - d.radius) / R)
 	dndu := CreateNormal(0, 0, 0)
 	dndv := CreateNormal(0, 0, 0)
@@ -131,23 +131,23 @@ func (d *Disk) IntersectP(r *Ray) bool {
 	ray := RayTransform(d.worldToObject, r)
 
 	// Compute plane intersection for disk
-	if math.Abs(ray.dir.z) < 1.0e-7 {
+	if math.Abs(ray.dir.Z) < 1.0e-7 {
 		return false
 	}
-	thit := (d.height - ray.origin.z) / ray.dir.z
+	thit := (d.height - ray.origin.Z) / ray.dir.Z
 	if thit < ray.mint || thit > ray.maxt {
 		return false
 	}
 
 	// See if hit point is inside disk radii and $\phimax$
 	phit := ray.PointAt(thit)
-	dist2 := phit.x*phit.x + phit.y*phit.y
+	dist2 := phit.X*phit.X + phit.Y*phit.Y
 	if dist2 > d.radius*d.radius || dist2 < d.innerRadius*d.innerRadius {
 		return false
 	}
 
 	// Test disk $\phi$ value against $\phimax$
-	phi := math.Atan2(phit.y, phit.x)
+	phi := math.Atan2(phit.Y, phit.X)
 	if phi < 0.0 {
 		phi += 2.0 * math.Pi
 	}
@@ -168,10 +168,10 @@ func (d *Disk) Area() float64 {
 
 func (d *Disk) Sample(u1, u2 float64) (*Point, *Normal) {
 	var p Point
-	p.x, p.y = ConcentricSampleDisk(u1, u2)
-	p.x *= d.radius
-	p.y *= d.radius
-	p.z = d.height
+	p.X, p.Y = ConcentricSampleDisk(u1, u2)
+	p.X *= d.radius
+	p.Y *= d.radius
+	p.Z = d.height
 	Ns := NormalizeNormal(NormalTransform(d.objectToWorld, CreateNormal(0.0, 0.0, 1.0)))
 	if d.reverseOrientation {
 		Ns = Ns.Negate()

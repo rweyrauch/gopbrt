@@ -28,7 +28,7 @@ package core
 
 // Go commands to generate lexer/parser.
 //
-//go:generate go tool yacc -o pbrtparser.go pbrtparser.y
+//go:generate go tool yacc -o pbrtparser.go pbrtparser.Y
 
 import (
 	"io/ioutil"
@@ -200,13 +200,13 @@ func (ps *ParamSet) FindPointParam(name string, defval Point) Point {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) == 3 {
 					if v, ok := values[0].(float64); ok {
-						value.x = v
+						value.X = v
 					}
 					if v, ok := values[1].(float64); ok {
-						value.y = v
+						value.Y = v
 					}
 					if v, ok := values[2].(float64); ok {
-						value.z = v
+						value.Z = v
 					}
 				}
 			}
@@ -228,13 +228,13 @@ func (ps *ParamSet) FindPointArrayParam(name string) []Point {
 				array = make([]Point, numPoints, numPoints)
 				for ii, _ := range array {
 					if v, ok := values[ii*3+0].(float64); ok {
-						array[ii].x = v
+						array[ii].X = v
 					}
 					if v, ok := values[ii*3+1].(float64); ok {
-						array[ii].y = v
+						array[ii].Y = v
 					}
 					if v, ok := values[ii*3+2].(float64); ok {
-						array[ii].z = v
+						array[ii].Z = v
 					}
 				}
 			}
@@ -254,13 +254,13 @@ func (ps *ParamSet) FindVectorParam(name string, defval Vector) Vector {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) == 3 {
 					if v, ok := values[0].(float64); ok {
-						value.x = v
+						value.X = v
 					}
 					if v, ok := values[1].(float64); ok {
-						value.y = v
+						value.Y = v
 					}
 					if v, ok := values[2].(float64); ok {
-						value.z = v
+						value.Z = v
 					}
 				}
 			}
@@ -282,13 +282,13 @@ func (ps *ParamSet) FindVectorArrayParam(name string) []Vector {
 				array = make([]Vector, numVectors, numVectors)
 				for ii, _ := range array {
 					if v, ok := values[ii*3+0].(float64); ok {
-						array[ii].x = v
+						array[ii].X = v
 					}
 					if v, ok := values[ii*3+1].(float64); ok {
-						array[ii].y = v
+						array[ii].Y = v
 					}
 					if v, ok := values[ii*3+2].(float64); ok {
-						array[ii].z = v
+						array[ii].Z = v
 					}
 				}
 			}
@@ -308,13 +308,13 @@ func (ps *ParamSet) FindNormalParam(name string, defval Normal) Normal {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) == 3 {
 					if v, ok := values[0].(float64); ok {
-						value.x = v
+						value.X = v
 					}
 					if v, ok := values[1].(float64); ok {
-						value.y = v
+						value.Y = v
 					}
 					if v, ok := values[2].(float64); ok {
-						value.z = v
+						value.Z = v
 					}
 				}
 			}
@@ -336,13 +336,13 @@ func (ps *ParamSet) FindNormalArrayParam(name string) []Normal {
 				array = make([]Normal, numNormals, numNormals)
 				for ii, _ := range array {
 					if v, ok := values[ii*3+0].(float64); ok {
-						array[ii].x = v
+						array[ii].X = v
 					}
 					if v, ok := values[ii*3+1].(float64); ok {
-						array[ii].y = v
+						array[ii].Y = v
 					}
 					if v, ok := values[ii*3+2].(float64); ok {
-						array[ii].z = v
+						array[ii].Z = v
 					}
 				}
 			}

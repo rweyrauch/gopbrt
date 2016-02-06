@@ -33,7 +33,7 @@ import (
 
 type Sphere struct {
 	ShapeData
-	radius, phiMax, zmin, zmax, thetaMin, thetaMax float64
+	radius, phiMax, Zmin, Zmax, thetaMin, thetaMax float64
 }
 
 func CreateSphere(o2w, w2o *Transform, ro bool, rad, z0, z1, pm float64) *Sphere {
@@ -44,21 +44,21 @@ func CreateSphere(o2w, w2o *Transform, ro bool, rad, z0, z1, pm float64) *Sphere
 	s.transformSwapsHandedness = SwapsHandednessTransform(s.objectToWorld)
 	s.shapeId = GenerateShapeId()
 	s.radius = rad
-	s.zmin = Clamp(math.Min(z0, z1), -s.radius, s.radius)
-	s.zmax = Clamp(math.Max(z0, z1), -s.radius, s.radius)
-	s.thetaMin = math.Acos(Clamp(s.zmin/s.radius, -1.0, 1.0))
-	s.thetaMax = math.Acos(Clamp(s.zmax/s.radius, -1.0, 1.0))
+	s.Zmin = Clamp(math.Min(z0, z1), -s.radius, s.radius)
+	s.Zmax = Clamp(math.Max(z0, z1), -s.radius, s.radius)
+	s.thetaMin = math.Acos(Clamp(s.Zmin/s.radius, -1.0, 1.0))
+	s.thetaMax = math.Acos(Clamp(s.Zmax/s.radius, -1.0, 1.0))
 	s.phiMax = Radians(Clamp(pm, 0.0, 360.0))
 
 	return s
 }
 
 func (s *Sphere) String() string {
-	return fmt.Sprintf("sphere[r: %f zmin: %f zmax: %f phimax: %f obj2world: %v]", s.radius, s.zmin, s.zmax, Degrees(s.phiMax), s.objectToWorld)
+	return fmt.Sprintf("sphere[r: %f zmin: %f zmax: %f phimax: %f obj2world: %v]", s.radius, s.Zmin, s.Zmax, Degrees(s.phiMax), s.objectToWorld)
 }
 
 func (s *Sphere) ObjectBound() *BBox {
-	return &BBox{Point{-s.radius, -s.radius, s.zmin}, Point{s.radius, s.radius, s.zmax}}
+	return &BBox{Point{-s.radius, -s.radius, s.Zmin}, Point{s.radius, s.radius, s.Zmax}}
 }
 
 func (s *Sphere) WorldBound() *BBox {
@@ -78,9 +78,9 @@ func (s *Sphere) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Diff
 	ray := RayTransform(s.worldToObject, r)
 
 	// Compute quadratic sphere coefficients
-	A := ray.dir.x*ray.dir.x + ray.dir.y*ray.dir.y + ray.dir.z*ray.dir.z
-	B := 2.0 * (ray.dir.x*ray.origin.x + ray.dir.y*ray.origin.y + ray.dir.z*ray.origin.z)
-	C := ray.origin.x*ray.origin.x + ray.origin.y*ray.origin.y + ray.origin.z*ray.origin.z - s.radius*s.radius
+	A := ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y + ray.dir.Z*ray.dir.Z
+	B := 2.0 * (ray.dir.X*ray.origin.X + ray.dir.Y*ray.origin.Y + ray.dir.Z*ray.origin.Z)
+	C := ray.origin.X*ray.origin.X + ray.origin.Y*ray.origin.Y + ray.origin.Z*ray.origin.Z - s.radius*s.radius
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -103,17 +103,17 @@ func (s *Sphere) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Diff
 
 	// Compute sphere hit position and $\phi$
 	phit := ray.PointAt(thit)
-	if phit.x == 0.0 && phit.y == 0.0 {
-		phit.x = 1.0e-5 * s.radius
+	if phit.X == 0.0 && phit.Y == 0.0 {
+		phit.X = 1.0e-5 * s.radius
 	}
-	phi := math.Atan2(phit.y, phit.x)
+	phi := math.Atan2(phit.Y, phit.X)
 	if phi < 0.0 {
 		phi += 2.0 * math.Pi
 	}
 
 	// Test sphere intersection against clipping parameters
-	if (s.zmin > -s.radius && phit.z < s.zmin) ||
-		(s.zmax < s.radius && phit.z > s.zmax) || phi > s.phiMax {
+	if (s.Zmin > -s.radius && phit.Z < s.Zmin) ||
+		(s.Zmax < s.radius && phit.Z > s.Zmax) || phi > s.phiMax {
 		if thit == t1 {
 			return false, 0.0, 0.0, nil
 		}
@@ -123,36 +123,36 @@ func (s *Sphere) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Diff
 		thit = t1
 		// Compute sphere hit position and $\phi$
 		phit = ray.PointAt(thit)
-		if phit.x == 0.0 && phit.y == 0.0 {
-			phit.x = 1.0e-5 * s.radius
+		if phit.X == 0.0 && phit.Y == 0.0 {
+			phit.X = 1.0e-5 * s.radius
 		}
-		phi = math.Atan2(phit.y, phit.x)
+		phi = math.Atan2(phit.Y, phit.X)
 		if phi < 0.0 {
 			phi += 2.0 * math.Pi
 		}
-		if (s.zmin > -s.radius && phit.z < s.zmin) ||
-			(s.zmax < s.radius && phit.z > s.zmax) || phi > s.phiMax {
+		if (s.Zmin > -s.radius && phit.Z < s.Zmin) ||
+			(s.Zmax < s.radius && phit.Z > s.Zmax) || phi > s.phiMax {
 			return false, 0.0, 0.0, nil
 		}
 	}
 
 	// Find parametric representation of sphere hit
 	u := phi / s.phiMax
-	theta := math.Acos(Clamp(phit.z/s.radius, -1.0, 1.0))
+	theta := math.Acos(Clamp(phit.Z/s.radius, -1.0, 1.0))
 	v := (theta - s.thetaMin) / (s.thetaMax - s.thetaMin)
 
 	// Compute sphere $\dpdu$ and $\dpdv$
-	zradius := math.Sqrt(phit.x*phit.x + phit.y*phit.y)
+	zradius := math.Sqrt(phit.X*phit.X + phit.Y*phit.Y)
 	invzradius := 1.0 / zradius
-	cosphi := phit.x * invzradius
-	sinphi := phit.y * invzradius
-	dpdu := CreateVector(-s.phiMax*phit.y, s.phiMax*phit.x, 0.0)
-	dpdv := CreateVector(phit.z*cosphi, phit.z*sinphi, -s.radius*math.Sin(theta)).Scale(s.thetaMax - s.thetaMin)
+	cosphi := phit.X * invzradius
+	sinphi := phit.Y * invzradius
+	dpdu := CreateVector(-s.phiMax*phit.Y, s.phiMax*phit.X, 0.0)
+	dpdv := CreateVector(phit.Z*cosphi, phit.Z*sinphi, -s.radius*math.Sin(theta)).Scale(s.thetaMax - s.thetaMin)
 
 	// Compute sphere $\dndu$ and $\dndv$
-	d2Pduu := CreateVector(phit.x, phit.y, 0).Scale(-s.phiMax * s.phiMax)
-	d2Pduv := CreateVector(-sinphi, cosphi, 0.0).Scale((s.thetaMax - s.thetaMin) * phit.z * s.phiMax)
-	d2Pdvv := CreateVector(phit.x, phit.y, phit.z).Scale(-(s.thetaMax - s.thetaMin) * (s.thetaMax - s.thetaMin))
+	d2Pduu := CreateVector(phit.X, phit.Y, 0).Scale(-s.phiMax * s.phiMax)
+	d2Pduv := CreateVector(-sinphi, cosphi, 0.0).Scale((s.thetaMax - s.thetaMin) * phit.Z * s.phiMax)
+	d2Pdvv := CreateVector(phit.X, phit.Y, phit.Z).Scale(-(s.thetaMax - s.thetaMin) * (s.thetaMax - s.thetaMin))
 
 	// Compute coefficients for fundamental forms
 	E := DotVector(dpdu, dpdu)
@@ -186,9 +186,9 @@ func (s *Sphere) IntersectP(r *Ray) bool {
 	ray := RayTransform(s.worldToObject, r)
 
 	// Compute quadratic sphere coefficients
-	A := ray.dir.x*ray.dir.x + ray.dir.y*ray.dir.y + ray.dir.z*ray.dir.z
-	B := 2.0 * (ray.dir.x*ray.origin.x + ray.dir.y*ray.origin.y + ray.dir.z*ray.origin.z)
-	C := ray.origin.x*ray.origin.x + ray.origin.y*ray.origin.y + ray.origin.z*ray.origin.z - s.radius*s.radius
+	A := ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y + ray.dir.Z*ray.dir.Z
+	B := 2.0 * (ray.dir.X*ray.origin.X + ray.dir.Y*ray.origin.Y + ray.dir.Z*ray.origin.Z)
+	C := ray.origin.X*ray.origin.X + ray.origin.Y*ray.origin.Y + ray.origin.Z*ray.origin.Z - s.radius*s.radius
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -211,17 +211,17 @@ func (s *Sphere) IntersectP(r *Ray) bool {
 
 	// Compute sphere hit position and $\phi$
 	phit := ray.PointAt(thit)
-	if phit.x == 0.0 && phit.y == 0.0 {
-		phit.x = 1.0e-5 * s.radius
+	if phit.X == 0.0 && phit.Y == 0.0 {
+		phit.X = 1.0e-5 * s.radius
 	}
-	phi := math.Atan2(phit.y, phit.x)
+	phi := math.Atan2(phit.Y, phit.X)
 	if phi < 0.0 {
 		phi += 2.0 * math.Pi
 	}
 
 	// Test sphere intersection against clipping parameters
-	if (s.zmin > -s.radius && phit.z < s.zmin) ||
-		(s.zmax < s.radius && phit.z > s.zmax) || phi > s.phiMax {
+	if (s.Zmin > -s.radius && phit.Z < s.Zmin) ||
+		(s.Zmax < s.radius && phit.Z > s.Zmax) || phi > s.phiMax {
 		if thit == t1 {
 			return false
 		}
@@ -231,15 +231,15 @@ func (s *Sphere) IntersectP(r *Ray) bool {
 		thit = t1
 		// Compute sphere hit position and $\phi$
 		phit = ray.PointAt(thit)
-		if phit.x == 0.0 && phit.y == 0.0 {
-			phit.x = 1.0e-5 * s.radius
+		if phit.X == 0.0 && phit.Y == 0.0 {
+			phit.X = 1.0e-5 * s.radius
 		}
-		phi = math.Atan2(phit.y, phit.x)
+		phi = math.Atan2(phit.Y, phit.X)
 		if phi < 0.0 {
 			phi += 2.0 * math.Pi
 		}
-		if (s.zmin > -s.radius && phit.z < s.zmin) ||
-			(s.zmax < s.radius && phit.z > s.zmax) || phi > s.phiMax {
+		if (s.Zmin > -s.radius && phit.Z < s.Zmin) ||
+			(s.Zmax < s.radius && phit.Z > s.Zmax) || phi > s.phiMax {
 			return false
 		}
 	}
@@ -252,12 +252,12 @@ func (s *Sphere) GetShadingGeometry(obj2world *Transform, dg *DifferentialGeomet
 }
 
 func (s *Sphere) Area() float64 {
-	return s.phiMax * s.radius * (s.zmax - s.zmin)
+	return s.phiMax * s.radius * (s.Zmax - s.Zmin)
 }
 
 func (s *Sphere) Sample(u1, u2 float64) (*Point, *Normal) {
 	p := CreatePoint(0, 0, 0).Add(UniformSampleSphere(u1, u2).Scale(s.radius))
-	ns := NormalizeNormal(NormalTransform(s.objectToWorld, &Normal{p.x, p.y, p.z}))
+	ns := NormalizeNormal(NormalTransform(s.objectToWorld, &Normal{p.X, p.Y, p.Z}))
 	if s.ReverseOrientation() {
 		ns = ns.Negate()
 	}

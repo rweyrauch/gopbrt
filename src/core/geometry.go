@@ -33,15 +33,15 @@ import (
 
 type (
 	Vector struct {
-		x, y, z float64
+		X, Y, Z float64
 	}
 
 	Point struct {
-		x, y, z float64
+		X, Y, Z float64
 	}
 
 	Normal struct {
-		x, y, z float64
+		X, Y, Z float64
 	}
 
 	Ray struct {
@@ -73,102 +73,102 @@ func CreateVector(x, y, z float64) *Vector {
 	return &Vector{x, y, z}
 }
 func CreateVectorFromNormal(n *Normal) *Vector {
-	return &Vector{n.x, n.y, n.z}
+	return &Vector{n.X, n.Y, n.Z}
 }
 func CreateVectorFromPoint(p *Point) *Vector {
-	return &Vector{p.x, p.y, p.z}
+	return &Vector{p.X, p.Y, p.Z}
 }
 func (v *Vector) Negate() *Vector {
-	return &Vector{-v.x, -v.y, -v.z}
+	return &Vector{-v.X, -v.Y, -v.Z}
 }
 func (v1 *Vector) Add(v2 *Vector) *Vector {
-	return &Vector{v1.x + v2.x, v1.y + v2.y, v1.z + v2.z}
+	return &Vector{v1.X + v2.X, v1.Y + v2.Y, v1.Z + v2.Z}
 }
 func (v1 *Vector) Sub(v2 *Vector) *Vector {
-	return &Vector{v1.x - v2.x, v1.y - v2.y, v1.z - v2.z}
+	return &Vector{v1.X - v2.X, v1.Y - v2.Y, v1.Z - v2.Z}
 }
 func (v *Vector) Scale(s float64) *Vector {
-	return &Vector{s * v.x, s * v.y, s * v.z}
+	return &Vector{s * v.X, s * v.Y, s * v.Z}
 }
 func (v *Vector) InvScale(invs float64) *Vector {
 	s := 1.0 / invs
-	return &Vector{s * v.x, s * v.y, s * v.z}
+	return &Vector{s * v.X, s * v.Y, s * v.Z}
 }
 func (v *Vector) LengthSquared() float64 {
-	return v.x*v.x + v.y*v.y + v.z*v.z
+	return v.X*v.X + v.Y*v.Y + v.Z*v.Z
 }
 func (v *Vector) Length() float64 {
 	return math.Sqrt(v.LengthSquared())
 }
 func (v *Vector) At(i int) float64 {
 	if i == 0 {
-		return v.x
+		return v.X
 	} else if i == 1 {
-		return v.y
+		return v.Y
 	} else if i == 2 {
-		return v.z
+		return v.Z
 	}
 	panic(fmt.Errorf("Vector.At: Invalid index %d", i))
 }
 func (v *Vector) Set(i int, val float64) {
 	if i == 0 {
-		v.x = val
+		v.X = val
 	} else if i == 1 {
-		v.y = val
+		v.Y = val
 	} else if i == 2 {
-		v.z = val
+		v.Z = val
 	} else {
 		panic(fmt.Errorf("Vector.Set: Invalid index %d", i))
 	}
 }
 func EqualVector(v1, v2 *Vector) bool {
-	return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z
+	return v1.X == v2.X && v1.Y == v2.Y && v1.Z == v2.Z
 }
 func NotEqualVector(v1, v2 *Vector) bool {
-	return v1.x != v2.x || v1.y != v2.y || v1.z != v2.z
+	return v1.X != v2.X || v1.Y != v2.Y || v1.Z != v2.Z
 }
 func DotVector(v1, v2 *Vector) float64 {
-	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
+	return v1.X*v2.X + v1.Y*v2.Y + v1.Z*v2.Z
 }
 func AbsDotVector(v1, v2 *Vector) float64 {
 	return math.Abs(DotVector(v1, v2))
 }
 func CrossVector(v1, v2 *Vector) *Vector {
-	return &Vector{(v1.y * v2.z) - (v1.z * v2.y),
-		(v1.z * v2.x) - (v1.x * v2.z),
-		(v1.x * v2.y) - (v1.y * v2.x)}
+	return &Vector{(v1.Y * v2.Z) - (v1.Z * v2.Y),
+		(v1.Z * v2.X) - (v1.X * v2.Z),
+		(v1.X * v2.Y) - (v1.Y * v2.X)}
 }
 func CrossVectorNormal(v1 *Vector, v2 *Normal) *Vector {
-	return &Vector{(v1.y * v2.z) - (v1.z * v2.y),
-		(v1.z * v2.x) - (v1.x * v2.z),
-		(v1.x * v2.y) - (v1.y * v2.x)}
+	return &Vector{(v1.Y * v2.Z) - (v1.Z * v2.Y),
+		(v1.Z * v2.X) - (v1.X * v2.Z),
+		(v1.X * v2.Y) - (v1.Y * v2.X)}
 }
 func CrossNormalVector(v1 *Normal, v2 *Vector) *Vector {
-	return &Vector{(v1.y * v2.z) - (v1.z * v2.y),
-		(v1.z * v2.x) - (v1.x * v2.z),
-		(v1.x * v2.y) - (v1.y * v2.x)}
+	return &Vector{(v1.Y * v2.Z) - (v1.Z * v2.Y),
+		(v1.Z * v2.X) - (v1.X * v2.Z),
+		(v1.X * v2.Y) - (v1.Y * v2.X)}
 }
 func NormalizeVector(v *Vector) *Vector {
 	len := v.Length()
-	return &Vector{v.x / len, v.y / len, v.z / len}
+	return &Vector{v.X / len, v.Y / len, v.Z / len}
 }
 func CoordinateSystem(v1 *Vector) (v2, v3 *Vector) {
-	if math.Abs(v1.x) > math.Abs(v1.y) {
-		invLen := 1.0 / math.Sqrt(v1.x*v1.x+v1.z*v1.z)
-		v2 = &Vector{-v1.z * invLen, 0.0, v1.x * invLen}
+	if math.Abs(v1.X) > math.Abs(v1.Y) {
+		invLen := 1.0 / math.Sqrt(v1.X*v1.X+v1.Z*v1.Z)
+		v2 = &Vector{-v1.Z * invLen, 0.0, v1.X * invLen}
 	} else {
-		invLen := 1.0 / math.Sqrt(v1.y*v1.y+v1.z*v1.z)
-		v2 = &Vector{0.0, v1.z * invLen, -v1.y * invLen}
+		invLen := 1.0 / math.Sqrt(v1.Y*v1.Y+v1.Z*v1.Z)
+		v2 = &Vector{0.0, v1.Z * invLen, -v1.Y * invLen}
 	}
 	v3 = CrossVector(v1, v2)
 	return v2, v3
 }
 func (v *Vector) HasNaNs() bool {
-	return math.IsNaN(v.x) || math.IsNaN(v.y) || math.IsNaN(v.z)
+	return math.IsNaN(v.X) || math.IsNaN(v.Y) || math.IsNaN(v.Z)
 }
 
 func (v *Vector) String() string {
-	return fmt.Sprintf("v[ %f, %f, %f ]", v.x, v.y, v.z)
+	return fmt.Sprintf("v[ %f, %f, %f ]", v.X, v.Y, v.Z)
 }
 
 func SphericalDirection(sintheta, costheta, phi float64) *Vector {
@@ -178,10 +178,10 @@ func SphericalDirectionVectors(sintheta, costheta, phi float64, x, y, z *Vector)
 	return x.Scale(sintheta * math.Cos(phi)).Add(y.Scale(sintheta * math.Sin(phi)).Add(z.Scale(costheta)))
 }
 func SphericalTheta(v *Vector) float64 {
-	return math.Acos(Clamp(v.z, -1.0, 1.0))
+	return math.Acos(Clamp(v.Z, -1.0, 1.0))
 }
 func SphericalPhi(v *Vector) float64 {
-	p := math.Atan2(v.y, v.x)
+	p := math.Atan2(v.Y, v.X)
 	if p < 0.0 {
 		return p + 2.0*math.Pi
 	}
@@ -192,51 +192,51 @@ func CreatePoint(x, y, z float64) *Point {
 	return &Point{x, y, z}
 }
 func (p1 *Point) Add(v2 *Vector) *Point {
-	return &Point{p1.x + v2.x, p1.y + v2.y, p1.z + v2.z}
+	return &Point{p1.X + v2.X, p1.Y + v2.Y, p1.Z + v2.Z}
 }
 func (p1 *Point) AddPoint(p2 *Point) *Point {
-	return &Point{p1.x + p2.x, p1.y + p2.y, p1.z + p2.z}
+	return &Point{p1.X + p2.X, p1.Y + p2.Y, p1.Z + p2.Z}
 }
 func (p1 *Point) Sub(p2 *Point) *Vector {
-	return &Vector{p1.x - p2.x, p1.y - p2.y, p1.z - p2.z}
+	return &Vector{p1.X - p2.X, p1.Y - p2.Y, p1.Z - p2.Z}
 }
 func (p1 *Point) SubVector(v2 *Vector) *Point {
-	return &Point{p1.x - v2.x, p1.y - v2.y, p1.z - v2.z}
+	return &Point{p1.X - v2.X, p1.Y - v2.Y, p1.Z - v2.Z}
 }
 func (p *Point) Scale(s float64) *Point {
-	return &Point{s * p.x, s * p.y, s * p.z}
+	return &Point{s * p.X, s * p.Y, s * p.Z}
 }
 func (p *Point) InvScale(invs float64) *Point {
 	s := 1.0 / invs
-	return &Point{s * p.x, s * p.y, s * p.z}
+	return &Point{s * p.X, s * p.Y, s * p.Z}
 }
 func (p *Point) At(i int) float64 {
 	if i == 0 {
-		return p.x
+		return p.X
 	} else if i == 1 {
-		return p.y
+		return p.Y
 	} else if i == 2 {
-		return p.z
+		return p.Z
 	}
 	panic(fmt.Errorf("Point.At: Invalid index %d", i))
 }
 func (p *Point) Set(i int, val float64) {
 	if i == 0 {
-		p.x = val
+		p.X = val
 	} else if i == 1 {
-		p.y = val
+		p.Y = val
 	} else if i == 2 {
-		p.z = val
+		p.Z = val
 	} else {
 		panic(fmt.Errorf("Point.Set: Invalid index %d", i))
 	}
 }
 
 func EqualPoint(p1, p2 *Point) bool {
-	return p1.x == p2.x && p1.y == p2.y && p1.z == p2.z
+	return p1.X == p2.X && p1.Y == p2.Y && p1.Z == p2.Z
 }
 func NotEqualPoint(p1, p2 *Point) bool {
-	return p1.x != p2.x || p1.y != p2.y || p1.z != p2.z
+	return p1.X != p2.X || p1.Y != p2.Y || p1.Z != p2.Z
 }
 func DistancePoint(p1, p2 *Point) float64 {
 	return p1.Sub(p2).Length()
@@ -245,70 +245,70 @@ func DistanceSquaredPoint(p1, p2 *Point) float64 {
 	return p1.Sub(p2).LengthSquared()
 }
 func (p *Point) HasNaNs() bool {
-	return math.IsNaN(p.x) || math.IsNaN(p.y) || math.IsNaN(p.z)
+	return math.IsNaN(p.X) || math.IsNaN(p.Y) || math.IsNaN(p.Z)
 }
 
 func (p *Point) String() string {
-	return fmt.Sprintf("p[ %f, %f, %f ]", p.x, p.y, p.z)
+	return fmt.Sprintf("p[ %f, %f, %f ]", p.X, p.Y, p.Z)
 }
 
 func CreateNormal(x, y, z float64) *Normal {
 	return &Normal{x, y, z}
 }
 func CreateNormalFromVector(v *Vector) *Normal {
-	return &Normal{v.x, v.y, v.z}
+	return &Normal{v.X, v.Y, v.Z}
 }
 func (n *Normal) Negate() *Normal {
-	return &Normal{-n.x, -n.y, -n.z}
+	return &Normal{-n.X, -n.Y, -n.Z}
 }
 func (n1 *Normal) Add(n2 *Normal) *Normal {
-	return &Normal{n1.x + n2.x, n1.y + n2.y, n1.z + n2.z}
+	return &Normal{n1.X + n2.X, n1.Y + n2.Y, n1.Z + n2.Z}
 }
 func (n1 *Normal) Sub(n2 *Normal) *Normal {
-	return &Normal{n1.x - n2.x, n1.y - n2.y, n1.z - n2.z}
+	return &Normal{n1.X - n2.X, n1.Y - n2.Y, n1.Z - n2.Z}
 }
 func (n *Normal) Scale(s float64) *Normal {
-	return &Normal{s * n.x, s * n.y, s * n.z}
+	return &Normal{s * n.X, s * n.Y, s * n.Z}
 }
 func (n *Normal) InvScale(invs float64) *Normal {
 	s := 1.0 / invs
-	return &Normal{s * n.x, s * n.y, s * n.z}
+	return &Normal{s * n.X, s * n.Y, s * n.Z}
 }
 func (n *Normal) LengthSquared() float64 {
-	return n.x*n.x + n.y*n.y + n.z*n.z
+	return n.X*n.X + n.Y*n.Y + n.Z*n.Z
 }
 func (n *Normal) Length() float64 {
 	return math.Sqrt(n.LengthSquared())
 }
 func (n *Normal) At(i int) float64 {
 	if i == 0 {
-		return n.x
+		return n.X
 	} else if i == 1 {
-		return n.y
+		return n.Y
 	} else if i == 2 {
-		return n.z
+		return n.Z
 	}
 	panic(fmt.Errorf("Normal.At: Invalid index %d", i))
 }
 
 func EqualNormal(n1, n2 *Normal) bool {
-	return n1.x == n2.x && n1.y == n2.y && n1.z == n2.z
+	return n1.X == n2.X && n1.Y == n2.Y && n1.Z == n2.Z
 }
 func NotEqualNormal(n1, n2 *Normal) bool {
-	return n1.x != n2.x || n1.y != n2.y || n1.z != n2.z
+	return n1.X != n2.X || n1.Y != n2.Y || n1.Z != n2.Z
 }
 func NormalizeNormal(n *Normal) *Normal {
 	len := n.Length()
-	return &Normal{n.x / len, n.y / len, n.z / len}
+	return &Normal{n.X / len, n.Y / len, n.Z / len}
 }
 func DotNormalVector(v1 *Normal, v2 *Vector) float64 {
-	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
+	return v1.X*v2.X + v1.Y*v2.Y + v1.Z*v2.Z
 }
 func DotVectorNormal(v1 *Vector, v2 *Normal) float64 {
-	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
+	return v1.X*v2.X + v1.Y*v2.Y + v1.Z*v2.Z
 }
 func DotNormal(v1, v2 *Normal) float64 {
-	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
+	return v1.X*v2.X + v1.Y*v2.Y + v1.Z*v2.Z
 }
 func AbsDotNormalVector(v1 *Normal, v2 *Vector) float64 {
 	return math.Abs(DotNormalVector(v1, v2))
@@ -344,17 +344,17 @@ func FaceforwardVectorNormal(v *Vector, n2 *Normal) *Vector {
 	return v
 }
 func CrossNormal(v1 *Normal, v2 *Normal) *Vector {
-	return &Vector{(v1.y * v2.z) - (v1.z * v2.y),
-		(v1.z * v2.x) - (v1.x * v2.z),
-		(v1.x * v2.y) - (v1.y * v2.x)}
+	return &Vector{(v1.Y * v2.Z) - (v1.Z * v2.Y),
+		(v1.Z * v2.X) - (v1.X * v2.Z),
+		(v1.X * v2.Y) - (v1.Y * v2.X)}
 }
 
 func (n *Normal) HasNaNs() bool {
-	return math.IsNaN(n.x) || math.IsNaN(n.y) || math.IsNaN(n.z)
+	return math.IsNaN(n.X) || math.IsNaN(n.Y) || math.IsNaN(n.Z)
 }
 
 func (n *Normal) String() string {
-	return fmt.Sprintf("n[ %f, %f, %f ]", n.x, n.y, n.z)
+	return fmt.Sprintf("n[ %f, %f, %f ]", n.X, n.Y, n.Z)
 }
 
 func CreateRay(origin *Point, direction *Vector, start, end, t float64, d int) *Ray {
@@ -412,47 +412,47 @@ func CreateBBoxFromPoint(p *Point) *BBox {
 }
 func CreateBBoxFromPoints(p1, p2 *Point) *BBox {
 	bbox := new(BBox)
-	bbox.pMin.x, bbox.pMin.y, bbox.pMin.z = math.Min(p1.x, p2.x), math.Min(p1.y, p2.y), math.Min(p1.z, p2.z)
-	bbox.pMax.x, bbox.pMax.y, bbox.pMax.z = math.Max(p1.x, p2.x), math.Max(p1.y, p2.y), math.Max(p1.z, p2.z)
+	bbox.pMin.X, bbox.pMin.Y, bbox.pMin.Z = math.Min(p1.X, p2.X), math.Min(p1.Y, p2.Y), math.Min(p1.Z, p2.Z)
+	bbox.pMax.X, bbox.pMax.Y, bbox.pMax.Z = math.Max(p1.X, p2.X), math.Max(p1.Y, p2.Y), math.Max(p1.Z, p2.Z)
 	return bbox
 }
 func UnionBBoxPoint(b *BBox, p *Point) *BBox {
-	return &BBox{Point{math.Min(b.pMin.x, p.x), math.Min(b.pMin.y, p.y), math.Min(b.pMin.z, p.z)},
-		Point{math.Max(b.pMax.x, p.x), math.Max(b.pMax.y, p.y), math.Max(b.pMax.z, p.z)}}
+	return &BBox{Point{math.Min(b.pMin.X, p.X), math.Min(b.pMin.Y, p.Y), math.Min(b.pMin.Z, p.Z)},
+		Point{math.Max(b.pMax.X, p.X), math.Max(b.pMax.Y, p.Y), math.Max(b.pMax.Z, p.Z)}}
 }
 
 func UnionBBoxes(b1, b2 *BBox) *BBox {
-	return &BBox{Point{math.Min(b1.pMin.x, b2.pMin.x), math.Min(b1.pMin.y, b2.pMin.y), math.Min(b1.pMin.z, b2.pMin.z)},
-		Point{math.Max(b1.pMax.x, b2.pMax.x), math.Max(b1.pMax.y, b2.pMax.y), math.Max(b1.pMax.z, b2.pMax.z)}}
+	return &BBox{Point{math.Min(b1.pMin.X, b2.pMin.X), math.Min(b1.pMin.Y, b2.pMin.Y), math.Min(b1.pMin.Z, b2.pMin.Z)},
+		Point{math.Max(b1.pMax.X, b2.pMax.X), math.Max(b1.pMax.Y, b2.pMax.Y), math.Max(b1.pMax.Z, b2.pMax.Z)}}
 }
 func (b1 *BBox) Overlaps(b2 *BBox) bool {
-	x := (b1.pMax.x >= b2.pMin.x) && (b1.pMin.x <= b2.pMax.x)
-	y := (b1.pMax.y >= b2.pMin.y) && (b1.pMin.y <= b2.pMax.y)
-	z := (b1.pMax.z >= b2.pMin.z) && (b1.pMin.z <= b2.pMax.z)
+	x := (b1.pMax.X >= b2.pMin.X) && (b1.pMin.X <= b2.pMax.X)
+	y := (b1.pMax.Y >= b2.pMin.Y) && (b1.pMin.Y <= b2.pMax.Y)
+	z := (b1.pMax.Z >= b2.pMin.Z) && (b1.pMin.Z <= b2.pMax.Z)
 	return x && y && z
 }
 func (b *BBox) Inside(pt *Point) bool {
-	return (pt.x >= b.pMin.x && pt.x <= b.pMax.x &&
-		pt.y >= b.pMin.y && pt.y <= b.pMax.y &&
-		pt.z >= b.pMin.z && pt.z <= b.pMax.z)
+	return (pt.X >= b.pMin.X && pt.X <= b.pMax.X &&
+		pt.Y >= b.pMin.Y && pt.Y <= b.pMax.Y &&
+		pt.Z >= b.pMin.Z && pt.Z <= b.pMax.Z)
 }
 func (b *BBox) Expand(delta float64) {
-	b.pMin = Point{b.pMin.x - delta, b.pMin.y - delta, b.pMin.z - delta}
-	b.pMax = Point{b.pMax.x + delta, b.pMax.y + delta, b.pMax.z + delta}
+	b.pMin = Point{b.pMin.X - delta, b.pMin.Y - delta, b.pMin.Z - delta}
+	b.pMax = Point{b.pMax.X + delta, b.pMax.Y + delta, b.pMax.Z + delta}
 }
 func (b *BBox) SurfaceArea() float64 {
 	d := b.pMax.Sub(&b.pMin)
-	return 2.0 * (d.x*d.y + d.x*d.z + d.y*d.z)
+	return 2.0 * (d.X*d.Y + d.X*d.Z + d.Y*d.Z)
 }
 func (b *BBox) Volume() float64 {
 	d := b.pMax.Sub(&b.pMin)
-	return d.x * d.y * d.z
+	return d.X * d.Y * d.Z
 }
 func (b *BBox) MaximumExtent() int {
 	diag := b.pMax.Sub(&b.pMin)
-	if diag.x > diag.y && diag.x > diag.z {
+	if diag.X > diag.Y && diag.X > diag.Z {
 		return 0
-	} else if diag.y > diag.z {
+	} else if diag.Y > diag.Z {
 		return 1
 	} else {
 		return 2
@@ -468,15 +468,15 @@ func (b *BBox) PointAtIndex(i int) *Point {
 }
 
 func (b *BBox) Lerp(tx, ty, tz float64) *Point {
-	return &Point{Lerp(tx, b.pMin.x, b.pMax.x), Lerp(ty, b.pMin.y, b.pMax.y), Lerp(tz, b.pMin.z, b.pMax.z)}
+	return &Point{Lerp(tx, b.pMin.X, b.pMax.X), Lerp(ty, b.pMin.Y, b.pMax.Y), Lerp(tz, b.pMin.Z, b.pMax.Z)}
 }
 func (b *BBox) Offset(p *Point) *Vector {
-	return &Vector{(p.x - b.pMin.x) / (b.pMax.x - b.pMin.x),
-		(p.y - b.pMin.y) / (b.pMax.y - b.pMin.y),
-		(p.z - b.pMin.z) / (b.pMax.z - b.pMin.z)}
+	return &Vector{(p.X - b.pMin.X) / (b.pMax.X - b.pMin.X),
+		(p.Y - b.pMin.Y) / (b.pMax.Y - b.pMin.Y),
+		(p.Z - b.pMin.Z) / (b.pMax.Z - b.pMin.Z)}
 }
 func (b *BBox) BoundingSphere() (c *Point, rad float64) {
-	c = b.pMin.Add(&Vector{b.pMax.x, b.pMax.y, b.pMax.z}).Scale(0.5)
+	c = b.pMin.Add(&Vector{b.pMax.X, b.pMax.Y, b.pMax.Z}).Scale(0.5)
 	if b.Inside(c) {
 		rad = DistancePoint(c, &b.pMax)
 	} else {

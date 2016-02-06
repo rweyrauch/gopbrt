@@ -76,7 +76,7 @@ type (
 )
 
 func CreateBVHPrimitiveInfo(pn int, b *BBox) BVHPrimitiveInfo {
-	centroid := &Point{b.pMax.x + b.pMin.x, b.pMax.y + b.pMin.y, b.pMax.z + b.pMin.z}
+	centroid := &Point{b.pMax.X + b.pMin.X, b.pMax.Y + b.pMin.Y, b.pMax.Z + b.pMin.Z}
 	return BVHPrimitiveInfo{pn, *centroid.Scale(0.5), *b}
 }
 
@@ -105,10 +105,10 @@ func (node *BVHBuildNode) InitInterior(axis int, c0, c1 *BVHBuildNode) {
 
 func IntersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg [3]int) bool {
 	// Check for ray intersection against $x$ and $y$ slabs
-	tmin := (bounds.PointAtIndex(dirIsNeg[0]).x - ray.origin.x) * invDir.x
-	tmax := (bounds.PointAtIndex(1-dirIsNeg[0]).x - ray.origin.x) * invDir.x
-	tymin := (bounds.PointAtIndex(dirIsNeg[1]).y - ray.origin.y) * invDir.y
-	tymax := (bounds.PointAtIndex(1-dirIsNeg[1]).y - ray.origin.y) * invDir.y
+	tmin := (bounds.PointAtIndex(dirIsNeg[0]).X - ray.origin.X) * invDir.X
+	tmax := (bounds.PointAtIndex(1-dirIsNeg[0]).X - ray.origin.X) * invDir.X
+	tymin := (bounds.PointAtIndex(dirIsNeg[1]).Y - ray.origin.Y) * invDir.Y
+	tymax := (bounds.PointAtIndex(1-dirIsNeg[1]).Y - ray.origin.Y) * invDir.Y
 	if (tmin > tymax) || (tymin > tmax) {
 		return false
 	}
@@ -120,8 +120,8 @@ func IntersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg [3]int) bool {
 	}
 
 	// Check for ray intersection against $z$ slab
-	tzmin := (bounds.PointAtIndex(dirIsNeg[2]).z - ray.origin.z) * invDir.z
-	tzmax := (bounds.PointAtIndex(1-dirIsNeg[2]).z - ray.origin.z) * invDir.z
+	tzmin := (bounds.PointAtIndex(dirIsNeg[2]).Z - ray.origin.Z) * invDir.Z
+	tzmax := (bounds.PointAtIndex(1-dirIsNeg[2]).Z - ray.origin.Z) * invDir.Z
 	if (tmin > tzmax) || (tzmin > tmax) {
 		return false
 	}
@@ -452,15 +452,15 @@ func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	hitSomething := false
 	var isect *Intersection
 
-	invDir := CreateVector(1.0/ray.dir.x, 1.0/ray.dir.y, 1.0/ray.dir.z)
+	invDir := CreateVector(1.0/ray.dir.X, 1.0/ray.dir.Y, 1.0/ray.dir.Z)
 	dirIsNeg := [3]int{0, 0, 0}
-	if invDir.x < 0 {
+	if invDir.X < 0 {
 		dirIsNeg[0] = 1
 	}
-	if invDir.y < 0 {
+	if invDir.Y < 0 {
 		dirIsNeg[1] = 1
 	}
-	if invDir.z < 0 {
+	if invDir.Z < 0 {
 		dirIsNeg[2] = 1
 	}
 	// Follow ray through BVH nodes to find primitive intersections
@@ -518,15 +518,15 @@ func (bvh *BVHAccel) IntersectP(ray *Ray) bool {
 		return false
 	}
 	//PBRT_BVH_INTERSECTIONP_STARTED(const_cast<BVHAccel *>(this), const_cast<Ray *>(&ray))
-	invDir := CreateVector(1.0/ray.dir.x, 1.0/ray.dir.y, 1.0/ray.dir.z)
+	invDir := CreateVector(1.0/ray.dir.X, 1.0/ray.dir.Y, 1.0/ray.dir.Z)
 	dirIsNeg := [3]int{0, 0, 0}
-	if invDir.x < 0 {
+	if invDir.X < 0 {
 		dirIsNeg[0] = 1
 	}
-	if invDir.y < 0 {
+	if invDir.Y < 0 {
 		dirIsNeg[1] = 1
 	}
-	if invDir.z < 0 {
+	if invDir.Z < 0 {
 		dirIsNeg[2] = 1
 	}
 	todo := make([]int, 64, 64)

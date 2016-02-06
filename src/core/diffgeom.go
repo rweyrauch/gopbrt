@@ -66,14 +66,14 @@ func (dg *DifferentialGeometry) ComputeDifferentials(ray *RayDifferential) {
 		// Estimate screen space change in $\pt{}$ and $(u,v)$
 
 		// Compute auxiliary intersection points with plane
-		d := -DotNormalVector(dg.nn, &Vector{dg.p.x, dg.p.y, dg.p.z})
-		rxv := &Vector{ray.rxOrigin.x, ray.rxOrigin.y, ray.rxOrigin.z}
+		d := -DotNormalVector(dg.nn, &Vector{dg.p.X, dg.p.Y, dg.p.Z})
+		rxv := &Vector{ray.rxOrigin.X, ray.rxOrigin.Y, ray.rxOrigin.Z}
 		tx := -(DotNormalVector(dg.nn, rxv) + d) / DotNormalVector(dg.nn, &ray.rxDirection)
 		if math.IsNaN(tx) {
 			goto fail
 		}
 		px := ray.rxOrigin.Add(ray.rxDirection.Scale(tx))
-		ryv := &Vector{ray.ryOrigin.x, ray.ryOrigin.y, ray.ryOrigin.z}
+		ryv := &Vector{ray.ryOrigin.X, ray.ryOrigin.Y, ray.ryOrigin.Z}
 		ty := -(DotNormalVector(dg.nn, ryv) + d) / DotNormalVector(dg.nn, &ray.ryDirection)
 		if math.IsNaN(ty) {
 			goto fail
@@ -88,10 +88,10 @@ func (dg *DifferentialGeometry) ComputeDifferentials(ray *RayDifferential) {
 		var A [2][2]float64
 		var Bx, By [2]float64
 		var axes [2]int
-		if math.Abs(dg.nn.x) > math.Abs(dg.nn.y) && math.Abs(dg.nn.x) > math.Abs(dg.nn.z) {
+		if math.Abs(dg.nn.X) > math.Abs(dg.nn.Y) && math.Abs(dg.nn.X) > math.Abs(dg.nn.Z) {
 			axes[0] = 1
 			axes[1] = 2
-		} else if math.Abs(dg.nn.y) > math.Abs(dg.nn.z) {
+		} else if math.Abs(dg.nn.Y) > math.Abs(dg.nn.Z) {
 			axes[0] = 0
 			axes[1] = 2
 		} else {

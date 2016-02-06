@@ -133,7 +133,7 @@ func (c *PerspectiveCamera) GenerateRay(sample *Sample) (ray *Ray, weight float6
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.z
+        ft := c.focalDistance / ray.dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
@@ -150,7 +150,7 @@ func (c *PerspectiveCamera) GenerateRayDifferential(sample *Sample) (ray *RayDif
    // Generate raster and camera samples
     Pras := CreatePoint(sample.imageX, sample.imageY, 0)
     Pcamera := PointTransform(c.rasterToCamera, Pras)
-    dir := NormalizeVector(CreateVector(Pcamera.x, Pcamera.y, Pcamera.z))
+    dir := NormalizeVector(CreateVector(Pcamera.X, Pcamera.Y, Pcamera.Z))
     ray = CreateRayDifferential(CreatePoint(0,0,0), dir, 0.0, INFINITY, 0.0, 0)
     // Modify ray for depth of field
     if c.lensRadius > 0.0 {
@@ -160,7 +160,7 @@ func (c *PerspectiveCamera) GenerateRayDifferential(sample *Sample) (ray *RayDif
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.z
+        ft := c.focalDistance / ray.dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
@@ -178,13 +178,13 @@ func (c *PerspectiveCamera) GenerateRayDifferential(sample *Sample) (ray *RayDif
         lensV *= c.lensRadius
 
         dx := NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dxCamera))
-        ft := c.focalDistance / dx.z
+        ft := c.focalDistance / dx.Z
         pFocus := CreatePoint(0,0,0).Add(dx.Scale(ft))
         ray.rxOrigin = *CreatePoint(lensU, lensV, 0.0)
         ray.rxDirection = *NormalizeVector(pFocus.Sub(&ray.rxOrigin))
 
         dy := NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dyCamera))
-        ft = c.focalDistance / dy.z
+        ft = c.focalDistance / dy.Z
         pFocus = CreatePoint(0,0,0).Add(dy.Scale(ft))
         ray.ryOrigin = *CreatePoint(lensU, lensV, 0.0)
         ray.ryDirection = *NormalizeVector(pFocus.Sub(&ray.ryOrigin))
@@ -280,7 +280,7 @@ func (c *OrthoCamera) GenerateRay(sample *Sample) (ray *Ray, weight float64) {
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.z
+        ft := c.focalDistance / ray.dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
@@ -309,7 +309,7 @@ func (c *OrthoCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferent
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.z
+        ft := c.focalDistance / ray.dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
@@ -326,7 +326,7 @@ func (c *OrthoCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferent
         lensU *= c.lensRadius
         lensV *= c.lensRadius
 
-        ft := c.focalDistance / ray.dir.z
+        ft := c.focalDistance / ray.dir.Z
 
         pFocus := Pcamera.Add(c.dxCamera.Add(CreateVector(0, 0, 1).Scale(ft)))
         ray.rxOrigin = *CreatePoint(lensU, lensV, 0.0)

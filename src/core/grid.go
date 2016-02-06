@@ -82,23 +82,23 @@ func NewGridAccel(prims []Primitive, refineImmediately bool) *GridAccel {
 	//PBRT_GRID_BOUNDS_AND_RESOLUTION(&bounds, nVoxels);
 
 	// Compute voxel widths and allocate voxels
-	grid.width.x = delta.x / float64(grid.nVoxels[0])
-	if grid.width.x == 0 {
-		grid.invWidth.x = 0.0
+	grid.width.X = delta.X / float64(grid.nVoxels[0])
+	if grid.width.X == 0 {
+		grid.invWidth.X = 0.0
 	} else {
-		grid.invWidth.x = 1.0 / grid.width.x
+		grid.invWidth.X = 1.0 / grid.width.X
 	}
-	grid.width.y = delta.y / float64(grid.nVoxels[1])
-	if grid.width.y == 0 {
-		grid.invWidth.y = 0.0
+	grid.width.Y = delta.Y / float64(grid.nVoxels[1])
+	if grid.width.Y == 0 {
+		grid.invWidth.Y = 0.0
 	} else {
-		grid.invWidth.y = 1.0 / grid.width.y
+		grid.invWidth.Y = 1.0 / grid.width.Y
 	}
-	grid.width.z = delta.z / float64(grid.nVoxels[2])
-	if grid.width.z == 0 {
-		grid.invWidth.z = 0.0
+	grid.width.Z = delta.Z / float64(grid.nVoxels[2])
+	if grid.width.Z == 0 {
+		grid.invWidth.Z = 0.0
 	} else {
-		grid.invWidth.z = 1.0 / grid.width.z
+		grid.invWidth.Z = 1.0 / grid.width.Z
 	}
 
 	nv := grid.nVoxels[0] * grid.nVoxels[1] * grid.nVoxels[2]

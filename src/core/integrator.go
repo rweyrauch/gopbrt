@@ -300,9 +300,9 @@ func (integrator *GlossyPRTIntegrator) Li(scene *Scene, renderer Renderer, ray *
 	r1 := bsdf.LocalToWorld(CreateVector(1, 0, 0))
 	r2 := bsdf.LocalToWorld(CreateVector(0, 1, 0))
 	nl := CreateNormalFromVector(bsdf.LocalToWorld(CreateVector(0, 0, 1)))
-	rot := NewMatrix4x4(r1.x, r2.x, nl.x, 0,
-		r1.y, r2.y, nl.y, 0,
-		r1.z, r2.z, nl.z, 0,
+	rot := NewMatrix4x4(r1.X, r2.X, nl.X, 0,
+		r1.Y, r2.Y, nl.Y, 0,
+		r1.Z, r2.Z, nl.Z, 0,
 		0, 0, 0, 1)
 	c_l := make([]Spectrum, SHTerms(integrator.lmax), SHTerms(integrator.lmax))
 	SHRotate(c_t, c_l, rot, integrator.lmax, arena)
@@ -453,8 +453,8 @@ func NewUseRadianceProbes(filename string) *UseRadianceProbes {
 		if err != nil {
 			Severe("Error reading data from radiance probe file \"%s\" Error: %s", filename, err)
 		}
-		_, err = fmt.Fscanf(f, "%f %f %f %f %f %f", &probes.bbox.pMin.x, &probes.bbox.pMin.y, &probes.bbox.pMin.z,
-			&probes.bbox.pMax.x, &probes.bbox.pMax.y, &probes.bbox.pMax.z)
+		_, err = fmt.Fscanf(f, "%f %f %f %f %f %f", &probes.bbox.pMin.X, &probes.bbox.pMin.Y, &probes.bbox.pMin.Z,
+			&probes.bbox.pMax.X, &probes.bbox.pMax.Y, &probes.bbox.pMax.Z)
 		if err != nil {
 			Severe("Error reading data from radiance probe file \"%s\" Error: %s", filename, err)
 		}
@@ -514,9 +514,9 @@ func (integrator *UseRadianceProbes) Li(scene *Scene, renderer Renderer, ray *Ra
 
 	// Compute probe coordinates and offsets for lookup point
 	offset := integrator.bbox.Offset(p)
-	voxx := (offset.x * float64(integrator.nProbes[0])) - 0.5
-	voxy := (offset.y * float64(integrator.nProbes[1])) - 0.5
-	voxz := (offset.z * float64(integrator.nProbes[2])) - 0.5
+	voxx := (offset.X * float64(integrator.nProbes[0])) - 0.5
+	voxy := (offset.Y * float64(integrator.nProbes[1])) - 0.5
+	voxz := (offset.Z * float64(integrator.nProbes[2])) - 0.5
 	vx, vy, vz := Floor2Int(voxx), Floor2Int(voxy), Floor2Int(voxz)
 	dx, dy, dz := voxx-float64(vx), voxy-float64(vy), voxz-float64(vz)
 

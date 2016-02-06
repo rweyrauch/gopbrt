@@ -33,7 +33,7 @@ import (
 
 type Cylinder struct {
 	ShapeData
-	radius, zmin, zmax, phiMax float64
+	radius, Zmin, Zmax, phiMax float64
 }
 
 func NewCylinder(o2w, w2o *Transform, ro bool, rad, zmin, zmax, pmax float64) *Cylinder {
@@ -44,8 +44,8 @@ func NewCylinder(o2w, w2o *Transform, ro bool, rad, zmin, zmax, pmax float64) *C
 	c.transformSwapsHandedness = SwapsHandednessTransform(c.objectToWorld)
 	c.shapeId = GenerateShapeId()
 	c.radius = rad
-	c.zmin = zmin
-	c.zmax = zmax
+	c.Zmin = zmin
+	c.Zmax = zmax
 	c.phiMax = Radians(Clamp(pmax, 0.0, 360.0))
 
 	return c
@@ -53,11 +53,11 @@ func NewCylinder(o2w, w2o *Transform, ro bool, rad, zmin, zmax, pmax float64) *C
 
 func (c *Cylinder) String() string {
 	return fmt.Sprintf("cylinder[r: %f zmin: %f zmax: %f phimax: %f obj2world: %v]",
-		c.radius, c.zmin, c.zmax, Degrees(c.phiMax), c.objectToWorld)
+		c.radius, c.Zmin, c.Zmax, Degrees(c.phiMax), c.objectToWorld)
 }
 
 func (c *Cylinder) ObjectBound() *BBox {
-	return &BBox{Point{-c.radius, -c.radius, c.zmin}, Point{c.radius, c.radius, c.zmax}}
+	return &BBox{Point{-c.radius, -c.radius, c.Zmin}, Point{c.radius, c.radius, c.Zmax}}
 }
 
 func (c *Cylinder) WorldBound() *BBox {
@@ -77,9 +77,9 @@ func (c *Cylinder) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Di
 	ray := RayTransform(c.worldToObject, r)
 
 	// Compute quadratic cylinder coefficients
-	A := ray.dir.x*ray.dir.x + ray.dir.y*ray.dir.y
-	B := 2.0 * (ray.dir.x*ray.origin.x + ray.dir.y*ray.origin.y)
-	C := ray.origin.x*ray.origin.x + ray.origin.y*ray.origin.y - c.radius*c.radius
+	A := ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y
+	B := 2.0 * (ray.dir.X*ray.origin.X + ray.dir.Y*ray.origin.Y)
+	C := ray.origin.X*ray.origin.X + ray.origin.Y*ray.origin.Y - c.radius*c.radius
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -103,13 +103,13 @@ func (c *Cylinder) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Di
 
 	// Compute cylinder hit point and $\phi$
 	phit := ray.PointAt(thit)
-	phi := math.Atan2(phit.y, phit.x)
+	phi := math.Atan2(phit.Y, phit.X)
 	if phi < 0.0 {
 		phi += 2.0 * math.Pi
 	}
 
 	// Test cylinder intersection against clipping parameters
-	if phit.z < c.zmin || phit.z > c.zmax || phi > c.phiMax {
+	if phit.Z < c.Zmin || phit.Z > c.Zmax || phi > c.phiMax {
 		if thit == t1 {
 			return false, 0.0, 0.0, nil
 		}
@@ -119,25 +119,25 @@ func (c *Cylinder) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Di
 		}
 		// Compute cylinder hit point and $\phi$
 		phit = ray.PointAt(thit)
-		phi = math.Atan2(phit.y, phit.x)
+		phi = math.Atan2(phit.Y, phit.X)
 		if phi < 0.0 {
 			phi += 2.0 * math.Pi
 		}
-		if phit.z < c.zmin || phit.z > c.zmax || phi > c.phiMax {
+		if phit.Z < c.Zmin || phit.Z > c.Zmax || phi > c.phiMax {
 			return false, 0.0, 0.0, nil
 		}
 	}
 
 	// Find parametric representation of cylinder hit
 	u := phi / c.phiMax
-	v := (phit.z - c.zmin) / (c.zmax - c.zmin)
+	v := (phit.Z - c.Zmin) / (c.Zmax - c.Zmin)
 
 	// Compute cylinder $\dpdu$ and $\dpdv$
-	dpdu := CreateVector(-c.phiMax*phit.y, c.phiMax*phit.x, 0.0)
-	dpdv := CreateVector(0.0, 0.0, c.zmax-c.zmin)
+	dpdu := CreateVector(-c.phiMax*phit.Y, c.phiMax*phit.X, 0.0)
+	dpdv := CreateVector(0.0, 0.0, c.Zmax-c.Zmin)
 
 	// Compute cylinder $\dndu$ and $\dndv$
-	d2Pduu := CreateVector(phit.x, phit.y, 0).Scale(-c.phiMax * c.phiMax)
+	d2Pduu := CreateVector(phit.X, phit.Y, 0).Scale(-c.phiMax * c.phiMax)
 	d2Pduv := CreateVector(0, 0, 0)
 	d2Pdvv := CreateVector(0, 0, 0)
 
@@ -173,9 +173,9 @@ func (c *Cylinder) IntersectP(r *Ray) bool {
 	ray := RayTransform(c.worldToObject, r)
 
 	// Compute quadratic cylinder coefficients
-	A := ray.dir.x*ray.dir.x + ray.dir.y*ray.dir.y
-	B := 2.0 * (ray.dir.x*ray.origin.x + ray.dir.y*ray.origin.y)
-	C := ray.origin.x*ray.origin.x + ray.origin.y*ray.origin.y - c.radius*c.radius
+	A := ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y
+	B := 2.0 * (ray.dir.X*ray.origin.X + ray.dir.Y*ray.origin.Y)
+	C := ray.origin.X*ray.origin.X + ray.origin.Y*ray.origin.Y - c.radius*c.radius
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -199,13 +199,13 @@ func (c *Cylinder) IntersectP(r *Ray) bool {
 
 	// Compute cylinder hit point and $\phi$
 	phit := ray.PointAt(thit)
-	phi := math.Atan2(phit.y, phit.x)
+	phi := math.Atan2(phit.Y, phit.X)
 	if phi < 0.0 {
 		phi += 2.0 * math.Pi
 	}
 
 	// Test cylinder intersection against clipping parameters
-	if phit.z < c.zmin || phit.z > c.zmax || phi > c.phiMax {
+	if phit.Z < c.Zmin || phit.Z > c.Zmax || phi > c.phiMax {
 		if thit == t1 {
 			return false
 		}
@@ -215,11 +215,11 @@ func (c *Cylinder) IntersectP(r *Ray) bool {
 		}
 		// Compute cylinder hit point and $\phi$
 		phit = ray.PointAt(thit)
-		phi = math.Atan2(phit.y, phit.x)
+		phi = math.Atan2(phit.Y, phit.X)
 		if phi < 0.0 {
 			phi += 2.0 * math.Pi
 		}
-		if phit.z < c.zmin || phit.z > c.zmax || phi > c.phiMax {
+		if phit.Z < c.Zmin || phit.Z > c.Zmax || phi > c.phiMax {
 			return false
 		}
 	}
@@ -231,14 +231,14 @@ func (c *Cylinder) GetShadingGeometry(obj2world *Transform, dg *DifferentialGeom
 }
 
 func (c *Cylinder) Area() float64 {
-	return (c.zmax - c.zmin) * c.phiMax * c.radius
+	return (c.Zmax - c.Zmin) * c.phiMax * c.radius
 }
 
 func (c *Cylinder) Sample(u1, u2 float64) (*Point, *Normal) {
-	z := Lerp(u1, c.zmin, c.zmax)
+	z := Lerp(u1, c.Zmin, c.Zmax)
 	t := u2 * c.phiMax
 	p := CreatePoint(c.radius*math.Cos(t), c.radius*math.Sin(t), z)
-	Ns := NormalizeNormal(NormalTransform(c.objectToWorld, CreateNormal(p.x, p.y, 0.0)))
+	Ns := NormalizeNormal(NormalTransform(c.objectToWorld, CreateNormal(p.X, p.Y, 0.0)))
 	if c.reverseOrientation {
 		Ns = Ns.Negate()
 	}

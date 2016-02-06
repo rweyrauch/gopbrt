@@ -58,19 +58,19 @@ func (aggtest *AggregateTest) Render(scene *Scene) {
         // Choose random rays, _rayAccel_ and _rayAll_ for testing
 
         // Choose ray origin for testing accelerator
-        org := *CreatePoint(Lerp(rng.RandomFloat(), bbox.pMin.x, bbox.pMax.x),
-                  Lerp(rng.RandomFloat(), bbox.pMin.y, bbox.pMax.y),
-                  Lerp(rng.RandomFloat(), bbox.pMin.z, bbox.pMax.z))
+        org := *CreatePoint(Lerp(rng.RandomFloat(), bbox.pMin.X, bbox.pMax.X),
+                  Lerp(rng.RandomFloat(), bbox.pMin.Y, bbox.pMax.Y),
+                  Lerp(rng.RandomFloat(), bbox.pMin.Z, bbox.pMax.Z))
         if (rng.RandomUInt() % 4) == 0 { org = lastHit }
 
         // Choose ray direction for testing accelerator
         dir := *UniformSampleSphere(rng.RandomFloat(), rng.RandomFloat())
         if (rng.RandomUInt() % 32) == 0 { 
-        	dir.x, dir.y = 0.0, 0.0 
+        	dir.X, dir.Y = 0.0, 0.0 
        	} else if (rng.RandomUInt() % 32) == 0 {
-       		dir.x, dir.z = 0.0, 0.0
+       		dir.X, dir.Z = 0.0, 0.0
         }  else if (rng.RandomUInt() % 32) == 0 {
-          	dir.y, dir.z = 0.0, 0.0
+          	dir.Y, dir.Z = 0.0, 0.0
 		}
         // Choose ray epsilon for testing accelerator
         eps := 0.0
@@ -105,8 +105,8 @@ func (aggtest *AggregateTest) Render(scene *Scene) {
             ((hitAccel != hitAll) || (rayAccel.maxt != rayDiffAll.maxt)) {
             Warning("Disagreement: t accel %.16g t exhaustive %.16g\nRay: org [%g, %g, %g], dir [%g, %g, %g], mint = %g",
                     rayAccel.maxt, rayDiffAll.maxt,
-                    rayDiffAll.origin.x, rayDiffAll.origin.y, rayDiffAll.origin.z,
-                    rayDiffAll.dir.x, rayDiffAll.dir.y, rayDiffAll.dir.z, rayDiffAll.mint)
+                    rayDiffAll.origin.X, rayDiffAll.origin.Y, rayDiffAll.origin.Z,
+                    rayDiffAll.dir.X, rayDiffAll.dir.Y, rayDiffAll.dir.Z, rayDiffAll.mint)
 		}            
         if hitAll {
             lastHit = *rayAll.PointAt(rayAll.maxt)

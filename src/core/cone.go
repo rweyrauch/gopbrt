@@ -77,9 +77,9 @@ func (c *Cone) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 	// Compute quadratic cone coefficients
 	k := c.radius / c.height
 	k = k * k
-	A := ray.dir.x*ray.dir.x + ray.dir.y*ray.dir.y - k*ray.dir.z*ray.dir.z
-	B := 2.0 * (ray.dir.x*ray.origin.x + ray.dir.y*ray.origin.y - k*ray.dir.z*(ray.origin.z-c.height))
-	C := ray.origin.x*ray.origin.x + ray.origin.y*ray.origin.y - k*(ray.origin.z-c.height)*(ray.origin.z-c.height)
+	A := ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y - k*ray.dir.Z*ray.dir.Z
+	B := 2.0 * (ray.dir.X*ray.origin.X + ray.dir.Y*ray.origin.Y - k*ray.dir.Z*(ray.origin.Z-c.height))
+	C := ray.origin.X*ray.origin.X + ray.origin.Y*ray.origin.Y - k*(ray.origin.Z-c.height)*(ray.origin.Z-c.height)
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -103,13 +103,13 @@ func (c *Cone) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 
 	// Compute cone inverse mapping
 	phit := ray.PointAt(thit)
-	phi := math.Atan2(phit.y, phit.x)
+	phi := math.Atan2(phit.Y, phit.X)
 	if phi < 0.0 {
 		phi += 2.0 * math.Pi
 	}
 
 	// Test cone intersection against clipping parameters
-	if phit.z < 0 || phit.z > c.height || phi > c.phiMax {
+	if phit.Z < 0 || phit.Z > c.height || phi > c.phiMax {
 		if thit == t1 {
 			return false, 0.0, 0.0, nil
 		}
@@ -119,26 +119,26 @@ func (c *Cone) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 		}
 		// Compute cone inverse mapping
 		phit = ray.PointAt(thit)
-		phi = math.Atan2(phit.y, phit.x)
+		phi = math.Atan2(phit.Y, phit.X)
 		if phi < 0.0 {
 			phi += 2.0 * math.Pi
 		}
-		if phit.z < 0 || phit.z > c.height || phi > c.phiMax {
+		if phit.Z < 0 || phit.Z > c.height || phi > c.phiMax {
 			return false, 0.0, 0.0, nil
 		}
 	}
 
 	// Find parametric representation of cone hit
 	u := phi / c.phiMax
-	v := phit.z / c.height
+	v := phit.Z / c.height
 
 	// Compute cone $\dpdu$ and $\dpdv$
-	dpdu := CreateVector(-c.phiMax*phit.y, c.phiMax*phit.x, 0.0)
-	dpdv := CreateVector(-phit.x/(1.0-v), -phit.y/(1.0-v), c.height)
+	dpdu := CreateVector(-c.phiMax*phit.Y, c.phiMax*phit.X, 0.0)
+	dpdv := CreateVector(-phit.X/(1.0-v), -phit.Y/(1.0-v), c.height)
 
 	// Compute cone $\dndu$ and $\dndv$
-	d2Pduu := CreateVector(phit.x, phit.y, 0.0).Scale(-c.phiMax * c.phiMax)
-	d2Pduv := CreateVector(phit.y, -phit.x, 0.0).Scale(c.phiMax / (1.0 - v))
+	d2Pduu := CreateVector(phit.X, phit.Y, 0.0).Scale(-c.phiMax * c.phiMax)
+	d2Pduv := CreateVector(phit.Y, -phit.X, 0.0).Scale(c.phiMax / (1.0 - v))
 
 	d2Pdvv := CreateVector(0, 0, 0)
 
@@ -176,9 +176,9 @@ func (c *Cone) IntersectP(r *Ray) bool {
 	// Compute quadratic cone coefficients
 	k := c.radius / c.height
 	k = k * k
-	A := ray.dir.x*ray.dir.x + ray.dir.y*ray.dir.y - k*ray.dir.z*ray.dir.z
-	B := 2.0 * (ray.dir.x*ray.origin.x + ray.dir.y*ray.origin.y - k*ray.dir.z*(ray.origin.z-c.height))
-	C := ray.origin.x*ray.origin.x + ray.origin.y*ray.origin.y - k*(ray.origin.z-c.height)*(ray.origin.z-c.height)
+	A := ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y - k*ray.dir.Z*ray.dir.Z
+	B := 2.0 * (ray.dir.X*ray.origin.X + ray.dir.Y*ray.origin.Y - k*ray.dir.Z*(ray.origin.Z-c.height))
+	C := ray.origin.X*ray.origin.X + ray.origin.Y*ray.origin.Y - k*(ray.origin.Z-c.height)*(ray.origin.Z-c.height)
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -202,13 +202,13 @@ func (c *Cone) IntersectP(r *Ray) bool {
 
 	// Compute cone inverse mapping
 	phit := ray.PointAt(thit)
-	phi := math.Atan2(phit.y, phit.x)
+	phi := math.Atan2(phit.Y, phit.X)
 	if phi < 0.0 {
 		phi += 2.0 * math.Pi
 	}
 
 	// Test cone intersection against clipping parameters
-	if phit.z < 0 || phit.z > c.height || phi > c.phiMax {
+	if phit.Z < 0 || phit.Z > c.height || phi > c.phiMax {
 		if thit == t1 {
 			return false
 		}
@@ -218,11 +218,11 @@ func (c *Cone) IntersectP(r *Ray) bool {
 		}
 		// Compute cone inverse mapping
 		phit = ray.PointAt(thit)
-		phi = math.Atan2(phit.y, phit.x)
+		phi = math.Atan2(phit.Y, phit.X)
 		if phi < 0.0 {
 			phi += 2.0 * math.Pi
 		}
-		if phit.z < 0 || phit.z > c.height || phi > c.phiMax {
+		if phit.Z < 0 || phit.Z > c.height || phi > c.phiMax {
 			return false
 		}
 	}

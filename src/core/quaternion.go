@@ -51,9 +51,9 @@ func (q1 *Quaternion) InvScale(invs float64) *Quaternion {
 	return &Quaternion{*q1.v.Scale(s), q1.w * s}
 }
 func (q1 *Quaternion) ToTransform() *Transform {
-	xx, yy, zz := q1.v.x*q1.v.x, q1.v.y*q1.v.y, q1.v.z*q1.v.z
-	xy, xz, yz := q1.v.x*q1.v.y, q1.v.x*q1.v.z, q1.v.y*q1.v.z
-	wx, wy, wz := q1.v.x*q1.w, q1.v.y*q1.w, q1.v.z*q1.w
+	xx, yy, zz := q1.v.X*q1.v.X, q1.v.Y*q1.v.Y, q1.v.Z*q1.v.Z
+	xy, xz, yz := q1.v.X*q1.v.Y, q1.v.X*q1.v.Z, q1.v.Y*q1.v.Z
+	wx, wy, wz := q1.v.X*q1.w, q1.v.Y*q1.w, q1.v.Z*q1.w
 
 	m := new(Matrix4x4)
 	m.m[0][0] = 1.0 - 2.0*(yy+zz)
@@ -78,9 +78,9 @@ func CreateQuaternionFromMatrix4x4(m *Matrix4x4) *Quaternion {
 		s := math.Sqrt(trace + 1.0)
 		q.w = s / 2.0
 		s = 0.5 / s
-		q.v.x = (m.m[2][1] - m.m[1][2]) * s
-		q.v.y = (m.m[0][2] - m.m[2][0]) * s
-		q.v.z = (m.m[1][0] - m.m[0][1]) * s
+		q.v.X = (m.m[2][1] - m.m[1][2]) * s
+		q.v.Y = (m.m[0][2] - m.m[2][0]) * s
+		q.v.Z = (m.m[1][0] - m.m[0][1]) * s
 	} else {
 		// Compute largest of $x$, $y$, or $z$, then remaining components
 		nxt := []int{1, 2, 0}
@@ -102,9 +102,9 @@ func CreateQuaternionFromMatrix4x4(m *Matrix4x4) *Quaternion {
 		q.w = (m.m[k][j] - m.m[j][k]) * s
 		qq[j] = (m.m[j][i] + m.m[i][j]) * s
 		qq[k] = (m.m[k][i] + m.m[i][k]) * s
-		q.v.x = qq[0]
-		q.v.y = qq[1]
-		q.v.z = qq[2]
+		q.v.X = qq[0]
+		q.v.Y = qq[1]
+		q.v.Z = qq[2]
 	}
 	return q
 }

@@ -404,11 +404,11 @@ func (dens *VolumeGridDensity) Density(Pobj *Point) float64 {
 	}
 	// Compute voxel coordinates and offsets for _Pobj_
 	vox := dens.extent.Offset(Pobj)
-	vox.x = vox.x*float64(dens.nx) - 0.5
-	vox.y = vox.y*float64(dens.ny) - 0.5
-	vox.z = vox.z*float64(dens.nz) - 0.5
-	vx, vy, vz := Floor2Int(vox.x), Floor2Int(vox.y), Floor2Int(vox.z)
-	dx, dy, dz := vox.x-float64(vx), vox.y-float64(vy), vox.z-float64(vz)
+	vox.X = vox.X*float64(dens.nx) - 0.5
+	vox.Y = vox.Y*float64(dens.ny) - 0.5
+	vox.Z = vox.Z*float64(dens.nz) - 0.5
+	vx, vy, vz := Floor2Int(vox.X), Floor2Int(vox.Y), Floor2Int(vox.Z)
+	dx, dy, dz := vox.X-float64(vx), vox.Y-float64(vy), vox.Z-float64(vz)
 
 	// Trilinearly interpolate density values to compute local density
 	d00 := Lerp(dx, dens.D(vx, vy, vz), dens.D(vx+1, vy, vz))

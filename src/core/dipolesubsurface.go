@@ -97,13 +97,13 @@ func (node *SubsurfaceOctreeNode) Insert(nodeBound *BBox, ip *IrradiancePoint, a
 		for _, ip := range localIps {
 			// Add _IrradiancePoint_ _ip_ to interior octree node
 			child := 0
-			if ip.p.x > pMid.x {
+			if ip.p.X > pMid.X {
 				child += 4
 			}
-			if ip.p.y > pMid.y {
+			if ip.p.Y > pMid.Y {
 				child += 2
 			}
-			if ip.p.z > pMid.z {
+			if ip.p.Z > pMid.Z {
 				child += 1
 			}
 			if node.children[child] == nil {
@@ -116,13 +116,13 @@ func (node *SubsurfaceOctreeNode) Insert(nodeBound *BBox, ip *IrradiancePoint, a
 	}
 	// Add _IrradiancePoint_ _ip_ to interior octree node
 	child := 0
-	if ip.p.x > pMid.x {
+	if ip.p.X > pMid.X {
 		child += 4
 	}
-	if ip.p.y > pMid.y {
+	if ip.p.Y > pMid.Y {
 		child += 2
 	}
-	if ip.p.z > pMid.z {
+	if ip.p.Z > pMid.Z {
 		child += 1
 	}
 	if node.children[child] == nil {

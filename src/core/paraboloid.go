@@ -32,7 +32,7 @@ import (
 
 type Paraboloid struct {
 	ShapeData
-	radius, zmin, zmax, phiMax float64
+	radius, Zmin, Zmax, phiMax float64
 }
 
 func NewParaboloid(o2w, w2o *Transform, ro bool, rad, zmin, zmax, pmax float64) *Paraboloid {
@@ -43,15 +43,15 @@ func NewParaboloid(o2w, w2o *Transform, ro bool, rad, zmin, zmax, pmax float64) 
 	p.transformSwapsHandedness = SwapsHandednessTransform(p.objectToWorld)
 	p.shapeId = GenerateShapeId()
 	p.radius = rad
-	p.zmin = zmin
-	p.zmax = zmax
+	p.Zmin = zmin
+	p.Zmax = zmax
 	p.phiMax = Radians(Clamp(pmax, 0.0, 360.0))
 
 	return p
 }
 
 func (p *Paraboloid) ObjectBound() *BBox {
-	return &BBox{Point{-p.radius, -p.radius, p.zmin}, Point{p.radius, p.radius, p.zmax}}
+	return &BBox{Point{-p.radius, -p.radius, p.Zmin}, Point{p.radius, p.radius, p.Zmax}}
 }
 
 func (p *Paraboloid) WorldBound() *BBox {
@@ -71,10 +71,10 @@ func (p *Paraboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *
 	ray := RayTransform(p.worldToObject, r)
 
 	// Compute quadratic paraboloid coefficients
-	k := p.zmax / (p.radius * p.radius)
-	A := k * (ray.dir.x*ray.dir.x + ray.dir.y*ray.dir.y)
-	B := 2*k*(ray.dir.x*ray.origin.x+ray.dir.y*ray.origin.y) - ray.dir.z
-	C := k*(ray.origin.x*ray.origin.x+ray.origin.y*ray.origin.y) - ray.origin.z
+	k := p.Zmax / (p.radius * p.radius)
+	A := k * (ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y)
+	B := 2*k*(ray.dir.X*ray.origin.X+ray.dir.Y*ray.origin.Y) - ray.dir.Z
+	C := k*(ray.origin.X*ray.origin.X+ray.origin.Y*ray.origin.Y) - ray.origin.Z
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -98,13 +98,13 @@ func (p *Paraboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *
 
 	// Compute paraboloid inverse mapping
 	phit := ray.PointAt(thit)
-	phi := math.Atan2(phit.y, phit.x)
+	phi := math.Atan2(phit.Y, phit.X)
 	if phi < 0.0 {
 		phi += 2.0 * math.Pi
 	}
 
 	// Test paraboloid intersection against clipping parameters
-	if phit.z < p.zmin || phit.z > p.zmax || phi > p.phiMax {
+	if phit.Z < p.Zmin || phit.Z > p.Zmax || phi > p.phiMax {
 		if thit == t1 {
 			return false, 0.0, 0.0, nil
 		}
@@ -114,27 +114,27 @@ func (p *Paraboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *
 		}
 		// Compute paraboloid inverse mapping
 		phit = ray.PointAt(thit)
-		phi = math.Atan2(phit.y, phit.x)
+		phi = math.Atan2(phit.Y, phit.X)
 		if phi < 0.0 {
 			phi += 2.0 * math.Pi
 		}
-		if phit.z < p.zmin || phit.z > p.zmax || phi > p.phiMax {
+		if phit.Z < p.Zmin || phit.Z > p.Zmax || phi > p.phiMax {
 			return false, 0.0, 0.0, nil
 		}
 	}
 
 	// Find parametric representation of paraboloid hit
 	u := phi / p.phiMax
-	v := (phit.z - p.zmin) / (p.zmax - p.zmin)
+	v := (phit.Z - p.Zmin) / (p.Zmax - p.Zmin)
 
 	// Compute parabaloid $\dpdu$ and $\dpdv$
-	dpdu := CreateVector(-p.phiMax*phit.y, p.phiMax*phit.x, 0.0)
-	dpdv := CreateVector(phit.x/(2.0*phit.z), phit.y/(2.0*phit.z), 1.0).Scale(p.zmax - p.zmin)
+	dpdu := CreateVector(-p.phiMax*phit.Y, p.phiMax*phit.X, 0.0)
+	dpdv := CreateVector(phit.X/(2.0*phit.Z), phit.Y/(2.0*phit.Z), 1.0).Scale(p.Zmax - p.Zmin)
 
 	// Compute parabaloid $\dndu$ and $\dndv$
-	d2Pduu := CreateVector(phit.x, phit.y, 0).Scale(-p.phiMax * p.phiMax)
-	d2Pduv := CreateVector(-phit.y/(2.0*phit.z), phit.x/(2.0*phit.z), 0).Scale((p.zmax - p.zmin) * p.phiMax)
-	d2Pdvv := CreateVector(phit.x/(4.0*phit.z*phit.z), phit.y/(4.0*phit.z*phit.z), 0.0).Scale(-(p.zmax - p.zmin) * (p.zmax - p.zmin))
+	d2Pduu := CreateVector(phit.X, phit.Y, 0).Scale(-p.phiMax * p.phiMax)
+	d2Pduv := CreateVector(-phit.Y/(2.0*phit.Z), phit.X/(2.0*phit.Z), 0).Scale((p.Zmax - p.Zmin) * p.phiMax)
+	d2Pdvv := CreateVector(phit.X/(4.0*phit.Z*phit.Z), phit.Y/(4.0*phit.Z*phit.Z), 0.0).Scale(-(p.Zmax - p.Zmin) * (p.Zmax - p.Zmin))
 
 	// Compute coefficients for fundamental forms
 	E := DotVector(dpdu, dpdu)
@@ -168,10 +168,10 @@ func (p *Paraboloid) IntersectP(r *Ray) bool {
 	ray := RayTransform(p.worldToObject, r)
 
 	// Compute quadratic paraboloid coefficients
-	k := p.zmax / (p.radius * p.radius)
-	A := k * (ray.dir.x*ray.dir.x + ray.dir.y*ray.dir.y)
-	B := 2*k*(ray.dir.x*ray.origin.x+ray.dir.y*ray.origin.y) - ray.dir.z
-	C := k*(ray.origin.x*ray.origin.x+ray.origin.y*ray.origin.y) - ray.origin.z
+	k := p.Zmax / (p.radius * p.radius)
+	A := k * (ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y)
+	B := 2*k*(ray.dir.X*ray.origin.X+ray.dir.Y*ray.origin.Y) - ray.dir.Z
+	C := k*(ray.origin.X*ray.origin.X+ray.origin.Y*ray.origin.Y) - ray.origin.Z
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -195,13 +195,13 @@ func (p *Paraboloid) IntersectP(r *Ray) bool {
 
 	// Compute paraboloid inverse mapping
 	phit := ray.PointAt(thit)
-	phi := math.Atan2(phit.y, phit.x)
+	phi := math.Atan2(phit.Y, phit.X)
 	if phi < 0.0 {
 		phi += 2.0 * math.Pi
 	}
 
 	// Test paraboloid intersection against clipping parameters
-	if phit.z < p.zmin || phit.z > p.zmax || phi > p.phiMax {
+	if phit.Z < p.Zmin || phit.Z > p.Zmax || phi > p.phiMax {
 		if thit == t1 {
 			return false
 		}
@@ -211,11 +211,11 @@ func (p *Paraboloid) IntersectP(r *Ray) bool {
 		}
 		// Compute paraboloid inverse mapping
 		phit = ray.PointAt(thit)
-		phi = math.Atan2(phit.y, phit.x)
+		phi = math.Atan2(phit.Y, phit.X)
 		if phi < 0.0 {
 			phi += 2.0 * math.Pi
 		}
-		if phit.z < p.zmin || phit.z > p.zmax || phi > p.phiMax {
+		if phit.Z < p.Zmin || phit.Z > p.Zmax || phi > p.phiMax {
 			return false
 		}
 	}
@@ -228,9 +228,9 @@ func (p *Paraboloid) GetShadingGeometry(obj2world *Transform, dg *DifferentialGe
 
 func (p *Paraboloid) Area() float64 {
 	radius2 := p.radius * p.radius
-	k := 4 * p.zmax / radius2
-	return (radius2 * radius2 * p.phiMax / (12.0 * p.zmax * p.zmax)) *
-		(math.Pow(k*p.zmax+1, 1.5) - math.Pow(k*p.zmin+1, 1.5))
+	k := 4 * p.Zmax / radius2
+	return (radius2 * radius2 * p.phiMax / (12.0 * p.Zmax * p.Zmax)) *
+		(math.Pow(k*p.Zmax+1, 1.5) - math.Pow(k*p.Zmin+1, 1.5))
 }
 
 func (p *Paraboloid) Sample(u1, u2 float64) (*Point, *Normal) {

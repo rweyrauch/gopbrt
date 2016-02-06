@@ -431,7 +431,7 @@ func (light *GonioPhotometricLight) NumSamples() int {
 func (light *GonioPhotometricLight) scale(w *Vector) *Spectrum {
 	if light.mipmap != nil {
 		wp := NormalizeVector(VectorTransform(light.WorldToLight, w))
-		wp.y, wp.z = wp.z, wp.y
+		wp.Y, wp.Z = wp.Z, wp.Y
 		theta := SphericalTheta(wp)
 		phi := SphericalPhi(wp)
 		s, t := phi*INV_TWOPI, theta*INV_PI
@@ -643,7 +643,7 @@ func CreatePointLight(light2world *Transform, paramSet *ParamSet) *PointLight {
 	I := paramSet.FindSpectrumParam("I", *NewSpectrum1(1.0))
 	sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
 	P := paramSet.FindPointParam("from", *CreatePoint(0, 0, 0))
-	l2w := TranslateTransform(CreateVector(P.x, P.y, P.z)).MultTransform(light2world)
+	l2w := TranslateTransform(CreateVector(P.X, P.Y, P.Z)).MultTransform(light2world)
 	return NewPointLight(l2w, I.Mult(&sc))
 }
 
@@ -728,21 +728,21 @@ func (l *ProjectionLight) NumSamples() int {
 func (light *ProjectionLight) Projection(w *Vector) *Spectrum {
 	wl := VectorTransform(light.WorldToLight, w)
 	// Discard directions behind projection light
-	if wl.z < light.hither {
+	if wl.Z < light.hither {
 		return NewSpectrum1(0.0)
 	}
 
 	// Project point onto projection plane and compute light
-	Pl := PointTransform(light.lightProjection, CreatePoint(wl.x, wl.y, wl.z))
-	if Pl.x < light.screenX0 || Pl.x > light.screenX1 ||
-		Pl.y < light.screenY0 || Pl.y > light.screenY1 {
+	Pl := PointTransform(light.lightProjection, CreatePoint(wl.X, wl.Y, wl.Z))
+	if Pl.X < light.screenX0 || Pl.X > light.screenX1 ||
+		Pl.Y < light.screenY0 || Pl.Y > light.screenY1 {
 		return NewSpectrum1(0.0)
 	}
 	if light.projectionMap == nil {
 		return NewSpectrum1(1.0)
 	}
-	s := (Pl.x - light.screenX0) / (light.screenX1 - light.screenX0)
-	t := (Pl.y - light.screenY0) / (light.screenY1 - light.screenY0)
+	s := (Pl.X - light.screenX0) / (light.screenX1 - light.screenX0)
+	t := (Pl.Y - light.screenY0) / (light.screenY1 - light.screenY0)
 	return light.projectionMap.Lookup(s, t, 0.0)
 }
 
@@ -800,7 +800,7 @@ func (l *SpotLight) NumSamples() int {
 
 func (l *SpotLight) falloff(w *Vector) float64 {
 	wl := NormalizeVector(VectorTransform(l.WorldToLight, w))
-	costheta := wl.z
+	costheta := wl.Z
 	if costheta < l.cosTotalWidth {
 		return 0.0
 	}
@@ -823,10 +823,10 @@ func CreateSpotLight(l2w *Transform, paramSet *ParamSet) *SpotLight {
 	dir := NormalizeVector(to.Sub(&from))
 
 	du, dv := CoordinateSystem(dir)
-	dirToZ, _ := NewTransform(NewMatrix4x4(du.x, du.y, du.z, 0.0,
-		dv.x, dv.y, dv.z, 0.0,
-		dir.x, dir.y, dir.z, 0.0,
+	dirToZ, _ := NewTransform(NewMatrix4x4(du.X, du.Y, du.Z, 0.0,
+		dv.X, dv.Y, dv.Z, 0.0,
+		dir.X, dir.Y, dir.Z, 0.0,
 		0, 0, 0, 1.0))
-	light2world := l2w.MultTransform(TranslateTransform(CreateVector(from.x, from.y, from.z))).MultTransform(InverseTransform(dirToZ))
+	light2world := l2w.MultTransform(TranslateTransform(CreateVector(from.X, from.Y, from.Z))).MultTransform(InverseTransform(dirToZ))
 	return NewSpotLight(light2world, I.Mult(&sc), coneangle, coneangle-conedelta)
 }

@@ -75,11 +75,11 @@ func (field *Heightfield) Refine(refined []Shape) []Shape {
     pos := 0
     for y := 0; y < field.ny; y++ {
         for x := 0; x < field.nx; x++ {
-            P[pos].x = float64(x) / float64(field.nx-1)
-            P[pos].y = float64(y) / float64(field.ny-1)
-            P[pos].z = field.z[pos]
-            uvs[2*pos] = P[pos].x
-            uvs[2*pos+1] = P[pos].y
+            P[pos].X = float64(x) / float64(field.nx-1)
+            P[pos].Y = float64(y) / float64(field.ny-1)
+            P[pos].Z = field.z[pos]
+            uvs[2*pos] = P[pos].X
+            uvs[2*pos+1] = P[pos].Y
             pos++
         }
     }

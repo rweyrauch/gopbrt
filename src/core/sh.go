@@ -154,7 +154,7 @@ func SHIndex(l, m int) int {
 func SHEvaluate(w *Vector, lmax int, out []float64) {
 	// Compute Legendre polynomial values for $\cos\theta$
 	Assert(w.Length() > 0.995 && w.Length() < 1.005)
-	legendrep(w.z, lmax, out)
+	legendrep(w.Z, lmax, out)
 
 	// Compute $K_l^m$ coefficients
 	Klm := make([]float64, SHTerms(lmax), SHTerms(lmax))
@@ -167,7 +167,7 @@ func SHEvaluate(w *Vector, lmax int, out []float64) {
 	// Compute $\sin\phi$ and $\cos\phi$ values
 	sins := make([]float64, lmax+1, lmax+1)
 	coss := make([]float64, lmax+1, lmax+1)
-	xyLen := math.Sqrt(math.Max(0.0, 1.0-w.z*w.z))
+	xyLen := math.Sqrt(math.Max(0.0, 1.0-w.Z*w.Z))
 	if xyLen == 0.0 {
 		for i := 0; i <= lmax; i++ {
 			sins[i] = 0.0
@@ -176,7 +176,7 @@ func SHEvaluate(w *Vector, lmax int, out []float64) {
 			coss[i] = 1.0
 		}
 	} else {
-		sinCosIndexed(w.y/xyLen, w.x/xyLen, lmax+1, sins, coss)
+		sinCosIndexed(w.Y/xyLen, w.X/xyLen, lmax+1, sins, coss)
 	}
 
 	// Apply SH definitions to compute final $(l,m)$ values

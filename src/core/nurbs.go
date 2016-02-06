@@ -165,9 +165,9 @@ func (nurbs *NURBS) Refine(refined []Shape) []Shape {
 
 			pt, dPdu, dPdv := NURBSEvaluateSurface(nurbs.uorder, nurbs.uknot, nurbs.nu, ueval[u],
 				nurbs.vorder, nurbs.vknot, nurbs.nv, veval[v], Pw)
-			evalPs[v*diceu+u].x = pt.x
-			evalPs[v*diceu+u].y = pt.y
-			evalPs[v*diceu+u].z = pt.z
+			evalPs[v*diceu+u].X = pt.X
+			evalPs[v*diceu+u].Y = pt.Y
+			evalPs[v*diceu+u].Z = pt.Z
 			evalNs[v*diceu+u] = *CreateNormalFromVector(NormalizeVector(CrossVector(dPdu, dPdv)))
 		}
 	}
@@ -276,7 +276,7 @@ func CreateNURBSShape(o2w, w2o *Transform, reverseOrientation bool, params *Para
 		isHomogeneous = true
 	} else {
 		for _, p := range Pnts {
-			P = append(P, p.x, p.y, p.z)
+			P = append(P, p.X, p.Y, p.Z)
 		}
 		npts = len(Pnts)
 	}
@@ -343,9 +343,9 @@ func NURBSEvaluate(order int, knot []float64, cp []Homogeneous3, np int,
 		(cpWork[1].z - cpWork[0].z) * factor,
 		(cpWork[1].w - cpWork[0].w) * factor}
 
-	deriv.x = delta.x/val.w - (val.x * delta.w / (val.w * val.w))
-	deriv.y = delta.y/val.w - (val.y * delta.w / (val.w * val.w))
-	deriv.z = delta.z/val.w - (val.z * delta.w / (val.w * val.w))
+	deriv.X = delta.x/val.w - (val.x * delta.w / (val.w * val.w))
+	deriv.Y = delta.y/val.w - (val.y * delta.w / (val.w * val.w))
+	deriv.Z = delta.z/val.w - (val.z * delta.w / (val.w * val.w))
 
 	return val, deriv
 }

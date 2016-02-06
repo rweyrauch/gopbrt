@@ -33,7 +33,7 @@ import (
 type Hyperboloid struct {
 	ShapeData
 	p1, p2 Point
-	zmin, zmax, phiMax, rmax, a, c float64
+	Zmin, Zmax, phiMax, rmax, a, c float64
 }
 
 func NewHyperboloid(o2w, w2o *Transform, ro bool, point1, point2 Point, phimax float64) *Hyperboloid {
@@ -47,17 +47,17 @@ func NewHyperboloid(o2w, w2o *Transform, ro bool, point1, point2 Point, phimax f
 	h.p2 = point2
 	h.phiMax = Radians(Clamp(phimax, 0.0, 360.0))
 	
-     radius1 := math.Sqrt(h.p1.x*h.p1.x + h.p1.y*h.p1.y)
-     radius2 := math.Sqrt(h.p2.x*h.p2.x + h.p2.y*h.p2.y)
+     radius1 := math.Sqrt(h.p1.X*h.p1.X + h.p1.Y*h.p1.Y)
+     radius2 := math.Sqrt(h.p2.X*h.p2.X + h.p2.Y*h.p2.Y)
     h.rmax = math.Max(radius1, radius2)
-    h.zmin = math.Min(h.p1.z, h.p2.z)
-    h.zmax = math.Max(h.p1.z, h.p2.z)
+    h.Zmin = math.Min(h.p1.Z, h.p2.Z)
+    h.Zmax = math.Max(h.p1.Z, h.p2.Z)
 	
 	return h
 }
 
 func (h *Hyperboloid) ObjectBound() *BBox {
-    return &BBox{Point{-h.rmax, -h.rmax, h.zmin}, Point{h.rmax,  h.rmax, h.zmax}}
+    return &BBox{Point{-h.rmax, -h.rmax, h.Zmin}, Point{h.rmax,  h.rmax, h.Zmax}}
 }
 
 func (h *Hyperboloid) WorldBound() *BBox {
@@ -77,9 +77,9 @@ func (h *Hyperboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg 
 	ray := RayTransform(h.worldToObject, r)
 
     // Compute quadratic hyperboloid coefficients
-     A := h.a*ray.dir.x*ray.dir.x + h.a*ray.dir.y*ray.dir.y - h.c*ray.dir.z*ray.dir.z
-     B := 2.0 * (h.a*ray.dir.x*ray.origin.x + h.a*ray.dir.y*ray.origin.y - h.c*ray.dir.z*ray.origin.z)
-     C := h.a*ray.origin.x*ray.origin.x + h.a*ray.origin.y*ray.origin.y - h.c*ray.origin.z*ray.origin.z - 1
+     A := h.a*ray.dir.X*ray.dir.X + h.a*ray.dir.Y*ray.dir.Y - h.c*ray.dir.Z*ray.dir.Z
+     B := 2.0 * (h.a*ray.dir.X*ray.origin.X + h.a*ray.dir.Y*ray.origin.Y - h.c*ray.dir.Z*ray.origin.Z)
+     C := h.a*ray.origin.X*ray.origin.X + h.a*ray.origin.Y*ray.origin.Y - h.c*ray.origin.Z*ray.origin.Z - 1
 
     // Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -103,27 +103,27 @@ func (h *Hyperboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg 
 
     // Compute hyperboloid inverse mapping
     phit := ray.PointAt(thit)
-    v := (phit.z - h.p1.z)/(h.p2.z - h.p1.z)
+    v := (phit.Z - h.p1.Z)/(h.p2.Z - h.p1.Z)
     pr := h.p1.Scale(1.0-v).Sub(h.p2.Scale(-v)) // using Sub(-v) rather than Add(v)
-    phi := math.Atan2(pr.x*phit.y - phit.x*pr.y, phit.x*pr.x + phit.y*pr.y)
+    phi := math.Atan2(pr.X*phit.Y - phit.X*pr.Y, phit.X*pr.X + phit.Y*pr.Y)
     if phi < 0.0 {
         phi += 2.0*math.Pi
 	}
     
     // Test hyperboloid intersection against clipping parameters
-    if phit.z < h.zmin || phit.z > h.zmax || phi > h.phiMax {
+    if phit.Z < h.Zmin || phit.Z > h.Zmax || phi > h.phiMax {
         if thit == t1 { return false, 0.0, 0.0, nil }
         thit = t1
         if t1 > ray.maxt { return false, 0.0, 0.0, nil }
         // Compute hyperboloid inverse mapping
         phit = ray.PointAt(thit)
-        v = (phit.z - h.p1.z)/(h.p2.z - h.p1.z)
+        v = (phit.Z - h.p1.Z)/(h.p2.Z - h.p1.Z)
         pr := h.p1.Scale(1.0-v).Sub(h.p2.Scale(-v))
-        phi = math.Atan2(pr.x*phit.y - phit.x*pr.y, phit.x*pr.x + phit.y*pr.y)
+        phi = math.Atan2(pr.X*phit.Y - phit.X*pr.Y, phit.X*pr.X + phit.Y*pr.Y)
         if phi < 0 {
             phi += 2*math.Pi
             }
-        if phit.z < h.zmin || phit.z > h.zmax || phi > h.phiMax {
+        if phit.Z < h.Zmin || phit.Z > h.Zmax || phi > h.phiMax {
             return false, 0.0, 0.0, nil
        }
     }
@@ -133,14 +133,14 @@ func (h *Hyperboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg 
 
     // Compute hyperboloid $\dpdu$ and $\dpdv$
     cosphi, sinphi := math.Cos(phi), math.Sin(phi)
-    dpdu := CreateVector(-h.phiMax * phit.y, h.phiMax * phit.x, 0.0)
-    dpdv := CreateVector((h.p2.x-h.p1.x) * cosphi - (h.p2.y-h.p1.y) * sinphi,
-        (h.p2.x-h.p1.x) * sinphi + (h.p2.y-h.p1.y) * cosphi,
-        h.p2.z-h.p1.z)
+    dpdu := CreateVector(-h.phiMax * phit.Y, h.phiMax * phit.X, 0.0)
+    dpdv := CreateVector((h.p2.X-h.p1.X) * cosphi - (h.p2.Y-h.p1.Y) * sinphi,
+        (h.p2.X-h.p1.X) * sinphi + (h.p2.Y-h.p1.Y) * cosphi,
+        h.p2.Z-h.p1.Z)
 
     // Compute hyperboloid $\dndu$ and $\dndv$
-     d2Pduu := CreateVector(phit.x, phit.y, 0).Scale(-h.phiMax * h.phiMax)
-     d2Pduv := CreateVector(-dpdv.y, dpdv.x, 0).Scale(h.phiMax)
+     d2Pduu := CreateVector(phit.X, phit.Y, 0).Scale(-h.phiMax * h.phiMax)
+     d2Pduv := CreateVector(-dpdv.Y, dpdv.X, 0).Scale(h.phiMax)
      d2Pdvv := CreateVector(0, 0, 0)
 
     // Compute coefficients for fundamental forms
@@ -175,9 +175,9 @@ func (h *Hyperboloid) IntersectP(r *Ray) bool {
 	ray := RayTransform(h.worldToObject, r)
 
     // Compute quadratic hyperboloid coefficients
-     A := h.a*ray.dir.x*ray.dir.x + h.a*ray.dir.y*ray.dir.y - h.c*ray.dir.z*ray.dir.z
-     B := 2.0 * (h.a*ray.dir.x*ray.origin.x + h.a*ray.dir.y*ray.origin.y - h.c*ray.dir.z*ray.origin.z)
-     C := h.a*ray.origin.x*ray.origin.x + h.a*ray.origin.y*ray.origin.y - h.c*ray.origin.z*ray.origin.z - 1
+     A := h.a*ray.dir.X*ray.dir.X + h.a*ray.dir.Y*ray.dir.Y - h.c*ray.dir.Z*ray.dir.Z
+     B := 2.0 * (h.a*ray.dir.X*ray.origin.X + h.a*ray.dir.Y*ray.origin.Y - h.c*ray.dir.Z*ray.origin.Z)
+     C := h.a*ray.origin.X*ray.origin.X + h.a*ray.origin.Y*ray.origin.Y - h.c*ray.origin.Z*ray.origin.Z - 1
 
     // Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -201,27 +201,27 @@ func (h *Hyperboloid) IntersectP(r *Ray) bool {
 
     // Compute hyperboloid inverse mapping
     phit := ray.PointAt(thit)
-    v := (phit.z - h.p1.z)/(h.p2.z - h.p1.z)
+    v := (phit.Z - h.p1.Z)/(h.p2.Z - h.p1.Z)
     pr := h.p1.Scale(1.0-v).Sub(h.p2.Scale(-v)) // using Sub(-v) rather than Add(v)
-    phi := math.Atan2(pr.x*phit.y - phit.x*pr.y, phit.x*pr.x + phit.y*pr.y)
+    phi := math.Atan2(pr.X*phit.Y - phit.X*pr.Y, phit.X*pr.X + phit.Y*pr.Y)
     if phi < 0.0 {
         phi += 2.0*math.Pi
 	}
     
     // Test hyperboloid intersection against clipping parameters
-    if phit.z < h.zmin || phit.z > h.zmax || phi > h.phiMax {
+    if phit.Z < h.Zmin || phit.Z > h.Zmax || phi > h.phiMax {
         if thit == t1 { return false }
         thit = t1
         if t1 > ray.maxt { return false }
         // Compute hyperboloid inverse mapping
         phit = ray.PointAt(thit)
-        v = (phit.z - h.p1.z)/(h.p2.z - h.p1.z)
+        v = (phit.Z - h.p1.Z)/(h.p2.Z - h.p1.Z)
         pr := h.p1.Scale(1.0-v).Sub(h.p2.Scale(-v))
-        phi = math.Atan2(pr.x*phit.y - phit.x*pr.y, phit.x*pr.x + phit.y*pr.y)
+        phi = math.Atan2(pr.X*phit.Y - phit.X*pr.Y, phit.X*pr.X + phit.Y*pr.Y)
         if phi < 0 {
             phi += 2*math.Pi
             }
-        if phit.z < h.zmin || phit.z > h.zmax || phi > h.phiMax {
+        if phit.Z < h.Zmin || phit.Z > h.Zmax || phi > h.phiMax {
             return false
        }
     }
@@ -237,17 +237,17 @@ func (h *Hyperboloid) Area() float64 {
 	QUAD := func(a float64) float64 { return SQR(a)*SQR(a) }
 
     return h.phiMax/6.0 *
-       (2.0*QUAD(h.p1.x) - 2.0*h.p1.x*h.p1.x*h.p1.x*h.p2.x +
-         2.0*QUAD(h.p2.x) +
-            2.0*(h.p1.y*h.p1.y + h.p1.y*h.p2.y + h.p2.y*h.p2.y)*
-            (SQR(h.p1.y - h.p2.y) + SQR(h.p1.z - h.p2.z)) +
-           h.p2.x*h.p2.x*(5.0*h.p1.y*h.p1.y + 2.0*h.p1.y*h.p2.y -
-              4.0*h.p2.y*h.p2.y + 2.0*SQR(h.p1.z - h.p2.z)) +
-           h.p1.x*h.p1.x*(-4.0*h.p1.y*h.p1.y + 2.0*h.p1.y*h.p2.y +
-              5.0*h.p2.y*h.p2.y + 2.0*SQR(h.p1.z - h.p2.z)) -
-           2.0*h.p1.x*h.p2.x*(h.p2.x*h.p2.x - h.p1.y*h.p1.y +
-              5.0*h.p1.y*h.p2.y - h.p2.y*h.p2.y - h.p1.z*h.p1.z +
-              2.0*h.p1.z*h.p2.z - h.p2.z*h.p2.z))
+       (2.0*QUAD(h.p1.X) - 2.0*h.p1.X*h.p1.X*h.p1.X*h.p2.X +
+         2.0*QUAD(h.p2.X) +
+            2.0*(h.p1.Y*h.p1.Y + h.p1.Y*h.p2.Y + h.p2.Y*h.p2.Y)*
+            (SQR(h.p1.Y - h.p2.Y) + SQR(h.p1.Z - h.p2.Z)) +
+           h.p2.X*h.p2.X*(5.0*h.p1.Y*h.p1.Y + 2.0*h.p1.Y*h.p2.Y -
+              4.0*h.p2.Y*h.p2.Y + 2.0*SQR(h.p1.Z - h.p2.Z)) +
+           h.p1.X*h.p1.X*(-4.0*h.p1.Y*h.p1.Y + 2.0*h.p1.Y*h.p2.Y +
+              5.0*h.p2.Y*h.p2.Y + 2.0*SQR(h.p1.Z - h.p2.Z)) -
+           2.0*h.p1.X*h.p2.X*(h.p2.X*h.p2.X - h.p1.Y*h.p1.Y +
+              5.0*h.p1.Y*h.p2.Y - h.p2.Y*h.p2.Y - h.p1.Z*h.p1.Z +
+              2.0*h.p1.Z*h.p2.Z - h.p2.Z*h.p2.Z))
 }
 
 func (h *Hyperboloid) Sample(u1, u2 float64) (*Point, *Normal) {

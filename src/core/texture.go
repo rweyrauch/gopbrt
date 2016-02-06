@@ -149,8 +149,8 @@ func (m *CylindricalMapping2D) Map(dg *DifferentialGeometry) (s, t, dsdx, dtdx, 
 
 func (m *CylindricalMapping2D) cylinder(p *Point) (s, t float64) {
 	vec := NormalizeVector(PointTransform(m.worldToTexture, p).Sub(CreatePoint(0, 0, 0)))
-	s = (math.Pi + math.Atan2(vec.y, vec.x)) / (2.0 * math.Pi)
-	t = vec.z
+	s = (math.Pi + math.Atan2(vec.Y, vec.X)) / (2.0 * math.Pi)
+	t = vec.Z
 	return s, t
 }
 
@@ -293,7 +293,7 @@ func Noise(x, y, z float64) float64 {
 }
 
 func NoiseP(p *Point) float64 {
-	return Noise(p.x, p.y, p.z)
+	return Noise(p.X, p.Y, p.Z)
 }
 
 func FBm(p *Point, dpdx, dpdy *Vector, omega float64, maxOctaves int) float64 {
@@ -633,7 +633,7 @@ func NewCheckerboard3DTextureFloat(mapping TextureMapping3D, tex1, tex2 TextureF
 }
 func (tex *Checkerboard3DTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
 	p, _, _ := tex.mapping.Map(dg)
-	if (Floor2Int(p.x)+Floor2Int(p.y)+Floor2Int(p.z))%2 == 0 {
+	if (Floor2Int(p.X)+Floor2Int(p.Y)+Floor2Int(p.Z))%2 == 0 {
 		return tex.tex1.Evaluate(dg)
 	} else {
 		return tex.tex2.Evaluate(dg)
@@ -645,7 +645,7 @@ func NewCheckerboard3DTextureSpectrum(mapping TextureMapping3D, tex1, tex2 Textu
 }
 func (tex *Checkerboard3DTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
 	p, _, _ := tex.mapping.Map(dg)
-	if (Floor2Int(p.x)+Floor2Int(p.y)+Floor2Int(p.z))%2 == 0 {
+	if (Floor2Int(p.X)+Floor2Int(p.Y)+Floor2Int(p.Z))%2 == 0 {
 		return tex.tex1.Evaluate(dg)
 	} else {
 		return tex.tex2.Evaluate(dg)
@@ -990,7 +990,7 @@ func (tex *MarbleTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
 	P, dpdx, dpdy := tex.mapping.Map(dg)
 	P = P.Scale(tex.scale)
 
-	marble := P.y + tex.variation*FBm(P, dpdx.Scale(tex.scale), dpdy.Scale(tex.scale), tex.omega, tex.octaves)
+	marble := P.Y + tex.variation*FBm(P, dpdx.Scale(tex.scale), dpdy.Scale(tex.scale), tex.omega, tex.octaves)
 	t := 0.5 + 0.5*math.Sin(marble)
 
 	// Evaluate marble spline at _t_
