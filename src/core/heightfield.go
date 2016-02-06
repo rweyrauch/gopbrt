@@ -30,61 +30,124 @@ import ()
 
 type Heightfield struct {
 	ShapeData
+	z []float64
+	nx, ny int
+}
+
+func NewHeightfield(o2w, w2o *Transform, ro bool, nx, ny int, zs []float64) *Heightfield {
+	field := new(Heightfield)
+	field.objectToWorld = o2w
+	field.worldToObject = w2o
+	field.reverseOrientation = ro
+	field.transformSwapsHandedness = SwapsHandednessTransform(field.objectToWorld)
+	field.shapeId = GenerateShapeId()
+	field.nx = nx
+	field.ny = ny
+	field.z = make([]float64, len(zs), len(zs))
+	copy(field.z, zs)
+	
+	return field
+}
+
+func (field *Heightfield) ObjectBound() *BBox {
+    minz, maxz := field.z[0], field.z[0]
+    for _, z := range field.z {
+        if z < minz { minz = z }
+        if z > maxz { maxz = z }
+    }
+    return CreateBBoxFromPoints(CreatePoint(0,0,minz), CreatePoint(1,1,maxz))
+}
+
+func (field *Heightfield) WorldBound() *BBox {
+	return BBoxTransform(field.objectToWorld, field.ObjectBound())
+}
+func (field *Heightfield) CanIntersect() bool {
+	return false
+}
+func (field *Heightfield) Refine(refined []Shape) []Shape {
+    ntris := 2*(field.nx-1)*(field.ny-1)
+    nverts := field.nx*field.ny
+   
+    verts := make([]int, 3*ntris, 3*ntris)
+    P := make([]Point, nverts, nverts)
+    uvs := make([]float64, 2*nverts, 2*nverts)
+    // Compute heightfield vertex positions
+    pos := 0
+    for y := 0; y < field.ny; y++ {
+        for x := 0; x < field.nx; x++ {
+            P[pos].x = float64(x) / float64(field.nx-1)
+            P[pos].y = float64(y) / float64(field.ny-1)
+            P[pos].z = field.z[pos]
+            uvs[2*pos] = P[pos].x
+            uvs[2*pos+1] = P[pos].y
+            pos++
+        }
+    }
+
+    // Fill in heightfield vertex offset array
+    VERT := func(x,y int) int { return x+y*field.nx }
+    vi := 0
+    for y := 0; y < field.ny-1; y++ {
+        for x := 0; x < field.nx-1; x++ {
+            verts[vi] = VERT(x, y); vi++
+            verts[vi] = VERT(x+1, y); vi++
+            verts[vi] = VERT(x+1, y+1); vi++
+    
+            verts[vi] = VERT(x, y); vi++
+            verts[vi] = VERT(x+1, y+1); vi++
+            verts[vi] = VERT(x, y+1); vi++
+        }
+    }
+	refined = append(refined, NewTriangleMesh(field.objectToWorld,
+		field.worldToObject, field.reverseOrientation, verts, P, nil, nil, uvs, nil))
+
+	return refined
+}
+func (field *Heightfield) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
+	return false, 0.0, 0.0, nil
+}
+func (field *Heightfield) IntersectP(ray *Ray) bool {
+	return false
+}
+func (field *Heightfield) GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry {
+	return nil
+}
+func (field *Heightfield) Area() float64 {
+	return 0.0
+}
+func (field *Heightfield) Sample(u1, u2 float64) (*Point, *Normal) {
+	return nil, nil
+}
+func (field *Heightfield) Pdf(pshape *Point) float64 {
+	return 0.0
+}
+func (field *Heightfield) SampleAt(p *Point, u1, u2 float64) (*Point, *Normal) {
+	return nil, nil
+}
+func (field *Heightfield) Pdf2(p *Point, wi *Vector) float64 {
+	return 0.0
+}
+func (field *Heightfield) ObjectToWorld() *Transform {
+	return field.objectToWorld
+}
+func (field *Heightfield) WorldToObject() *Transform {
+	return field.worldToObject
+}
+func (field *Heightfield) ReverseOrientation() bool {
+	return field.reverseOrientation
+}
+func (field *Heightfield) TransformSwapsHandedness() bool {
+	return field.transformSwapsHandedness
+}
+func (field *Heightfield) ShapeId() uint32 {
+	return field.shapeId
 }
 
 func CreateHeightfieldShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *Heightfield {
-	return nil
-}
-
-func (c *Heightfield) ObjectBound() *BBox {
-	return nil
-}
-
-func (c *Heightfield) WorldBound() *BBox {
-	return nil
-}
-func (c *Heightfield) CanIntersect() bool {
-	return false
-}
-func (c *Heightfield) Refine(refined []Shape) []Shape {
-	return refined
-}
-func (c *Heightfield) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
-	return false, 0.0, 0.0, nil
-}
-func (c *Heightfield) IntersectP(ray *Ray) bool {
-	return false
-}
-func (c *Heightfield) GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry {
-	return nil
-}
-func (c *Heightfield) Area() float64 {
-	return 0.0
-}
-func (c *Heightfield) Sample(u1, u2 float64) (*Point, *Normal) {
-	return nil, nil
-}
-func (c *Heightfield) Pdf(pshape *Point) float64 {
-	return 0.0
-}
-func (c *Heightfield) SampleAt(p *Point, u1, u2 float64) (*Point, *Normal) {
-	return nil, nil
-}
-func (c *Heightfield) Pdf2(p *Point, wi *Vector) float64 {
-	return 0.0
-}
-func (c *Heightfield) ObjectToWorld() *Transform {
-	return c.objectToWorld
-}
-func (c *Heightfield) WorldToObject() *Transform {
-	return c.worldToObject
-}
-func (c *Heightfield) ReverseOrientation() bool {
-	return c.reverseOrientation
-}
-func (c *Heightfield) TransformSwapsHandedness() bool {
-	return c.transformSwapsHandedness
-}
-func (c *Heightfield) ShapeId() uint32 {
-	return c.shapeId
+    nu := params.FindIntParam("nu", -1)
+    nv := params.FindIntParam("nv", -1)
+    Pz := params.FindFloatArrayParam("Pz")
+    Assert(nu != -1 && nv != -1 && Pz != nil)
+    Assert(len(Pz) == nu*nv)
+    return NewHeightfield(o2w, w2o, reverseOrientation, nu, nv, Pz)
 }
