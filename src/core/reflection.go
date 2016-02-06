@@ -791,27 +791,31 @@ func (b *Microfacet) G(wo, wi, wh *Vector) float64 {
 	return math.Min(1.0, math.Min((2.0*NdotWh*NdotWo/WOdotWh), (2.0*NdotWh*NdotWi/WOdotWh)))
 }
 
-func isoBRDFProc(p *Point, nodeData NodeData, dist2 float64, maxDistSquared *float64) {
-	Unimplemented()
+func (iso *IrregIsoProc) isoBRDFProc(p *Point, nodeData NodeData, dist2 float64, maxDistSquared *float64) {
+	sample, ok := nodeData.(*IrregIsotropicBRDFSample)
+	if ok {
+        weight := math.Exp(-100.0 * dist2)
+        iso.v = *iso.v.Add(sample.v.Scale(weight))
+        iso.sumWeights += weight
+        iso.nFound++
+    } else {
+    	Assert(ok == true)
+    }   
 }
 
 func (b *IrregIsotropicBRDF) F(wo, wi *Vector) *Spectrum {
-	Unimplemented()
-	return NewSpectrum1(0.0)
-/*	
     m := BRDFRemap(wo, wi)
     lastMaxDist2 := 0.001
     for {
         // Try to find enough BRDF samples around _m_ within search radius
         var proc IrregIsoProc
         maxDist2 := lastMaxDist2
-        b.isoBRDFData.Lookup(m, isoBRDFProc, &maxDist2)
+        b.isoBRDFData.Lookup(m, proc.isoBRDFProc, &maxDist2)
         if proc.nFound > 2 || lastMaxDist2 > 1.5 {
-            return proc.v.Clamp(0.0, Infinity).InvScale(proc.sumWeights)
+            return proc.v.Clamp(0.0, INFINITY).InvScale(proc.sumWeights)
         }    
         lastMaxDist2 *= 2.0
-    }
-*/    	
+    }    	
 }
 
 func (b *IrregIsotropicBRDF) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {

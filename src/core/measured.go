@@ -58,6 +58,11 @@ func CreateMeasuredMaterial(xform *Transform, mp *TextureParams) *MeasuredMateri
 var loadedRegularHalfangle map[string][]float64
 var loadedThetaPhi map[string]*KdTree
 
+func init() {
+	loadedThetaPhi = make(map[string]*KdTree)
+	loadedRegularHalfangle = make(map[string][]float64)
+}
+
 func (s *IrregIsotropicBRDFSample) Location() *Point {
 	return &s.p
 }

@@ -79,7 +79,8 @@ func NewKdTree(data []NodeData) *KdTree {
 	kdtree.nNodes = len(data)
 	kdtree.nextFreeNode = 1
 	kdtree.nodes = make([]KdNode, kdtree.nNodes, kdtree.nNodes)
-
+	kdtree.nodeData = make([]NodeData, kdtree.nNodes, kdtree.nNodes)
+	
 	buildNodes := make([]NodeData, kdtree.nNodes, kdtree.nNodes)
 	copy(buildNodes, data)
 

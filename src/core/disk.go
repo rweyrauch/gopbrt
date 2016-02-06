@@ -183,7 +183,7 @@ func (d *Disk) Pdf(pshape *Point) float64 {
 	return 0.0
 }
 func (d *Disk) SampleAt(p *Point, u1, u2 float64) (*Point, *Normal) {
-	return nil, nil
+	return d.Sample(u1, u2)
 }
 
 func (d *Disk) Pdf2(p *Point, wi *Vector) float64 {
