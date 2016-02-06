@@ -240,56 +240,6 @@ func (nurbs *NURBS) ShapeId() uint32 {
 	return nurbs.shapeId
 }
 
-func CreateNURBSShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *NURBS {
-	nu := params.FindIntParam("nu", -1)
-	uorder := params.FindIntParam("uorder", -1)
-	uknots := params.FindFloatArrayParam("uknots")
-	Assert(nu != -1 && uorder != -1 && uknots != nil)
-	Assert(len(uknots) == nu+uorder)
-	u0 := params.FindFloatParam("u0", uknots[uorder-1])
-	u1 := params.FindFloatParam("u1", uknots[nu])
-
-	nv := params.FindIntParam("nv", -1)
-	vorder := params.FindIntParam("vorder", -1)
-	vknots := params.FindFloatArrayParam("vknots")
-	Assert(nv != -1 && vorder != -1 && vknots != nil)
-	Assert(len(vknots) == nv+vorder)
-	v0 := params.FindFloatParam("v0", vknots[vorder-1])
-	v1 := params.FindFloatParam("v1", vknots[nv])
-
-	isHomogeneous := false
-	npts := 0
-	var P []float64
-	Pnts := params.FindPointArrayParam("P")
-	if Pnts == nil {
-		P = params.FindFloatArrayParam("Pw")
-		if P == nil {
-			Error("Must provide control points via \"P\" or \"Pw\" parameter to NURBS shape.")
-			return nil
-		}
-		if len(P)%4 != 0 {
-			Error("Number of \"Pw\" control points provided to NURBS shape must be multiple of four")
-			return nil
-		}
-
-		npts = len(P) / 4
-		isHomogeneous = true
-	} else {
-		for _, p := range Pnts {
-			P = append(P, p.X, p.Y, p.Z)
-		}
-		npts = len(Pnts)
-	}
-	if npts != nu*nv {
-		Error("NURBS shape was expecting %dx%d=%d control points, was given %d", nu, nv, nu*nv, npts)
-		return nil
-	}
-
-	return NewNURBS(o2w, w2o, reverseOrientation, nu, uorder, uknots, u0, u1,
-		nv, vorder, vknots, v0, v1, P,
-		isHomogeneous)
-}
-
 // NURBS Evaluation Functions
 func KnotOffset(knot []float64, order, np int, t float64) int {
 	firstKnot := order - 1

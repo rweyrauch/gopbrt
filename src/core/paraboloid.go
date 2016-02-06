@@ -268,11 +268,3 @@ func (p *Paraboloid) TransformSwapsHandedness() bool {
 func (p *Paraboloid) ShapeId() uint32 {
 	return p.shapeId
 }
-
-func CreateParaboloidShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *Paraboloid {
-	radius := params.FindFloatParam("radius", 1)
-	zmin := params.FindFloatParam("zmin", 0)
-	zmax := params.FindFloatParam("zmax", 1)
-	phimax := params.FindFloatParam("phimax", 360)
-	return NewParaboloid(o2w, w2o, reverseOrientation, radius, zmin, zmax, phimax)
-}

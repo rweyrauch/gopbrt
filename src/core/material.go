@@ -185,14 +185,6 @@ type (
 	}
 )
 
-func CreateGlassMaterial(xform *Transform, mp *TextureParams) *GlassMaterial {
-	Kr := mp.GetSpectrumTexture("Kr", *NewSpectrum1(1.0))
-	Kt := mp.GetSpectrumTexture("Kt", *NewSpectrum1(1.0))
-	index := mp.GetFloatTexture("index", 1.5)
-	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-	return &GlassMaterial{Kr, Kt, index, bumpMap}
-}
-
 func (m *GlassMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
 	var dgs *DifferentialGeometry
 	if m.bumpMap != nil {
@@ -219,15 +211,6 @@ func (m *GlassMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, arena
 	return nil
 }
 
-func CreateKdSubsurfaceMaterial(xform *Transform, mp *TextureParams) *KdSubsurfaceMaterial {
-	kd := mp.GetSpectrumTexture("Kd", *NewSpectrumRGB(0.5, 0.5, 0.5))
-	mfp := mp.GetFloatTexture("meanfreepath", 1.0)
-	ior := mp.GetFloatTexture("index", 1.3)
-	kr := mp.GetSpectrumTexture("Kr", *NewSpectrum1(1.0))
-	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-	return &KdSubsurfaceMaterial{kd, kr, mfp, ior, bumpMap}
-}
-
 func (m *KdSubsurfaceMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
 	// Allocate _BSDF_, possibly doing bump mapping with _bumpMap_
 	var dgs *DifferentialGeometry
@@ -251,13 +234,6 @@ func (m *KdSubsurfaceMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry
 	kd := m.Kd.Evaluate(dgShading).Clamp(0.0, INFINITY)
 	sigma_a, sigma_prime_s := SubsurfaceFromDiffuse(kd, mfp, e)
 	return NewBSSRDF(sigma_a, sigma_prime_s, e)
-}
-
-func CreateMatteMaterial(xform *Transform, mp *TextureParams) *MatteMaterial {
-	Kd := mp.GetSpectrumTexture("Kd", *NewSpectrum1(0.5))
-	sigma := mp.GetFloatTexture("sigma", 0.0)
-	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-	return &MatteMaterial{Kd, sigma, bumpMap}
 }
 
 func (m *MatteMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
@@ -318,12 +294,6 @@ func (m *MetalMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *
 func (m *MetalMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
 }
-
-func CreateMirrorMaterial(xform *Transform, mp *TextureParams) *MirrorMaterial {
-	Kr := mp.GetSpectrumTexture("Kr", *NewSpectrum1(0.9))
-	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-	return &MirrorMaterial{Kr, bumpMap}
-}
 func (m *MirrorMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
 	// Allocate _BSDF_, possibly doing bump mapping with _bumpMap_
 	var dgs *DifferentialGeometry
@@ -345,11 +315,6 @@ func (m *MirrorMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, aren
 	return nil
 }
 
-func CreateMixMaterial(xform *Transform, mp *TextureParams, m1, m2 Material) *MixMaterial {
-	scale := mp.GetSpectrumTexture("amount", *NewSpectrum1(0.5))
-	return &MixMaterial{m1, m2, scale}
-}
-
 func (m *MixMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
 	b1 := m.m1.GetBSDF(dgGeom, dgShading, arena)
 	b2 := m.m2.GetBSDF(dgGeom, dgShading, arena)
@@ -366,14 +331,6 @@ func (m *MixMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *Me
 }
 func (m *MixMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
-}
-
-func CreatePlasticMaterial(xform *Transform, mp *TextureParams) *PlasticMaterial {
-	Kd := mp.GetSpectrumTexture("Kd", *NewSpectrum1(0.25))
-	Ks := mp.GetSpectrumTexture("Ks", *NewSpectrum1(0.25))
-	roughness := mp.GetFloatTexture("roughness", 0.1)
-	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-	return &PlasticMaterial{Kd, Ks, roughness, bumpMap}
 }
 
 func (m *PlasticMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
@@ -402,14 +359,6 @@ func (m *PlasticMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena
 }
 func (m *PlasticMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
-}
-
-func CreateShinyMetalMaterial(xform *Transform, mp *TextureParams) *ShinyMetalMaterial {
-	Kr := mp.GetSpectrumTexture("Kr", *NewSpectrum1(1.0))
-	Ks := mp.GetSpectrumTexture("Ks", *NewSpectrum1(1.0))
-	roughness := mp.GetFloatTexture("roughness", 0.1)
-	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-	return &ShinyMetalMaterial{Kr, Ks, roughness, bumpMap}
 }
 
 func fresnelApproxEta(Fr *Spectrum) *Spectrum {
@@ -452,15 +401,6 @@ func (m *ShinyMetalMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, 
 	return nil
 }
 
-func CreateSubstrateMaterial(xform *Transform, mp *TextureParams) *SubstrateMaterial {
-	Kd := mp.GetSpectrumTexture("Kd", *NewSpectrum1(0.5))
-	Ks := mp.GetSpectrumTexture("Ks", *NewSpectrum1(0.5))
-	uroughness := mp.GetFloatTexture("uroughness", 0.1)
-	vroughness := mp.GetFloatTexture("vroughness", 0.1)
-	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-	return &SubstrateMaterial{Kd, Ks, uroughness, vroughness, bumpMap}
-}
-
 func (m *SubstrateMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
 	// Allocate _BSDF_, possibly doing bump mapping with _bumpMap_
 	var dgs *DifferentialGeometry
@@ -483,29 +423,6 @@ func (m *SubstrateMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, are
 }
 func (m *SubstrateMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
-}
-
-func CreateSubsurfaceMaterial(xform *Transform, mp *TextureParams) *SubsurfaceMaterial {
-	sa := NewSpectrumRGB(0.0011, 0.0024, 0.014)
-	sps := NewSpectrumRGB(2.55, 3.21, 3.77)
-	name := mp.FindString("name", "")
-	if len(name) != 0 {
-		found, sap, spsp := GetVolumeScatteringProperties(name)
-		if !found {
-			Warning("Named material \"%s\" not found.  Using defaults.", name)
-		} else {
-			sa = sap
-			sps = spsp
-		}
-	}
-	scale := mp.FindFloat("scale", 1.0)
-
-	sigma_a := mp.GetSpectrumTexture("sigma_a", *sa)
-	sigma_prime_s := mp.GetSpectrumTexture("sigma_prime_s", *sps)
-	ior := mp.GetFloatTexture("index", 1.3)
-	Kr := mp.GetSpectrumTexture("Kr", *NewSpectrum1(1.0))
-	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-	return &SubsurfaceMaterial{scale, Kr, sigma_a, sigma_prime_s, ior, bumpMap}
 }
 
 func (m *SubsurfaceMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
@@ -531,16 +448,6 @@ func (m *SubsurfaceMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, 
 	sa := m.sigma_a.Evaluate(dgShading)
 	sps := m.sigma_prime_s.Evaluate(dgShading)
 	return NewBSSRDF(sa.Scale(m.scale), sps.Scale(m.scale), e)
-}
-
-func CreateTranslucentMaterial(xform *Transform, mp *TextureParams) *TranslucentMaterial {
-	Kd := mp.GetSpectrumTexture("Kd", *NewSpectrum1(0.25))
-	Ks := mp.GetSpectrumTexture("Ks", *NewSpectrum1(0.25))
-	reflect := mp.GetSpectrumTexture("reflect", *NewSpectrum1(0.5))
-	transmit := mp.GetSpectrumTexture("transmit", *NewSpectrum1(0.5))
-	roughness := mp.GetFloatTexture("roughness", 0.1)
-	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-	return &TranslucentMaterial{Kd, Ks, reflect, transmit, roughness, bumpMap}
 }
 
 func (m *TranslucentMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
@@ -584,18 +491,6 @@ func (m *TranslucentMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, a
 }
 func (m *TranslucentMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
-}
-
-func CreateUberMaterial(xform *Transform, mp *TextureParams) *UberMaterial {
-	Kd := mp.GetSpectrumTexture("Kd", *NewSpectrum1(0.25))
-	Ks := mp.GetSpectrumTexture("Ks", *NewSpectrum1(0.25))
-	Kr := mp.GetSpectrumTexture("Kr", *NewSpectrum1(0.0))
-	Kt := mp.GetSpectrumTexture("Kt", *NewSpectrum1(0.0))
-	roughness := mp.GetFloatTexture("roughness", 0.1)
-	eta := mp.GetFloatTexture("index", 1.5)
-	opacity := mp.GetSpectrumTexture("opacity", *NewSpectrum1(1.0))
-	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-	return &UberMaterial{Kd, Ks, Kr, Kt, opacity, roughness, eta, bumpMap}
 }
 
 func (m *UberMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
@@ -648,3 +543,4 @@ func (m *UberMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *M
 func (m *UberMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
 }
+

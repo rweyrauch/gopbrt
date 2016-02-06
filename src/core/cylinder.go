@@ -276,11 +276,3 @@ func (c *Cylinder) TransformSwapsHandedness() bool {
 func (c *Cylinder) ShapeId() uint32 {
 	return c.shapeId
 }
-
-func CreateCylinderShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *Cylinder {
-	radius := params.FindFloatParam("radius", 1.0)
-	zmin := params.FindFloatParam("zmin", -1.0)
-	zmax := params.FindFloatParam("zmax", 1.0)
-	phimax := params.FindFloatParam("phimax", 360)
-	return NewCylinder(o2w, w2o, reverseOrientation, radius, zmin, zmax, phimax)
-}

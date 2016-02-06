@@ -328,11 +328,3 @@ func (s *Sphere) TransformSwapsHandedness() bool {
 func (s *Sphere) ShapeId() uint32 {
 	return s.shapeId
 }
-
-func CreateSphereShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *Sphere {
-	radius := params.FindFloatParam("radius", 1.0)
-	zmin := params.FindFloatParam("zmin", -radius)
-	zmax := params.FindFloatParam("zmax", radius)
-	phimax := params.FindFloatParam("phimax", 360)
-	return CreateSphere(o2w, w2o, reverseOrientation, radius, zmin, zmax, phimax)
-}

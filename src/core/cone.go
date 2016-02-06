@@ -272,10 +272,3 @@ func (c *Cone) TransformSwapsHandedness() bool {
 func (c *Cone) ShapeId() uint32 {
 	return c.shapeId
 }
-
-func CreateConeShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *Cone {
-	radius := params.FindFloatParam("radius", 1.0)
-	height := params.FindFloatParam("height", radius)
-	phimax := params.FindFloatParam("phimax", 360)
-	return NewCone(o2w, w2o, reverseOrientation, radius, height, phimax)
-}

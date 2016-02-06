@@ -142,12 +142,3 @@ func (field *Heightfield) TransformSwapsHandedness() bool {
 func (field *Heightfield) ShapeId() uint32 {
 	return field.shapeId
 }
-
-func CreateHeightfieldShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *Heightfield {
-    nu := params.FindIntParam("nu", -1)
-    nv := params.FindIntParam("nv", -1)
-    Pz := params.FindFloatArrayParam("Pz")
-    Assert(nu != -1 && nv != -1 && Pz != nil)
-    Assert(len(Pz) == nu*nv)
-    return NewHeightfield(o2w, w2o, reverseOrientation, nu, nv, Pz)
-}

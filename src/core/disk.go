@@ -208,11 +208,3 @@ func (d *Disk) TransformSwapsHandedness() bool {
 func (d *Disk) ShapeId() uint32 {
 	return d.shapeId
 }
-
-func CreateDiskShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *Disk {
-	height := params.FindFloatParam("height", 0.0)
-	radius := params.FindFloatParam("radius", 1.0)
-	innerradius := params.FindFloatParam("innerradius", 0.0)
-	phimax := params.FindFloatParam("phimax", 360)
-	return NewDisk(o2w, w2o, reverseOrientation, height, radius, innerradius, phimax)
-}

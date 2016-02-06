@@ -63,21 +63,6 @@ type (
 	SDEdgeHeap []SDEdge
 )
 
-func CreateLoopSubdivShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *LoopSubdiv {
-	nlevels := params.FindIntParam("nlevels", 3)
-	vi := params.FindIntArrayParam("indices")
-	P := params.FindPointArrayParam("P")
-	if vi == nil || P == nil {
-		return nil
-	}
-
-	// don't actually use this for now...
-	//scheme := params.FindStringParam("scheme", "loop")
-
-	return NewLoopSubdiv(o2w, w2o, reverseOrientation, len(vi)/3, len(P),
-		vi, P, nlevels)
-}
-
 var nextVertexId int = 0
 
 func NewLoopSubdiv(o2w, w2o *Transform, ro bool, nfaces, nvertices int, vertexIndices []int, P []Point, nLevels int) *LoopSubdiv {

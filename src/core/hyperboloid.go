@@ -285,10 +285,3 @@ func (h *Hyperboloid) TransformSwapsHandedness() bool {
 func (h *Hyperboloid) ShapeId() uint32 {
 	return h.shapeId
 }
-
-func CreateHyperboloidShape(o2w, w2o *Transform, reverseOrientation bool, params *ParamSet) *Hyperboloid {
-    p1 := params.FindPointParam("p1", Point{0,0,0})
-    p2 := params.FindPointParam("p2", Point{1,1,1})
-    phimax := params.FindFloatParam("phimax", 360)
-    return NewHyperboloid(o2w, w2o, reverseOrientation, p1, p2, phimax)
-}
