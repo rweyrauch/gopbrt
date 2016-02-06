@@ -53,19 +53,19 @@ func GenerateRayDifferential(camera Camera, sample *Sample) (rd *RayDifferential
 	sshift.imageX++
 
 	rx, wtx := camera.GenerateRay(sshift)
-	rd.rxOrigin = rx.origin
-	rd.rxDirection = rx.dir
+	rd.RxOrigin = rx.Origin
+	rd.RxDirection = rx.Dir
 
 	// Find ray after shifting one pixel in the $y$ direction
 	sshift.imageX--
 	sshift.imageY++
 	ry, wty := camera.GenerateRay(sshift)
-	rd.ryOrigin = ry.origin
-	rd.ryDirection = ry.dir
+	rd.RyOrigin = ry.Origin
+	rd.RyDirection = ry.Dir
 	if wtx == 0.0 || wty == 0.0 {
 		return rd, 0.0
 	}
-	rd.hasDifferentials = true
+	rd.HasDifferentials = true
 
 	return rd, wt
 }
@@ -133,14 +133,14 @@ func (c *PerspectiveCamera) GenerateRay(sample *Sample) (ray *Ray, weight float6
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.Z
+        ft := c.focalDistance / ray.Dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
-        ray.origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
+        ray.Origin = *CreatePoint(lensU, lensV, 0.0)
+        ray.Dir = *NormalizeVector(Pfocus.Sub(&ray.Origin))
     }
-    ray.time = sample.time
+    ray.Time = sample.time
     ray = RayAnimatedTransform(c.cameraToWorld, ray)
     
     return ray, 1.0
@@ -160,12 +160,12 @@ func (c *PerspectiveCamera) GenerateRayDifferential(sample *Sample) (ray *RayDif
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.Z
+        ft := c.focalDistance / ray.Dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
-        ray.origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
+        ray.Origin = *CreatePoint(lensU, lensV, 0.0)
+        ray.Dir = *NormalizeVector(Pfocus.Sub(&ray.Origin))
     }
 
     // Compute offset rays for _PerspectiveCamera_ ray differentials
@@ -180,24 +180,24 @@ func (c *PerspectiveCamera) GenerateRayDifferential(sample *Sample) (ray *RayDif
         dx := NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dxCamera))
         ft := c.focalDistance / dx.Z
         pFocus := CreatePoint(0,0,0).Add(dx.Scale(ft))
-        ray.rxOrigin = *CreatePoint(lensU, lensV, 0.0)
-        ray.rxDirection = *NormalizeVector(pFocus.Sub(&ray.rxOrigin))
+        ray.RxOrigin = *CreatePoint(lensU, lensV, 0.0)
+        ray.RxDirection = *NormalizeVector(pFocus.Sub(&ray.RxOrigin))
 
         dy := NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dyCamera))
         ft = c.focalDistance / dy.Z
         pFocus = CreatePoint(0,0,0).Add(dy.Scale(ft))
-        ray.ryOrigin = *CreatePoint(lensU, lensV, 0.0)
-        ray.ryDirection = *NormalizeVector(pFocus.Sub(&ray.ryOrigin))
+        ray.RyOrigin = *CreatePoint(lensU, lensV, 0.0)
+        ray.RyDirection = *NormalizeVector(pFocus.Sub(&ray.RyOrigin))
     } else {
-        ray.rxOrigin = ray.origin
-        ray.ryOrigin = ray.origin
-        ray.rxDirection = *NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dxCamera))
-        ray.ryDirection = *NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dyCamera))
+        ray.RxOrigin = ray.Origin
+        ray.RyOrigin = ray.Origin
+        ray.RxDirection = *NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dxCamera))
+        ray.RyDirection = *NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dyCamera))
     }
 
-    ray.time = sample.time
+    ray.Time = sample.time
     ray = RayDifferentialAnimatedTransform(c.cameraToWorld, ray)
-    ray.hasDifferentials = true
+    ray.HasDifferentials = true
     
     return ray, 1.0
 }
@@ -280,14 +280,14 @@ func (c *OrthoCamera) GenerateRay(sample *Sample) (ray *Ray, weight float64) {
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.Z
+        ft := c.focalDistance / ray.Dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
-        ray.origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
+        ray.Origin = *CreatePoint(lensU, lensV, 0.0)
+        ray.Dir = *NormalizeVector(Pfocus.Sub(&ray.Origin))
     }
-    ray.time = sample.time
+    ray.Time = sample.time
     ray = RayAnimatedTransform(c.cameraToWorld, ray)
     
     return ray, 1.0
@@ -309,14 +309,14 @@ func (c *OrthoCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferent
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.Z
+        ft := c.focalDistance / ray.Dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
-        ray.origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
+        ray.Origin = *CreatePoint(lensU, lensV, 0.0)
+        ray.Dir = *NormalizeVector(Pfocus.Sub(&ray.Origin))
     }
-    ray.time = sample.time
+    ray.Time = sample.time
     // Compute ray differentials for _OrthoCamera_
     if c.lensRadius > 0 {
         // Compute _OrthoCamera_ ray differentials with defocus blur
@@ -326,22 +326,22 @@ func (c *OrthoCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferent
         lensU *= c.lensRadius
         lensV *= c.lensRadius
 
-        ft := c.focalDistance / ray.dir.Z
+        ft := c.focalDistance / ray.Dir.Z
 
         pFocus := Pcamera.Add(c.dxCamera.Add(CreateVector(0, 0, 1).Scale(ft)))
-        ray.rxOrigin = *CreatePoint(lensU, lensV, 0.0)
-        ray.rxDirection = *NormalizeVector(pFocus.Sub(&ray.rxOrigin))
+        ray.RxOrigin = *CreatePoint(lensU, lensV, 0.0)
+        ray.RxDirection = *NormalizeVector(pFocus.Sub(&ray.RxOrigin))
 
         pFocus = Pcamera.Add(c.dyCamera.Add(CreateVector(0, 0, 1).Scale(ft)))
-        ray.ryOrigin = *CreatePoint(lensU, lensV, 0.0)
-        ray.ryDirection = *NormalizeVector(pFocus.Sub(&ray.ryOrigin))
+        ray.RyOrigin = *CreatePoint(lensU, lensV, 0.0)
+        ray.RyDirection = *NormalizeVector(pFocus.Sub(&ray.RyOrigin))
     } else {
-        ray.rxOrigin = *ray.origin.Add(&c.dxCamera)
-        ray.ryOrigin = *ray.origin.Add(&c.dyCamera)
-        ray.rxDirection = ray.dir
-        ray.ryDirection = ray.dir
+        ray.RxOrigin = *ray.Origin.Add(&c.dxCamera)
+        ray.RyOrigin = *ray.Origin.Add(&c.dyCamera)
+        ray.RxDirection = ray.Dir
+        ray.RyDirection = ray.Dir
     }
-    ray.hasDifferentials = true
+    ray.HasDifferentials = true
 	ray = RayDifferentialAnimatedTransform(c.cameraToWorld, ray)
     
     return ray, 1.0

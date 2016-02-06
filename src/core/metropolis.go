@@ -281,7 +281,7 @@ func (r *MetropolisRenderer) PathL(sample *MLTSample, scene *Scene, arena *Memor
 				lightDistribution, escapedRay, escapedAlpha)
 		} else {
 			// Compute radiance along paths using bidirectional path tracing
-			lightWt = lightWt.Scale(AbsDotNormalVector(NormalizeNormal(Nl), &lightRay.dir) / (lightPdf * lightRayPdf))
+			lightWt = lightWt.Scale(AbsDotNormalVector(NormalizeNormal(Nl), &lightRay.Dir) / (lightPdf * lightRayPdf))
 			var lightLength int
 			lightPath, lightLength, _, _ = GeneratePath(CreateRayDifferentialFromRay(lightRay), lightWt,
 				scene, arena, sample.lightPathSamples, lightPath)
@@ -589,10 +589,10 @@ func GeneratePath(r *RayDifferential, a *Spectrum, scene *Scene, arena *MemoryAr
 		v.alpha = *alpha
 		bsdf := v.isect.GetBSDF(ray, arena)
 		v.bsdf = bsdf
-		v.wPrev = *ray.dir.Negate()
+		v.wPrev = *ray.Dir.Negate()
 
 		// Sample direction for outgoing Metropolis path direction
-		f, wNext, pdf, flags := bsdf.Sample_f(ray.dir.Negate(), &samples[length].bsdfSample, BSDF_ALL)
+		f, wNext, pdf, flags := bsdf.Sample_f(ray.Dir.Negate(), &samples[length].bsdfSample, BSDF_ALL)
 		v.wNext = *wNext
 		v.specularBounce = (flags & BSDF_SPECULAR) != 0
 		v.nSpecularComponents = bsdf.NumComponentsMatching(BxDFType(BSDF_SPECULAR | BSDF_REFLECTION | BSDF_TRANSMISSION))

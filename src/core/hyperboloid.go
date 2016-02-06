@@ -77,9 +77,9 @@ func (h *Hyperboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg 
 	ray := RayTransform(h.worldToObject, r)
 
     // Compute quadratic hyperboloid coefficients
-     A := h.a*ray.dir.X*ray.dir.X + h.a*ray.dir.Y*ray.dir.Y - h.c*ray.dir.Z*ray.dir.Z
-     B := 2.0 * (h.a*ray.dir.X*ray.origin.X + h.a*ray.dir.Y*ray.origin.Y - h.c*ray.dir.Z*ray.origin.Z)
-     C := h.a*ray.origin.X*ray.origin.X + h.a*ray.origin.Y*ray.origin.Y - h.c*ray.origin.Z*ray.origin.Z - 1
+     A := h.a*ray.Dir.X*ray.Dir.X + h.a*ray.Dir.Y*ray.Dir.Y - h.c*ray.Dir.Z*ray.Dir.Z
+     B := 2.0 * (h.a*ray.Dir.X*ray.Origin.X + h.a*ray.Dir.Y*ray.Origin.Y - h.c*ray.Dir.Z*ray.Origin.Z)
+     C := h.a*ray.Origin.X*ray.Origin.X + h.a*ray.Origin.Y*ray.Origin.Y - h.c*ray.Origin.Z*ray.Origin.Z - 1
 
     // Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -89,14 +89,14 @@ func (h *Hyperboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg 
 	}
 
     // Compute intersection distance along ray
-	if t0 > ray.maxt || t1 < ray.mint {
+	if t0 > ray.Maxt || t1 < ray.Mint {
 		return false, 0.0, 0.0, nil
 	}
 
 	thit := t0
-	if t0 < ray.mint {
+	if t0 < ray.Mint {
 		thit = t1
-		if thit > ray.maxt {
+		if thit > ray.Maxt {
 			return false, 0.0, 0.0, nil
 		}
 	}
@@ -114,7 +114,7 @@ func (h *Hyperboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg 
     if phit.Z < h.Zmin || phit.Z > h.Zmax || phi > h.phiMax {
         if thit == t1 { return false, 0.0, 0.0, nil }
         thit = t1
-        if t1 > ray.maxt { return false, 0.0, 0.0, nil }
+        if t1 > ray.Maxt { return false, 0.0, 0.0, nil }
         // Compute hyperboloid inverse mapping
         phit = ray.PointAt(thit)
         v = (phit.Z - h.p1.Z)/(h.p2.Z - h.p1.Z)
@@ -175,9 +175,9 @@ func (h *Hyperboloid) IntersectP(r *Ray) bool {
 	ray := RayTransform(h.worldToObject, r)
 
     // Compute quadratic hyperboloid coefficients
-     A := h.a*ray.dir.X*ray.dir.X + h.a*ray.dir.Y*ray.dir.Y - h.c*ray.dir.Z*ray.dir.Z
-     B := 2.0 * (h.a*ray.dir.X*ray.origin.X + h.a*ray.dir.Y*ray.origin.Y - h.c*ray.dir.Z*ray.origin.Z)
-     C := h.a*ray.origin.X*ray.origin.X + h.a*ray.origin.Y*ray.origin.Y - h.c*ray.origin.Z*ray.origin.Z - 1
+     A := h.a*ray.Dir.X*ray.Dir.X + h.a*ray.Dir.Y*ray.Dir.Y - h.c*ray.Dir.Z*ray.Dir.Z
+     B := 2.0 * (h.a*ray.Dir.X*ray.Origin.X + h.a*ray.Dir.Y*ray.Origin.Y - h.c*ray.Dir.Z*ray.Origin.Z)
+     C := h.a*ray.Origin.X*ray.Origin.X + h.a*ray.Origin.Y*ray.Origin.Y - h.c*ray.Origin.Z*ray.Origin.Z - 1
 
     // Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -187,14 +187,14 @@ func (h *Hyperboloid) IntersectP(r *Ray) bool {
 	}
 
     // Compute intersection distance along ray
-	if t0 > ray.maxt || t1 < ray.mint {
+	if t0 > ray.Maxt || t1 < ray.Mint {
 		return false
 	}
 
 	thit := t0
-	if t0 < ray.mint {
+	if t0 < ray.Mint {
 		thit = t1
-		if thit > ray.maxt {
+		if thit > ray.Maxt {
 			return false
 		}
 	}
@@ -212,7 +212,7 @@ func (h *Hyperboloid) IntersectP(r *Ray) bool {
     if phit.Z < h.Zmin || phit.Z > h.Zmax || phi > h.phiMax {
         if thit == t1 { return false }
         thit = t1
-        if t1 > ray.maxt { return false }
+        if t1 > ray.Maxt { return false }
         // Compute hyperboloid inverse mapping
         phit = ray.PointAt(thit)
         v = (phit.Z - h.p1.Z)/(h.p2.Z - h.p1.Z)

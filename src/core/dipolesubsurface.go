@@ -77,7 +77,7 @@ func NewSubsurfaceOctreeNode() *SubsurfaceOctreeNode {
 }
 
 func (node *SubsurfaceOctreeNode) Insert(nodeBound *BBox, ip *IrradiancePoint, arena *MemoryArena) {
-	pMid := nodeBound.pMin.AddPoint(&nodeBound.pMax).Scale(0.5)
+	pMid := nodeBound.PMin.AddPoint(&nodeBound.PMax).Scale(0.5)
 	if node.isLeaf {
 		// Add _IrradiancePoint_ to leaf octree node
 		for i := 0; i < len(node.ips); i++ {
@@ -195,7 +195,7 @@ func (node *SubsurfaceOctreeNode) Mo(nodeBound *BBox, pt *Point, Rd *DiffusionRe
 		}
 	} else {
 		// Recursively visit children nodes to compute $M_\roman{o}$
-		pMid := nodeBound.pMin.AddPoint(&nodeBound.pMax).Scale(0.5)
+		pMid := nodeBound.PMin.AddPoint(&nodeBound.PMax).Scale(0.5)
 		for child := 0; child < len(node.children); child++ {
 			if node.children[child] == nil {
 				continue
@@ -340,7 +340,7 @@ func (integrator *DipoleSubsurfaceIntegrator) RequestSamples(sampler Sampler, sa
 func (integrator *DipoleSubsurfaceIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
-	wo := ray.dir.Negate()
+	wo := ray.Dir.Negate()
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
 
@@ -367,9 +367,9 @@ func (integrator *DipoleSubsurfaceIntegrator) Li(scene *Scene, renderer Renderer
 		}
 	}
 	L = L.Add(UniformSampleAllLights(scene, renderer, arena, p, n,
-		wo, isect.rayEpsilon, ray.time, bsdf, sample, rng, integrator.lightSampleOffsets,
+		wo, isect.rayEpsilon, ray.Time, bsdf, sample, rng, integrator.lightSampleOffsets,
 		integrator.bsdfSampleOffsets))
-	if ray.depth < integrator.maxSpecularDepth {
+	if ray.Depth < integrator.maxSpecularDepth {
 		// Trace rays for specular reflection and refraction
 		L = L.Add(SpecularReflect(ray, bsdf, rng, isect, renderer, scene, sample, arena))
 		L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))

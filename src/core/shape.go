@@ -68,7 +68,7 @@ type ShapeData struct {
 func ShapePdf(shape Shape, p *Point, wi *Vector) float64 {
 	// Intersect sample ray with area light geometry
 	ray := CreateRay(p, wi, 1.0e-3, INFINITY, 0.0, 0)
-	ray.depth = -1 // temporary hack to ignore alpha mask
+	ray.Depth = -1 // temporary hack to ignore alpha mask
 
 	var thit float64
 	var dgLight *DifferentialGeometry

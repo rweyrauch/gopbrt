@@ -72,9 +72,9 @@ func (p *Paraboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *
 
 	// Compute quadratic paraboloid coefficients
 	k := p.Zmax / (p.radius * p.radius)
-	A := k * (ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y)
-	B := 2*k*(ray.dir.X*ray.origin.X+ray.dir.Y*ray.origin.Y) - ray.dir.Z
-	C := k*(ray.origin.X*ray.origin.X+ray.origin.Y*ray.origin.Y) - ray.origin.Z
+	A := k * (ray.Dir.X*ray.Dir.X + ray.Dir.Y*ray.Dir.Y)
+	B := 2*k*(ray.Dir.X*ray.Origin.X+ray.Dir.Y*ray.Origin.Y) - ray.Dir.Z
+	C := k*(ray.Origin.X*ray.Origin.X+ray.Origin.Y*ray.Origin.Y) - ray.Origin.Z
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -84,14 +84,14 @@ func (p *Paraboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *
 	}
 
 	// Compute intersection distance along ray
-	if t0 > ray.maxt || t1 < ray.mint {
+	if t0 > ray.Maxt || t1 < ray.Mint {
 		return false, 0.0, 0.0, nil
 	}
 
 	thit := t0
-	if t0 < ray.mint {
+	if t0 < ray.Mint {
 		thit = t1
-		if thit > ray.maxt {
+		if thit > ray.Maxt {
 			return false, 0.0, 0.0, nil
 		}
 	}
@@ -109,7 +109,7 @@ func (p *Paraboloid) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *
 			return false, 0.0, 0.0, nil
 		}
 		thit = t1
-		if t1 > ray.maxt {
+		if t1 > ray.Maxt {
 			return false, 0.0, 0.0, nil
 		}
 		// Compute paraboloid inverse mapping
@@ -169,9 +169,9 @@ func (p *Paraboloid) IntersectP(r *Ray) bool {
 
 	// Compute quadratic paraboloid coefficients
 	k := p.Zmax / (p.radius * p.radius)
-	A := k * (ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y)
-	B := 2*k*(ray.dir.X*ray.origin.X+ray.dir.Y*ray.origin.Y) - ray.dir.Z
-	C := k*(ray.origin.X*ray.origin.X+ray.origin.Y*ray.origin.Y) - ray.origin.Z
+	A := k * (ray.Dir.X*ray.Dir.X + ray.Dir.Y*ray.Dir.Y)
+	B := 2*k*(ray.Dir.X*ray.Origin.X+ray.Dir.Y*ray.Origin.Y) - ray.Dir.Z
+	C := k*(ray.Origin.X*ray.Origin.X+ray.Origin.Y*ray.Origin.Y) - ray.Origin.Z
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -181,14 +181,14 @@ func (p *Paraboloid) IntersectP(r *Ray) bool {
 	}
 
 	// Compute intersection distance along ray
-	if t0 > ray.maxt || t1 < ray.mint {
+	if t0 > ray.Maxt || t1 < ray.Mint {
 		return false
 	}
 
 	thit := t0
-	if t0 < ray.mint {
+	if t0 < ray.Mint {
 		thit = t1
-		if thit > ray.maxt {
+		if thit > ray.Maxt {
 			return false
 		}
 	}
@@ -206,7 +206,7 @@ func (p *Paraboloid) IntersectP(r *Ray) bool {
 			return false
 		}
 		thit = t1
-		if t1 > ray.maxt {
+		if t1 > ray.Maxt {
 			return false
 		}
 		// Compute paraboloid inverse mapping

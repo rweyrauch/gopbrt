@@ -62,23 +62,23 @@ func (dg *DifferentialGeometry) ComputeDifferentials(ray *RayDifferential) {
 	dg.dudy, dg.dvdy = 0.0, 0.0
 	dg.dpdx, dg.dpdy = &Vector{0, 0, 0}, &Vector{0, 0, 0}
 
-	if ray.hasDifferentials {
+	if ray.HasDifferentials {
 		// Estimate screen space change in $\pt{}$ and $(u,v)$
 
 		// Compute auxiliary intersection points with plane
 		d := -DotNormalVector(dg.nn, &Vector{dg.p.X, dg.p.Y, dg.p.Z})
-		rxv := &Vector{ray.rxOrigin.X, ray.rxOrigin.Y, ray.rxOrigin.Z}
-		tx := -(DotNormalVector(dg.nn, rxv) + d) / DotNormalVector(dg.nn, &ray.rxDirection)
+		rxv := &Vector{ray.RxOrigin.X, ray.RxOrigin.Y, ray.RxOrigin.Z}
+		tx := -(DotNormalVector(dg.nn, rxv) + d) / DotNormalVector(dg.nn, &ray.RxDirection)
 		if math.IsNaN(tx) {
 			goto fail
 		}
-		px := ray.rxOrigin.Add(ray.rxDirection.Scale(tx))
-		ryv := &Vector{ray.ryOrigin.X, ray.ryOrigin.Y, ray.ryOrigin.Z}
-		ty := -(DotNormalVector(dg.nn, ryv) + d) / DotNormalVector(dg.nn, &ray.ryDirection)
+		px := ray.RxOrigin.Add(ray.RxDirection.Scale(tx))
+		ryv := &Vector{ray.RyOrigin.X, ray.RyOrigin.Y, ray.RyOrigin.Z}
+		ty := -(DotNormalVector(dg.nn, ryv) + d) / DotNormalVector(dg.nn, &ray.RyDirection)
 		if math.IsNaN(ty) {
 			goto fail
 		}
-		py := ray.ryOrigin.Add(ray.ryDirection.Scale(ty))
+		py := ray.RyOrigin.Add(ray.RyDirection.Scale(ty))
 		dg.dpdx = px.Sub(dg.p)
 		dg.dpdy = py.Sub(dg.p)
 

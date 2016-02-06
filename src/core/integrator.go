@@ -141,7 +141,7 @@ func (integrator *AmbientOcclusionIntegrator) Li(scene *Scene, renderer Renderer
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	bsdf := isect.GetBSDF(ray, arena)
 	p := bsdf.dgShading.p
-	n := FaceforwardNormalVector(isect.dg.nn, ray.dir.Negate())
+	n := FaceforwardNormalVector(isect.dg.nn, ray.Dir.Negate())
 
 	scramble := [2]uint32{rng.RandomUInt(), rng.RandomUInt()}
 	u := [2]float64{0.0, 0.0}
@@ -163,7 +163,7 @@ func (integrator *AmbientOcclusionIntegrator) Li(scene *Scene, renderer Renderer
 
 func (integrator *DiffusePRTIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer) {
 	bbox := scene.WorldBound()
-	p := bbox.pMin.Add(CreateVectorFromPoint(&bbox.pMax)).Scale(0.5)
+	p := bbox.PMin.Add(CreateVectorFromPoint(&bbox.PMax)).Scale(0.5)
 	rng := NewRNG(1)
 	SHProjectIncidentDirectRadiance(p, 0.0, camera.ShutterOpen(), nil, scene, false, integrator.lmax, rng, integrator.c_in)
 }
@@ -173,7 +173,7 @@ func (integrator *DiffusePRTIntegrator) RequestSamples(sampler Sampler, sample *
 func (integrator *DiffusePRTIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
-	wo := ray.dir.Negate()
+	wo := ray.Dir.Negate()
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
 
@@ -230,7 +230,7 @@ func (integrator *DirectLightingIntegrator) Li(scene *Scene, renderer Renderer, 
 	// Evaluate BSDF at hit point
 	bsdf := isect.GetBSDF(ray, arena)
 	Assert(bsdf != nil)
-	wo := ray.dir.Negate()
+	wo := ray.Dir.Negate()
 	p := bsdf.dgShading.p
 	n := bsdf.dgShading.nn
 	// Compute emitted light if ray hit an area light source
@@ -242,15 +242,15 @@ func (integrator *DirectLightingIntegrator) Li(scene *Scene, renderer Renderer, 
 		switch integrator.strategy {
 		case SAMPLE_ALL_UNIFORM:
 			L = L.Add(UniformSampleAllLights(scene, renderer, arena, p, n, wo,
-				isect.rayEpsilon, ray.time, bsdf, sample, rng,
+				isect.rayEpsilon, ray.Time, bsdf, sample, rng,
 				integrator.lightSampleOffsets, integrator.bsdfSampleOffsets))
 		case SAMPLE_ONE_UNIFORM:
 			L = L.Add(UniformSampleOneLight(scene, renderer, arena, p, n, wo,
-				isect.rayEpsilon, ray.time, bsdf, sample, rng,
+				isect.rayEpsilon, ray.Time, bsdf, sample, rng,
 				integrator.lightNumOffset, &integrator.lightSampleOffsets[0], &integrator.bsdfSampleOffsets[0]))
 		}
 	}
-	if ray.depth+1 < integrator.maxDepth {
+	if ray.Depth+1 < integrator.maxDepth {
 		// Trace rays for specular reflection and refraction
 		L = L.Add(SpecularReflect(ray, bsdf, rng, isect, renderer, scene, sample, arena))
 		L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))
@@ -265,7 +265,7 @@ func NewGlossyPRTIntegrator(Kd, Ks Spectrum, roughness float64, lmax, ns int) *G
 func (integrator *GlossyPRTIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer) {
 	// Project direct lighting into SH for _GlossyPRTIntegrator_
 	bbox := scene.WorldBound()
-	p := bbox.pMin.Add(CreateVectorFromPoint(&bbox.pMax)).Scale(0.5)
+	p := bbox.PMin.Add(CreateVectorFromPoint(&bbox.PMax)).Scale(0.5)
 	rng := NewRNG(42)
 	integrator.c_in = make([]Spectrum, SHTerms(integrator.lmax), SHTerms(integrator.lmax))
 	SHProjectIncidentDirectRadiance(p, 0.0, camera.ShutterOpen(), nil,
@@ -281,7 +281,7 @@ func (*GlossyPRTIntegrator) RequestSamples(sampler Sampler, sample *Sample, scen
 func (integrator *GlossyPRTIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
-	wo := ray.dir.Negate()
+	wo := ray.Dir.Negate()
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
 
@@ -357,28 +357,28 @@ func (integrator *PathIntegrator) Li(scene *Scene, renderer Renderer, r *RayDiff
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	// Declare common path integration variables
 	pathThroughput, L := NewSpectrum1(1.0), NewSpectrum1(0.0)
-	ray := &RayDifferential{Ray{r.origin, r.dir, r.mint, r.maxt, r.time, r.depth}, r.hasDifferentials, r.rxOrigin, r.ryOrigin, r.rxDirection, r.ryDirection}
+	ray := &RayDifferential{Ray{r.Origin, r.Dir, r.Mint, r.Maxt, r.Time, r.Depth}, r.HasDifferentials, r.RxOrigin, r.RyOrigin, r.RxDirection, r.RyDirection}
 	specularBounce := false
 	localIsect := new(Intersection)
 	isectp := isect
 	for bounces := 0; ; bounces++ {
 		// Possibly add emitted light at path vertex
 		if bounces == 0 || specularBounce {
-			L = L.Add(pathThroughput.Mult(isectp.Le(ray.dir.Negate())))
+			L = L.Add(pathThroughput.Mult(isectp.Le(ray.Dir.Negate())))
 		}
 		// Sample illumination from lights to find path contribution
 		bsdf := isectp.GetBSDF(ray, arena)
 		p := bsdf.dgShading.p
 		n := bsdf.dgShading.nn
-		wo := ray.dir.Negate()
+		wo := ray.Dir.Negate()
 		if bounces < SAMPLE_DEPTH {
 			L = L.Add(pathThroughput.Mult(UniformSampleOneLight(scene, renderer, arena, p, n, wo,
-				isectp.rayEpsilon, ray.time, bsdf, sample, rng,
+				isectp.rayEpsilon, ray.Time, bsdf, sample, rng,
 				integrator.lightNumOffset[bounces], &integrator.lightSampleOffsets[bounces],
 				&integrator.bsdfSampleOffsets[bounces])))
 		} else {
 			L = L.Add(pathThroughput.Mult(UniformSampleOneLight(scene, renderer, arena, p, n, wo,
-				isectp.rayEpsilon, ray.time, bsdf, sample, rng, 0, nil, nil)))
+				isectp.rayEpsilon, ray.Time, bsdf, sample, rng, 0, nil, nil)))
 		}
 		// Sample BSDF to get new path direction
 
@@ -453,8 +453,8 @@ func NewUseRadianceProbes(filename string) *UseRadianceProbes {
 		if err != nil {
 			Severe("Error reading data from radiance probe file \"%s\" Error: %s", filename, err)
 		}
-		_, err = fmt.Fscanf(f, "%f %f %f %f %f %f", &probes.bbox.pMin.X, &probes.bbox.pMin.Y, &probes.bbox.pMin.Z,
-			&probes.bbox.pMax.X, &probes.bbox.pMax.Y, &probes.bbox.pMax.Z)
+		_, err = fmt.Fscanf(f, "%f %f %f %f %f %f", &probes.bbox.PMin.X, &probes.bbox.PMin.Y, &probes.bbox.PMin.Z,
+			&probes.bbox.PMax.X, &probes.bbox.PMax.Y, &probes.bbox.PMax.Z)
 		if err != nil {
 			Severe("Error reading data from radiance probe file \"%s\" Error: %s", filename, err)
 		}
@@ -496,7 +496,7 @@ func (integrator *UseRadianceProbes) RequestSamples(sampler Sampler, sample *Sam
 func (integrator *UseRadianceProbes) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
-	wo := ray.dir.Negate()
+	wo := ray.Dir.Negate()
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
 
@@ -507,7 +507,7 @@ func (integrator *UseRadianceProbes) Li(scene *Scene, renderer Renderer, ray *Ra
 	// Compute reflection for radiance probes integrator
 	if integrator.includeDirectInProbes != 0 {
 		L = L.Add(UniformSampleAllLights(scene, renderer, arena, p, n,
-			wo, isect.rayEpsilon, ray.time, bsdf, sample, rng,
+			wo, isect.rayEpsilon, ray.Time, bsdf, sample, rng,
 			integrator.lightSampleOffsets, integrator.bsdfSampleOffsets))
 	}
 	// Compute reflected lighting using radiance probes
@@ -581,7 +581,7 @@ func (integrator *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *Ra
 	// Initialize common variables for Whitted integrator
 	p := bsdf.dgShading.p
 	n := bsdf.dgShading.nn
-	wo := ray.dir.Negate()
+	wo := ray.Dir.Negate()
 
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
@@ -589,7 +589,7 @@ func (integrator *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *Ra
 	// Add contribution of each light source
 	for _, light := range scene.lights {
 		var visibility VisibilityTester
-		Li, wi, pdf := light.Sample_L(p, isect.rayEpsilon, CreateLightSampleRandom(rng), ray.time, &visibility)
+		Li, wi, pdf := light.Sample_L(p, isect.rayEpsilon, CreateLightSampleRandom(rng), ray.Time, &visibility)
 		if Li.IsBlack() || pdf == 0.0 {
 			continue
 		}
@@ -598,7 +598,7 @@ func (integrator *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *Ra
 			L = L.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n)).Mult(visibility.Transmittance(scene, renderer, sample, rng, arena).Scale(1.0 / pdf))))
 		}
 	}
-	if ray.depth+1 < integrator.maxDepth {
+	if ray.Depth+1 < integrator.maxDepth {
 		// Trace rays for specular reflection and refraction
 		L = L.Add(SpecularReflect(ray, bsdf, rng, isect, renderer, scene, sample, arena))
 		L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))
@@ -830,25 +830,25 @@ func SpecularReflect(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 	sample *Sample, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
 
-	wo := ray.dir.Negate()
+	wo := ray.Dir.Negate()
 	p := bsdf.dgShading.p
 	n := bsdf.dgShading.nn
 	f, wi, pdf, _ := bsdf.Sample_f(wo, CreateRandomBSDFSample(rng), BxDFType(BSDF_REFLECTION|BSDF_SPECULAR))
 	if pdf > 0.0 && !f.IsBlack() && AbsDotVectorNormal(wi, n) != 0.0 {
 		// Compute ray differential _rd_ for specular reflection
 		rd := CreateChildRayDifferential(p, wi, CreateRayFromRayDifferential(ray), isect.rayEpsilon, INFINITY)
-		if ray.hasDifferentials {
-			rd.hasDifferentials = true
-			rd.rxOrigin = *p.Add(isect.dg.dpdx)
-			rd.ryOrigin = *p.Add(isect.dg.dpdy)
+		if ray.HasDifferentials {
+			rd.HasDifferentials = true
+			rd.RxOrigin = *p.Add(isect.dg.dpdx)
+			rd.RyOrigin = *p.Add(isect.dg.dpdy)
 			// Compute differential reflected directions
 			dndx := bsdf.dgShading.dndu.Scale(bsdf.dgShading.dudx).Add(bsdf.dgShading.dndv.Scale(bsdf.dgShading.dvdx))
 			dndy := bsdf.dgShading.dndu.Scale(bsdf.dgShading.dudy).Add(bsdf.dgShading.dndv.Scale(bsdf.dgShading.dvdy))
-			dwodx, dwody := (ray.rxDirection.Negate()).Sub(wo), (ray.ryDirection.Negate()).Sub(wo)
+			dwodx, dwody := (ray.RxDirection.Negate()).Sub(wo), (ray.RyDirection.Negate()).Sub(wo)
 			dDNdx := DotVectorNormal(dwodx, n) + DotVectorNormal(wo, dndx)
 			dDNdy := DotVectorNormal(dwody, n) + DotVectorNormal(wo, dndy)
-			rd.rxDirection = *wi.Sub(dwodx).Add(CreateVectorFromNormal(dndx.Scale(DotVectorNormal(wo, n)).Add(n.Scale(dDNdx))).Scale(2))
-			rd.ryDirection = *wi.Sub(dwody).Add(CreateVectorFromNormal(dndy.Scale(DotVectorNormal(wo, n)).Add(n.Scale(dDNdy))).Scale(2))
+			rd.RxDirection = *wi.Sub(dwodx).Add(CreateVectorFromNormal(dndx.Scale(DotVectorNormal(wo, n)).Add(n.Scale(dDNdx))).Scale(2))
+			rd.RyDirection = *wi.Sub(dwody).Add(CreateVectorFromNormal(dndy.Scale(DotVectorNormal(wo, n)).Add(n.Scale(dDNdy))).Scale(2))
 		}
 		//PBRT_STARTED_SPECULAR_REFLECTION_RAY(const_cast<RayDifferential *>(&rd))
 		Li, _, _ := renderer.Li(scene, rd, sample, rng, arena)
@@ -865,17 +865,17 @@ func SpecularTransmit(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 
 	L := NewSpectrum1(0.0)
 
-	wo := ray.dir.Negate()
+	wo := ray.Dir.Negate()
 	p := bsdf.dgShading.p
 	n := bsdf.dgShading.nn
 	f, wi, pdf, _ := bsdf.Sample_f(wo, CreateRandomBSDFSample(rng), BxDFType(BSDF_TRANSMISSION|BSDF_SPECULAR))
 	if pdf > 0.0 && !f.IsBlack() && AbsDotVectorNormal(wi, n) != 0.0 {
 		// Compute ray differential _rd_ for specular transmission
 		rd := CreateChildRayDifferential(p, wi, CreateRayFromRayDifferential(ray), isect.rayEpsilon, INFINITY)
-		if ray.hasDifferentials {
-			rd.hasDifferentials = true
-			rd.rxOrigin = *p.Add(isect.dg.dpdx)
-			rd.ryOrigin = *p.Add(isect.dg.dpdy)
+		if ray.HasDifferentials {
+			rd.HasDifferentials = true
+			rd.RxOrigin = *p.Add(isect.dg.dpdx)
+			rd.RyOrigin = *p.Add(isect.dg.dpdy)
 
 			eta := bsdf.eta
 			w := wo.Negate()
@@ -885,7 +885,7 @@ func SpecularTransmit(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 
 			dndx := bsdf.dgShading.dndu.Scale(bsdf.dgShading.dudx).Add(bsdf.dgShading.dndv.Scale(bsdf.dgShading.dvdx))
 			dndy := bsdf.dgShading.dndu.Scale(bsdf.dgShading.dudy).Add(bsdf.dgShading.dndv.Scale(bsdf.dgShading.dvdy))
-			dwodx, dwody := (ray.rxDirection.Negate()).Sub(wo), (ray.ryDirection.Negate()).Sub(wo)
+			dwodx, dwody := (ray.RxDirection.Negate()).Sub(wo), (ray.RyDirection.Negate()).Sub(wo)
 			dDNdx := DotVectorNormal(dwodx, n) + DotVectorNormal(wo, dndx)
 			dDNdy := DotVectorNormal(dwody, n) + DotVectorNormal(wo, dndy)
 
@@ -893,8 +893,8 @@ func SpecularTransmit(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 			dmudx := (eta - (eta*eta*DotVectorNormal(w, n))/DotVectorNormal(wi, n)) * dDNdx
 			dmudy := (eta - (eta*eta*DotVectorNormal(w, n))/DotVectorNormal(wi, n)) * dDNdy
 
-			rd.rxDirection = *wi.Add(dwodx.Scale(eta)).Sub(CreateVectorFromNormal(dndx.Scale(mu).Add(n.Scale(dmudx))))
-			rd.ryDirection = *wi.Add(dwody.Scale(eta)).Sub(CreateVectorFromNormal(dndy.Scale(mu).Add(n.Scale(dmudy))))
+			rd.RxDirection = *wi.Add(dwodx.Scale(eta)).Sub(CreateVectorFromNormal(dndx.Scale(mu).Add(n.Scale(dmudx))))
+			rd.RyDirection = *wi.Add(dwody.Scale(eta)).Sub(CreateVectorFromNormal(dndy.Scale(mu).Add(n.Scale(dmudy))))
 		}
 		//PBRT_STARTED_SPECULAR_REFRACTION_RAY(const_cast<RayDifferential *>(&rd));
 		Li, _, _ := renderer.Li(scene, rd, sample, rng, arena)

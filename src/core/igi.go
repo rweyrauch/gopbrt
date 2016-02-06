@@ -107,12 +107,12 @@ func (integrator *IGIIntegrator) Preprocess(scene *Scene, camera Camera, rendere
 			if pdf == 0.0 || alpha.IsBlack() {
 				continue
 			}
-			alpha = alpha.Scale(AbsDotNormalVector(Nl, &ray.dir) / (pdf * lightPdf))
+			alpha = alpha.Scale(AbsDotNormalVector(Nl, &ray.Dir) / (pdf * lightPdf))
 			hit, isect := scene.Intersect(ray)
 			for hit && !alpha.IsBlack() {
 				// Create virtual light and sample new ray for path
 				alpha = alpha.Mult(renderer.Transmittance(scene, ray, nil, rng, arena))
-				wo := ray.dir.Negate()
+				wo := ray.Dir.Negate()
 				bsdf := isect.GetBSDF(ray, arena)
 
 				// Create virtual light at ray intersection point
@@ -166,7 +166,7 @@ func (integrator *IGIIntegrator) RequestSamples(sampler Sampler, sample *Sample,
 func (integrator *IGIIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
-	wo := ray.dir.Negate()
+	wo := ray.Dir.Negate()
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
 
@@ -175,7 +175,7 @@ func (integrator *IGIIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDif
 	p := bsdf.dgShading.p
 	n := bsdf.dgShading.nn
 	L = L.Add(UniformSampleAllLights(scene, renderer, arena, p, n,
-		wo, isect.rayEpsilon, ray.time, bsdf, sample, rng,
+		wo, isect.rayEpsilon, ray.Time, bsdf, sample, rng,
 		integrator.lightSampleOffsets, integrator.bsdfSampleOffsets))
 	// Compute indirect illumination with virtual lights
 	lSet := Mini(int(sample.oneD[integrator.vlSetOffset][0]*float64(integrator.nLightSets)), integrator.nLightSets-1)
@@ -209,15 +209,15 @@ func (integrator *IGIIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDif
 			L = L.Add(Llight)
 		}
 	}
-	if ray.depth < integrator.maxSpecularDepth {
+	if ray.Depth < integrator.maxSpecularDepth {
 		// Do bias compensation for bounding geometry term
 		nSamples := 1
-		if ray.depth == 0 {
+		if ray.Depth == 0 {
 			nSamples = integrator.nGatherSamples
 		}
 		for i := 0; i < nSamples; i++ {
 			var bsdfSample *BSDFSample
-			if ray.depth == 0 {
+			if ray.Depth == 0 {
 				bsdfSample = CreateBSDFSample(sample, &integrator.gatherSampleOffset, i)
 			} else {
 				bsdfSample = CreateRandomBSDFSample(rng)
@@ -242,7 +242,7 @@ func (integrator *IGIIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDif
 			}
 		}
 	}
-	if ray.depth+1 < integrator.maxSpecularDepth {
+	if ray.Depth+1 < integrator.maxSpecularDepth {
 		// Trace rays for specular reflection and refraction
 		L = L.Add(SpecularReflect(ray, bsdf, rng, isect, renderer, scene, sample, arena))
 		L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))

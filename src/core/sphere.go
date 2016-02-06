@@ -78,9 +78,9 @@ func (s *Sphere) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Diff
 	ray := RayTransform(s.worldToObject, r)
 
 	// Compute quadratic sphere coefficients
-	A := ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y + ray.dir.Z*ray.dir.Z
-	B := 2.0 * (ray.dir.X*ray.origin.X + ray.dir.Y*ray.origin.Y + ray.dir.Z*ray.origin.Z)
-	C := ray.origin.X*ray.origin.X + ray.origin.Y*ray.origin.Y + ray.origin.Z*ray.origin.Z - s.radius*s.radius
+	A := ray.Dir.X*ray.Dir.X + ray.Dir.Y*ray.Dir.Y + ray.Dir.Z*ray.Dir.Z
+	B := 2.0 * (ray.Dir.X*ray.Origin.X + ray.Dir.Y*ray.Origin.Y + ray.Dir.Z*ray.Origin.Z)
+	C := ray.Origin.X*ray.Origin.X + ray.Origin.Y*ray.Origin.Y + ray.Origin.Z*ray.Origin.Z - s.radius*s.radius
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -89,14 +89,14 @@ func (s *Sphere) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Diff
 		return false, 0.0, 0.0, nil
 	}
 	// Compute intersection distance along ray
-	if t0 > ray.maxt || t1 < ray.mint {
+	if t0 > ray.Maxt || t1 < ray.Mint {
 		return false, 0.0, 0.0, nil
 	}
 
 	thit := t0
-	if t0 < ray.mint {
+	if t0 < ray.Mint {
 		thit = t1
-		if thit > ray.maxt {
+		if thit > ray.Maxt {
 			return false, 0.0, 0.0, nil
 		}
 	}
@@ -117,7 +117,7 @@ func (s *Sphere) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Diff
 		if thit == t1 {
 			return false, 0.0, 0.0, nil
 		}
-		if t1 > ray.maxt {
+		if t1 > ray.Maxt {
 			return false, 0.0, 0.0, nil
 		}
 		thit = t1
@@ -186,9 +186,9 @@ func (s *Sphere) IntersectP(r *Ray) bool {
 	ray := RayTransform(s.worldToObject, r)
 
 	// Compute quadratic sphere coefficients
-	A := ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y + ray.dir.Z*ray.dir.Z
-	B := 2.0 * (ray.dir.X*ray.origin.X + ray.dir.Y*ray.origin.Y + ray.dir.Z*ray.origin.Z)
-	C := ray.origin.X*ray.origin.X + ray.origin.Y*ray.origin.Y + ray.origin.Z*ray.origin.Z - s.radius*s.radius
+	A := ray.Dir.X*ray.Dir.X + ray.Dir.Y*ray.Dir.Y + ray.Dir.Z*ray.Dir.Z
+	B := 2.0 * (ray.Dir.X*ray.Origin.X + ray.Dir.Y*ray.Origin.Y + ray.Dir.Z*ray.Origin.Z)
+	C := ray.Origin.X*ray.Origin.X + ray.Origin.Y*ray.Origin.Y + ray.Origin.Z*ray.Origin.Z - s.radius*s.radius
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -197,14 +197,14 @@ func (s *Sphere) IntersectP(r *Ray) bool {
 		return false
 	}
 	// Compute intersection distance along ray
-	if t0 > ray.maxt || t1 < ray.mint {
+	if t0 > ray.Maxt || t1 < ray.Mint {
 		return false
 	}
 
 	thit := t0
-	if t0 < ray.mint {
+	if t0 < ray.Mint {
 		thit = t1
-		if thit > ray.maxt {
+		if thit > ray.Maxt {
 			return false
 		}
 	}
@@ -225,7 +225,7 @@ func (s *Sphere) IntersectP(r *Ray) bool {
 		if thit == t1 {
 			return false
 		}
-		if t1 > ray.maxt {
+		if t1 > ray.Maxt {
 			return false
 		}
 		thit = t1
@@ -287,7 +287,7 @@ func (s *Sphere) SampleAt(p *Point, u1, u2 float64) (*Point, *Normal) {
 	var thit float64
 	var ok bool
 	if ok, thit, _, _ = s.Intersect(r); !ok {
-		thit = DotVector(Pcenter.Sub(p), NormalizeVector(&r.dir))
+		thit = DotVector(Pcenter.Sub(p), NormalizeVector(&r.Dir))
 	}
 	ps := r.PointAt(thit)
 	ns := CreateNormalFromVector(NormalizeVector(ps.Sub(Pcenter)))

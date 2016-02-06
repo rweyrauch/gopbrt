@@ -80,7 +80,7 @@ func (r *SamplerRenderer) Render(scene *Scene) {
 }
 
 func (r *SamplerRenderer) Li(scene *Scene, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (*Spectrum, *Intersection, *Spectrum) {
-	Assert(ray.time == sample.time)
+	Assert(ray.Time == sample.time)
 	Assert(!ray.HasNaNs())
 	// Allocate local variables for _isect_ and _T_ if needed
 	li := NewSpectrum1(0.0)

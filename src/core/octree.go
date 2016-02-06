@@ -51,7 +51,7 @@ func NewOctree(bbox *BBox, maxDepth int) *Octree {
 }
 
 func (octree *Octree) Add(dataItem Object, dataBound *BBox) {
-	octree.addPrivate(&octree.root, &octree.bound, dataItem, dataBound, DistanceSquaredPoint(&dataBound.pMin, &dataBound.pMax), 0)
+	octree.addPrivate(&octree.root, &octree.bound, dataItem, dataBound, DistanceSquaredPoint(&dataBound.PMin, &dataBound.PMax), 0)
 }
 
 func (octree *Octree) Lookup(p *Point, process OctreeLookupProc) bool {
@@ -64,25 +64,25 @@ func (octree *Octree) Lookup(p *Point, process OctreeLookupProc) bool {
 func octreeChildBound(child int, nodeBound *BBox, pMid *Point) BBox {
 	var childBound BBox
 	if child&4 != 0 {
-		childBound.pMin.X = pMid.X
-		childBound.pMax.X = nodeBound.pMax.X
+		childBound.PMin.X = pMid.X
+		childBound.PMax.X = nodeBound.PMax.X
 	} else {
-		childBound.pMin.X = nodeBound.pMin.X
-		childBound.pMax.X = pMid.X
+		childBound.PMin.X = nodeBound.PMin.X
+		childBound.PMax.X = pMid.X
 	}
 	if child&2 != 0 {
-		childBound.pMin.Y = pMid.Y
-		childBound.pMax.Y = nodeBound.pMax.Y
+		childBound.PMin.Y = pMid.Y
+		childBound.PMax.Y = nodeBound.PMax.Y
 	} else {
-		childBound.pMin.Y = nodeBound.pMin.Y
-		childBound.pMax.Y = pMid.Y
+		childBound.PMin.Y = nodeBound.PMin.Y
+		childBound.PMax.Y = pMid.Y
 	}
 	if child&1 != 0 {
-		childBound.pMin.Z = pMid.Z
-		childBound.pMax.Z = nodeBound.pMax.Z
+		childBound.PMin.Z = pMid.Z
+		childBound.PMax.Z = nodeBound.PMax.Z
 	} else {
-		childBound.pMin.Z = nodeBound.pMin.Z
-		childBound.pMax.Z = pMid.Z
+		childBound.PMin.Z = nodeBound.PMin.Z
+		childBound.PMax.Z = pMid.Z
 	}
 	return childBound
 }
@@ -91,18 +91,18 @@ func octreeChildBound(child int, nodeBound *BBox, pMid *Point) BBox {
 func (octree *Octree) addPrivate(node *OctNode, nodeBound *BBox, dataItem Object, dataBound *BBox, diag2 float64, depth int) {
 	// Possibly add data item to current octree node
 	if depth == octree.maxDepth ||
-		DistanceSquaredPoint(&nodeBound.pMin, &nodeBound.pMax) < diag2 {
+		DistanceSquaredPoint(&nodeBound.PMin, &nodeBound.PMax) < diag2 {
 		node.data = append(node.data, dataItem)
 		return
 	}
 
 	// Otherwise add data item to octree children
-	pMid := nodeBound.pMin.AddPoint(&nodeBound.pMax).Scale(0.5)
+	pMid := nodeBound.PMin.AddPoint(&nodeBound.PMax).Scale(0.5)
 
 	// Determine which children the item overlaps
-	x := [2]bool{dataBound.pMin.X <= pMid.X, dataBound.pMax.X > pMid.X}
-	y := [2]bool{dataBound.pMin.Y <= pMid.Y, dataBound.pMax.Y > pMid.Y}
-	z := [2]bool{dataBound.pMin.Z <= pMid.Z, dataBound.pMax.Z > pMid.Z}
+	x := [2]bool{dataBound.PMin.X <= pMid.X, dataBound.PMax.X > pMid.X}
+	y := [2]bool{dataBound.PMin.Y <= pMid.Y, dataBound.PMax.Y > pMid.Y}
+	z := [2]bool{dataBound.PMin.Z <= pMid.Z, dataBound.PMax.Z > pMid.Z}
 	over := [8]bool{bool(x[0] && y[0] && z[0]), bool(x[0] && y[0] && z[1]),
 		bool(x[0] && y[1] && z[0]), bool(x[0] && y[1] && z[1]),
 		bool(x[1] && y[0] && z[0]), bool(x[1] && y[0] && z[1]),
@@ -128,7 +128,7 @@ func (octree *Octree) lookupPrivate(node *OctNode, nodeBound *BBox, p *Point, pr
 		}
 	}
 	// Determine which octree child node _p_ is inside
-	pMid := nodeBound.pMin.AddPoint(&nodeBound.pMax).Scale(0.5)
+	pMid := nodeBound.PMin.AddPoint(&nodeBound.PMax).Scale(0.5)
 	child := 0
 	if p.X > pMid.X {
 		child += 4

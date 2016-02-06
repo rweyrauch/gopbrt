@@ -196,11 +196,11 @@ func (dens *ExponentialDensity) Sigma_t(p *Point, wo *Vector, time float64) *Spe
 
 func (dens *ExponentialDensity) Tau(r *Ray, stepSize, offset float64) *Spectrum {
 	var t0, t1 float64
-	length := r.dir.Length()
+	length := r.Dir.Length()
 	if length == 0.0 {
 		return NewSpectrum1(0.0)
 	}
-	rn := CreateRay(&r.origin, r.dir.InvScale(length), r.mint*length, r.maxt*length, r.time, 0)
+	rn := CreateRay(&r.Origin, r.Dir.InvScale(length), r.Mint*length, r.Maxt*length, r.Time, 0)
 	var hit bool
 	if hit, t0, t0 = dens.IntersectP(rn); !hit {
 		return NewSpectrum1(0.0)
@@ -209,7 +209,7 @@ func (dens *ExponentialDensity) Tau(r *Ray, stepSize, offset float64) *Spectrum 
 	tau := NewSpectrum1(0.0)
 	t0 += offset * stepSize
 	for t0 < t1 {
-		tau = tau.Add(dens.Sigma_t(rn.PointAt(t0), rn.dir.Negate(), r.time))
+		tau = tau.Add(dens.Sigma_t(rn.PointAt(t0), rn.Dir.Negate(), r.Time))
 		t0 += stepSize
 	}
 	return tau.Scale(stepSize)
@@ -219,7 +219,7 @@ func (dens *ExponentialDensity) Density(Pobj *Point) float64 {
 	if !dens.extent.Inside(Pobj) {
 		return 0.0
 	}
-	height := DotVector(Pobj.Sub(&dens.extent.pMin), dens.upDir)
+	height := DotVector(Pobj.Sub(&dens.extent.PMin), dens.upDir)
 	return dens.a * math.Exp(-dens.b*height)
 }
 
@@ -379,11 +379,11 @@ func (dens *VolumeGridDensity) Sigma_t(p *Point, wo *Vector, time float64) *Spec
 
 func (dens *VolumeGridDensity) Tau(r *Ray, stepSize, offset float64) *Spectrum {
 	var t0, t1 float64
-	length := r.dir.Length()
+	length := r.Dir.Length()
 	if length == 0.0 {
 		return NewSpectrum1(0.0)
 	}
-	rn := CreateRay(&r.origin, r.dir.InvScale(length), r.mint*length, r.maxt*length, r.time, 0)
+	rn := CreateRay(&r.Origin, r.Dir.InvScale(length), r.Mint*length, r.Maxt*length, r.Time, 0)
 	var hit bool
 	if hit, t0, t0 = dens.IntersectP(rn); !hit {
 		return NewSpectrum1(0.0)
@@ -392,7 +392,7 @@ func (dens *VolumeGridDensity) Tau(r *Ray, stepSize, offset float64) *Spectrum {
 	tau := NewSpectrum1(0.0)
 	t0 += offset * stepSize
 	for t0 < t1 {
-		tau = tau.Add(dens.Sigma_t(rn.PointAt(t0), rn.dir.Negate(), r.time))
+		tau = tau.Add(dens.Sigma_t(rn.PointAt(t0), rn.Dir.Negate(), r.Time))
 		t0 += stepSize
 	}
 	return tau.Scale(stepSize)
@@ -584,13 +584,13 @@ func (integrator *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *R
 	Tr := NewSpectrum1(1.0)
 	p := ray.PointAt(t0)
 	var pPrev *Point
-	w := ray.dir.Negate()
+	w := ray.Dir.Negate()
 	t0 += sample.oneD[integrator.scatterSampleOffset][0] * step
 	for i := 0; i < nSamples; i++ {
 		// Advance to sample at _t0_ and update _T_
 		pPrev = p
 		p = ray.PointAt(t0)
-		tauRay := CreateRay(pPrev, p.Sub(pPrev), 0.0, 1.0, ray.time, ray.depth)
+		tauRay := CreateRay(pPrev, p.Sub(pPrev), 0.0, 1.0, ray.Time, ray.Depth)
 		stepTau := scene.volumeRegion.Tau(tauRay, 0.5*integrator.stepSize, rng.RandomFloat())
 		Tr = Tr.Mult(ExpSpectrum(stepTau.Negate()))
 
@@ -605,7 +605,7 @@ func (integrator *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *R
 		}
 
 		// Compute emission-only source term at _p_
-		Lv = Lv.Add(Tr.Mult(scene.volumeRegion.Lve(p, w, ray.time)))
+		Lv = Lv.Add(Tr.Mult(scene.volumeRegion.Lve(p, w, ray.Time)))
 		t0 += step
 	}
 	transmittance = Tr

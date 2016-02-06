@@ -77,9 +77,9 @@ func (c *Cone) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 	// Compute quadratic cone coefficients
 	k := c.radius / c.height
 	k = k * k
-	A := ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y - k*ray.dir.Z*ray.dir.Z
-	B := 2.0 * (ray.dir.X*ray.origin.X + ray.dir.Y*ray.origin.Y - k*ray.dir.Z*(ray.origin.Z-c.height))
-	C := ray.origin.X*ray.origin.X + ray.origin.Y*ray.origin.Y - k*(ray.origin.Z-c.height)*(ray.origin.Z-c.height)
+	A := ray.Dir.X*ray.Dir.X + ray.Dir.Y*ray.Dir.Y - k*ray.Dir.Z*ray.Dir.Z
+	B := 2.0 * (ray.Dir.X*ray.Origin.X + ray.Dir.Y*ray.Origin.Y - k*ray.Dir.Z*(ray.Origin.Z-c.height))
+	C := ray.Origin.X*ray.Origin.X + ray.Origin.Y*ray.Origin.Y - k*(ray.Origin.Z-c.height)*(ray.Origin.Z-c.height)
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -89,14 +89,14 @@ func (c *Cone) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 	}
 
 	// Compute intersection distance along ray
-	if t0 > ray.maxt || t1 < ray.mint {
+	if t0 > ray.Maxt || t1 < ray.Mint {
 		return false, 0.0, 0.0, nil
 	}
 
 	thit := t0
-	if t0 < ray.mint {
+	if t0 < ray.Mint {
 		thit = t1
-		if thit > ray.maxt {
+		if thit > ray.Maxt {
 			return false, 0.0, 0.0, nil
 		}
 	}
@@ -114,7 +114,7 @@ func (c *Cone) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 			return false, 0.0, 0.0, nil
 		}
 		thit = t1
-		if t1 > ray.maxt {
+		if t1 > ray.Maxt {
 			return false, 0.0, 0.0, nil
 		}
 		// Compute cone inverse mapping
@@ -176,9 +176,9 @@ func (c *Cone) IntersectP(r *Ray) bool {
 	// Compute quadratic cone coefficients
 	k := c.radius / c.height
 	k = k * k
-	A := ray.dir.X*ray.dir.X + ray.dir.Y*ray.dir.Y - k*ray.dir.Z*ray.dir.Z
-	B := 2.0 * (ray.dir.X*ray.origin.X + ray.dir.Y*ray.origin.Y - k*ray.dir.Z*(ray.origin.Z-c.height))
-	C := ray.origin.X*ray.origin.X + ray.origin.Y*ray.origin.Y - k*(ray.origin.Z-c.height)*(ray.origin.Z-c.height)
+	A := ray.Dir.X*ray.Dir.X + ray.Dir.Y*ray.Dir.Y - k*ray.Dir.Z*ray.Dir.Z
+	B := 2.0 * (ray.Dir.X*ray.Origin.X + ray.Dir.Y*ray.Origin.Y - k*ray.Dir.Z*(ray.Origin.Z-c.height))
+	C := ray.Origin.X*ray.Origin.X + ray.Origin.Y*ray.Origin.Y - k*(ray.Origin.Z-c.height)*(ray.Origin.Z-c.height)
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -188,14 +188,14 @@ func (c *Cone) IntersectP(r *Ray) bool {
 	}
 
 	// Compute intersection distance along ray
-	if t0 > ray.maxt || t1 < ray.mint {
+	if t0 > ray.Maxt || t1 < ray.Mint {
 		return false
 	}
 
 	thit := t0
-	if t0 < ray.mint {
+	if t0 < ray.Mint {
 		thit = t1
-		if thit > ray.maxt {
+		if thit > ray.Maxt {
 			return false
 		}
 	}
@@ -213,7 +213,7 @@ func (c *Cone) IntersectP(r *Ray) bool {
 			return false
 		}
 		thit = t1
-		if t1 > ray.maxt {
+		if t1 > ray.Maxt {
 			return false
 		}
 		// Compute cone inverse mapping

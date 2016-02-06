@@ -278,27 +278,27 @@ func NormalTransform(t *Transform, n *Normal) *Normal {
 }
 
 func RayTransform(t *Transform, r *Ray) *Ray {
-	return CreateRay(PointTransform(t, &r.origin), VectorTransform(t, &r.dir), r.mint, r.maxt, r.time, r.depth)
+	return CreateRay(PointTransform(t, &r.Origin), VectorTransform(t, &r.Dir), r.Mint, r.Maxt, r.Time, r.Depth)
 }
 
 func RayDifferentialTransform(t *Transform, r *RayDifferential) *RayDifferential {
 	rd := new(RayDifferential)
-	rd.origin = *PointTransform(t, &r.origin)
-	rd.dir = *VectorTransform(t, &r.dir)
-	rd.mint = r.mint
-	rd.maxt = r.maxt
-	rd.time = r.time
-	rd.depth = r.depth
-	rd.hasDifferentials = r.hasDifferentials
-	rd.rxOrigin = *PointTransform(t, &r.rxOrigin)
-	rd.ryOrigin = *PointTransform(t, &r.ryOrigin)
-	rd.rxDirection = *VectorTransform(t, &r.rxDirection)
-	rd.ryDirection = *VectorTransform(t, &r.ryDirection)
+	rd.Origin = *PointTransform(t, &r.Origin)
+	rd.Dir = *VectorTransform(t, &r.Dir)
+	rd.Mint = r.Mint
+	rd.Maxt = r.Maxt
+	rd.Time = r.Time
+	rd.Depth = r.Depth
+	rd.HasDifferentials = r.HasDifferentials
+	rd.RxOrigin = *PointTransform(t, &r.RxOrigin)
+	rd.RyOrigin = *PointTransform(t, &r.RyOrigin)
+	rd.RxDirection = *VectorTransform(t, &r.RxDirection)
+	rd.RyDirection = *VectorTransform(t, &r.RyDirection)
 	return rd
 }
 
 func BBoxTransform(t *Transform, b *BBox) *BBox {
-	return CreateBBoxFromPoints(PointTransform(t, &b.pMin), PointTransform(t, &b.pMax))
+	return CreateBBoxFromPoints(PointTransform(t, &b.PMin), PointTransform(t, &b.PMax))
 }
 
 func (t1 *Transform) MultTransform(t2 *Transform) *Transform {
@@ -551,28 +551,28 @@ func PointAnimatedTransform(t *AnimatedTransform, time float64, p *Point) *Point
 }
 
 func RayAnimatedTransform(t *AnimatedTransform, r *Ray) (tr *Ray) {
-	if !t.actuallyAnimated || r.time <= t.startTime {
+	if !t.actuallyAnimated || r.Time <= t.startTime {
 		tr = RayTransform(t.startTransform, r)
-	} else if r.time >= t.endTime {
+	} else if r.Time >= t.endTime {
 		tr = RayTransform(t.endTransform, r)
 	} else {
-		tt := t.Interpolate(r.time)
+		tt := t.Interpolate(r.Time)
 		tr = RayTransform(tt, r)
 	}
-	tr.time = r.time
+	tr.Time = r.Time
 	return tr
 }
 
 func RayDifferentialAnimatedTransform(t *AnimatedTransform, r *RayDifferential) (tr *RayDifferential) {
-	if !t.actuallyAnimated || r.time <= t.startTime {
+	if !t.actuallyAnimated || r.Time <= t.startTime {
 		tr = RayDifferentialTransform(t.startTransform, r)
-	} else if r.time >= t.endTime {
+	} else if r.Time >= t.endTime {
 		tr = RayDifferentialTransform(t.endTransform, r)
 	} else {
-		tt := t.Interpolate(r.time)
+		tt := t.Interpolate(r.Time)
 		tr = RayDifferentialTransform(tt, r)
 	}
-	tr.time = r.time
+	tr.Time = r.Time
 	return tr
 }
 

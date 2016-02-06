@@ -147,7 +147,7 @@ func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Inte
 	}
 
 	// Prepare to traverse kd-tree for ray
-	invDir := CreateVector(1.0/ray.dir.X, 1.0/ray.dir.Y, 1.0/ray.dir.Z)
+	invDir := CreateVector(1.0/ray.Dir.X, 1.0/ray.Dir.Y, 1.0/ray.Dir.Z)
 
 	var todo [MAX_TODO]KdToDo
 	todoPos := 0
@@ -160,7 +160,7 @@ func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Inte
 		prevNodeIdx = curNodeIdx
 
 		// Bail out if we found a hit closer than the current node
-		if ray.maxt < tmin {
+		if ray.Maxt < tmin {
 			break
 		}
 		if node.axis != SPLIT_LEAF {
@@ -169,11 +169,11 @@ func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Inte
 
 			// Compute parametric distance along ray to split plane
 			axis := int(node.axis)
-			tplane := (node.split - ray.origin.At(axis)) * invDir.At(axis)
+			tplane := (node.split - ray.Origin.At(axis)) * invDir.At(axis)
 
 			// Get node children pointers for ray
 			var firstChild, secondChild int
-			belowFirst := (ray.origin.At(axis) < node.split) || (ray.origin.At(axis) == node.split && ray.dir.At(axis) <= 0)
+			belowFirst := (ray.Origin.At(axis) < node.split) || (ray.Origin.At(axis) == node.split && ray.Dir.At(axis) <= 0)
 			if belowFirst {
 				firstChild = curNodeIdx + 1
 				secondChild = node.aboveChild
@@ -249,7 +249,7 @@ func (accel *KdTreeAccel) IntersectP(ray *Ray) bool {
 	}
 
 	// Prepare to traverse kd-tree for ray
-	invDir := CreateVector(1.0/ray.dir.X, 1.0/ray.dir.Y, 1.0/ray.dir.Z)
+	invDir := CreateVector(1.0/ray.Dir.X, 1.0/ray.Dir.Y, 1.0/ray.Dir.Z)
 
 	var todo [MAX_TODO]KdToDo
 	todoPos := 0
@@ -296,11 +296,11 @@ func (accel *KdTreeAccel) IntersectP(ray *Ray) bool {
 
 			// Compute parametric distance along ray to split plane
 			axis := int(node.axis)
-			tplane := (node.split - ray.origin.At(axis)) * invDir.At(axis)
+			tplane := (node.split - ray.Origin.At(axis)) * invDir.At(axis)
 
 			// Get node children pointers for ray
 			var firstChild, secondChild int
-			belowFirst := (ray.origin.At(axis) < node.split) || (ray.origin.At(axis) == node.split && ray.dir.At(axis) <= 0)
+			belowFirst := (ray.Origin.At(axis) < node.split) || (ray.Origin.At(axis) == node.split && ray.Dir.At(axis) <= 0)
 			if belowFirst {
 				firstChild = curNodeIdx + 1
 				secondChild = node.aboveChild
@@ -398,7 +398,7 @@ func (accel *KdTreeAccel) buildTree(nodeNum int, nodeBounds BBox, allPrimBounds 
 	oldCost := float64(accel.isectCost) * float64(nPrimitives)
 	totalSA := nodeBounds.SurfaceArea()
 	invTotalSA := 1.0 / totalSA
-	d := nodeBounds.pMax.Sub(&nodeBounds.pMin)
+	d := nodeBounds.PMax.Sub(&nodeBounds.PMin)
 
 	// Choose which axis to split along
 	axis := nodeBounds.MaximumExtent()
@@ -410,8 +410,8 @@ retrySplit:
 	for i := 0; i < nPrimitives; i++ {
 		pn := primNums[i]
 		bbox := allPrimBounds[pn]
-		edges[axis][2*i] = BoundEdge{bbox.pMin.At(axis), pn, EDGE_START}
-		edges[axis][2*i+1] = BoundEdge{bbox.pMax.At(axis), pn, EDGE_END}
+		edges[axis][2*i] = BoundEdge{bbox.PMin.At(axis), pn, EDGE_START}
+		edges[axis][2*i+1] = BoundEdge{bbox.PMax.At(axis), pn, EDGE_END}
 	}
 	edgeSorter := &boundEdgeSorter{axis, edges[axis][:2*nPrimitives]}
 	sort.Sort(edgeSorter)
@@ -423,12 +423,12 @@ retrySplit:
 			nAbove--
 		}
 		edget := edges[axis][i].t
-		if edget > nodeBounds.pMin.At(axis) && edget < nodeBounds.pMax.At(axis) {
+		if edget > nodeBounds.PMin.At(axis) && edget < nodeBounds.PMax.At(axis) {
 			// Compute cost for split at _i_th edge
 			otherAxis0 := (axis + 1) % 3
 			otherAxis1 := (axis + 2) % 3
-			belowSA := 2 * (d.At(otherAxis0)*d.At(otherAxis1) + (edget-nodeBounds.pMin.At(axis))*(d.At(otherAxis0)+d.At(otherAxis1)))
-			aboveSA := 2 * (d.At(otherAxis0)*d.At(otherAxis1) + (nodeBounds.pMax.At(axis)-edget)*(d.At(otherAxis0)+d.At(otherAxis1)))
+			belowSA := 2 * (d.At(otherAxis0)*d.At(otherAxis1) + (edget-nodeBounds.PMin.At(axis))*(d.At(otherAxis0)+d.At(otherAxis1)))
+			aboveSA := 2 * (d.At(otherAxis0)*d.At(otherAxis1) + (nodeBounds.PMax.At(axis)-edget)*(d.At(otherAxis0)+d.At(otherAxis1)))
 			pBelow := belowSA * invTotalSA
 			pAbove := aboveSA * invTotalSA
 			eb := 0.0
@@ -486,8 +486,8 @@ retrySplit:
 	//PBRT_KDTREE_CREATED_INTERIOR_NODE(bestAxis, tsplit);
 	bounds0 := nodeBounds
 	bounds1 := nodeBounds
-	bounds0.pMax.Set(bestAxis, tsplit)
-	bounds1.pMin.Set(bestAxis, tsplit)
+	bounds0.PMax.Set(bestAxis, tsplit)
+	bounds1.PMin.Set(bestAxis, tsplit)
 	accel.buildTree(nodeNum+1, bounds0,
 		allPrimBounds, prims0, n0, depth-1, edges,
 		prims0, prims1[nPrimitives:], badRefines)

@@ -51,16 +51,16 @@ func (aggtest *AggregateTest) Render(scene *Scene) {
     	
     // Compute bounding box of region used to generate random rays
     bbox := scene.WorldBound()
-    bbox.Expand(bbox.pMax.At(bbox.MaximumExtent()) - bbox.pMin.At(bbox.MaximumExtent()))
+    bbox.Expand(bbox.PMax.At(bbox.MaximumExtent()) - bbox.PMin.At(bbox.MaximumExtent()))
     var lastHit Point
     lastEps := 0.0
     for i := 0; i < aggtest.nIterations; i++ {
         // Choose random rays, _rayAccel_ and _rayAll_ for testing
 
         // Choose ray origin for testing accelerator
-        org := *CreatePoint(Lerp(rng.RandomFloat(), bbox.pMin.X, bbox.pMax.X),
-                  Lerp(rng.RandomFloat(), bbox.pMin.Y, bbox.pMax.Y),
-                  Lerp(rng.RandomFloat(), bbox.pMin.Z, bbox.pMax.Z))
+        org := *CreatePoint(Lerp(rng.RandomFloat(), bbox.PMin.X, bbox.PMax.X),
+                  Lerp(rng.RandomFloat(), bbox.PMin.Y, bbox.PMax.Y),
+                  Lerp(rng.RandomFloat(), bbox.PMin.Z, bbox.PMax.Z))
         if (rng.RandomUInt() % 4) == 0 { org = lastHit }
 
         // Choose ray direction for testing accelerator
@@ -102,14 +102,14 @@ func (aggtest *AggregateTest) Render(scene *Scene) {
 
         // Report any inconsistencies between intersections
         if !inconsistentBounds &&
-            ((hitAccel != hitAll) || (rayAccel.maxt != rayDiffAll.maxt)) {
+            ((hitAccel != hitAll) || (rayAccel.Maxt != rayDiffAll.Maxt)) {
             Warning("Disagreement: t accel %.16g t exhaustive %.16g\nRay: org [%g, %g, %g], dir [%g, %g, %g], mint = %g",
-                    rayAccel.maxt, rayDiffAll.maxt,
-                    rayDiffAll.origin.X, rayDiffAll.origin.Y, rayDiffAll.origin.Z,
-                    rayDiffAll.dir.X, rayDiffAll.dir.Y, rayDiffAll.dir.Z, rayDiffAll.mint)
+                    rayAccel.Maxt, rayDiffAll.Maxt,
+                    rayDiffAll.Origin.X, rayDiffAll.Origin.Y, rayDiffAll.Origin.Z,
+                    rayDiffAll.Dir.X, rayDiffAll.Dir.Y, rayDiffAll.Dir.Z, rayDiffAll.Mint)
 		}            
         if hitAll {
-            lastHit = *rayAll.PointAt(rayAll.maxt)
+            lastHit = *rayAll.PointAt(rayAll.Maxt)
             lastEps = isectAll.rayEpsilon
         }
         prog.Update(1)

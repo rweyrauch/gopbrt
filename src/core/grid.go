@@ -67,7 +67,7 @@ func NewGridAccel(prims []Primitive, refineImmediately bool) *GridAccel {
 	for _, p := range grid.primitives {
 		grid.bounds = *UnionBBoxes(&grid.bounds, p.WorldBound())
 	}
-	delta := grid.bounds.pMax.Sub(&grid.bounds.pMin)
+	delta := grid.bounds.PMax.Sub(&grid.bounds.PMin)
 
 	// Find _voxelsPerUnitDist_ for grid
 	maxAxis := grid.bounds.MaximumExtent()
@@ -110,8 +110,8 @@ func NewGridAccel(prims []Primitive, refineImmediately bool) *GridAccel {
 		pb := p.WorldBound()
 		var vmin, vmax [3]int
 		for axis := 0; axis < 3; axis++ {
-			vmin[axis] = grid.posToVoxel(&pb.pMin, axis)
-			vmax[axis] = grid.posToVoxel(&pb.pMax, axis)
+			vmin[axis] = grid.posToVoxel(&pb.PMin, axis)
+			vmax[axis] = grid.posToVoxel(&pb.PMax, axis)
 		}
 
 		// Add primitive to overlapping voxels
@@ -146,8 +146,8 @@ func (g *GridAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	// Check ray against overall grid bounds
 	var rayT float64
 	var ok bool
-	if g.bounds.Inside(ray.PointAt(ray.mint)) {
-		rayT = ray.mint
+	if g.bounds.Inside(ray.PointAt(ray.Mint)) {
+		rayT = ray.Mint
 	} else if ok, rayT, _ = g.bounds.IntersectP(CreateRayFromRayDifferential(ray)); !ok {
 		//PBRT_GRID_RAY_MISSED_BOUNDS();
 		return false, nil
@@ -160,18 +160,18 @@ func (g *GridAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	for axis := 0; axis < 3; axis++ {
 		// Compute current voxel for axis
 		Pos[axis] = g.posToVoxel(gridIntersect, axis)
-		if ray.dir.At(axis) >= 0 {
+		if ray.Dir.At(axis) >= 0 {
 			// Handle ray with positive direction for voxel stepping
 			NextCrossingT[axis] = rayT +
-				(g.voxelToPos(Pos[axis]+1, axis)-gridIntersect.At(axis))/ray.dir.At(axis)
-			DeltaT[axis] = g.width.At(axis) / ray.dir.At(axis)
+				(g.voxelToPos(Pos[axis]+1, axis)-gridIntersect.At(axis))/ray.Dir.At(axis)
+			DeltaT[axis] = g.width.At(axis) / ray.Dir.At(axis)
 			Step[axis] = 1
 			Out[axis] = g.nVoxels[axis]
 		} else {
 			// Handle ray with negative direction for voxel stepping
 			NextCrossingT[axis] = rayT +
-				(g.voxelToPos(Pos[axis], axis)-gridIntersect.At(axis))/ray.dir.At(axis)
-			DeltaT[axis] = -g.width.At(axis) / ray.dir.At(axis)
+				(g.voxelToPos(Pos[axis], axis)-gridIntersect.At(axis))/ray.Dir.At(axis)
+			DeltaT[axis] = -g.width.At(axis) / ray.Dir.At(axis)
 			Step[axis] = -1
 			Out[axis] = -1
 		}
@@ -207,7 +207,7 @@ func (g *GridAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 
 		cmpToAxis := [8]int{2, 1, 2, 1, 2, 2, 0, 0}
 		stepAxis := cmpToAxis[bits]
-		if ray.maxt < NextCrossingT[stepAxis] {
+		if ray.Maxt < NextCrossingT[stepAxis] {
 			break
 		}
 		Pos[stepAxis] += Step[stepAxis]
@@ -224,8 +224,8 @@ func (g *GridAccel) IntersectP(ray *Ray) bool {
 	// Check ray against overall grid bounds
 	var rayT float64
 	var ok bool
-	if g.bounds.Inside(ray.PointAt(ray.mint)) {
-		rayT = ray.mint
+	if g.bounds.Inside(ray.PointAt(ray.Mint)) {
+		rayT = ray.Mint
 	} else if ok, rayT, _ = g.bounds.IntersectP(ray); !ok {
 		//PBRT_GRID_RAY_MISSED_BOUNDS();
 		return false
@@ -238,18 +238,18 @@ func (g *GridAccel) IntersectP(ray *Ray) bool {
 	for axis := 0; axis < 3; axis++ {
 		// Compute current voxel for axis
 		Pos[axis] = g.posToVoxel(gridIntersect, axis)
-		if ray.dir.At(axis) >= 0 {
+		if ray.Dir.At(axis) >= 0 {
 			// Handle ray with positive direction for voxel stepping
 			NextCrossingT[axis] = rayT +
-				(g.voxelToPos(Pos[axis]+1, axis)-gridIntersect.At(axis))/ray.dir.At(axis)
-			DeltaT[axis] = g.width.At(axis) / ray.dir.At(axis)
+				(g.voxelToPos(Pos[axis]+1, axis)-gridIntersect.At(axis))/ray.Dir.At(axis)
+			DeltaT[axis] = g.width.At(axis) / ray.Dir.At(axis)
 			Step[axis] = 1
 			Out[axis] = g.nVoxels[axis]
 		} else {
 			// Handle ray with negative direction for voxel stepping
 			NextCrossingT[axis] = rayT +
-				(g.voxelToPos(Pos[axis], axis)-gridIntersect.At(axis))/ray.dir.At(axis)
-			DeltaT[axis] = -g.width.At(axis) / ray.dir.At(axis)
+				(g.voxelToPos(Pos[axis], axis)-gridIntersect.At(axis))/ray.Dir.At(axis)
+			DeltaT[axis] = -g.width.At(axis) / ray.Dir.At(axis)
 			Step[axis] = -1
 			Out[axis] = -1
 		}
@@ -278,7 +278,7 @@ func (g *GridAccel) IntersectP(ray *Ray) bool {
 		}
 		cmpToAxis := [8]int{2, 1, 2, 1, 2, 2, 0, 0}
 		stepAxis := cmpToAxis[bits]
-		if ray.maxt < NextCrossingT[stepAxis] {
+		if ray.Maxt < NextCrossingT[stepAxis] {
 			break
 		}
 		Pos[stepAxis] += Step[stepAxis]
@@ -305,11 +305,11 @@ func (g *GridAccel) GetBSSRDF(dg *DifferentialGeometry, objectToWorld *Transform
 func (g *GridAccel) PrimitiveId() uint32 { return g.primitiveId }
 
 func (g *GridAccel) posToVoxel(P *Point, axis int) int {
-	v := Float2Int((P.At(axis) - g.bounds.pMin.At(axis)) * g.invWidth.At(axis))
+	v := Float2Int((P.At(axis) - g.bounds.PMin.At(axis)) * g.invWidth.At(axis))
 	return Clampi(v, 0, g.nVoxels[axis]-1)
 }
 func (g *GridAccel) voxelToPos(p, axis int) float64 {
-	return g.bounds.pMin.At(axis) + float64(p)*g.width.At(axis)
+	return g.bounds.PMin.At(axis) + float64(p)*g.width.At(axis)
 }
 func (g *GridAccel) offset(x, y, z int) int {
 	return z*g.nVoxels[0]*g.nVoxels[1] + y*g.nVoxels[0] + x

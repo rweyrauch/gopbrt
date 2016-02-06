@@ -45,22 +45,22 @@ type (
 	}
 
 	Ray struct {
-		origin     Point
-		dir        Vector
-		mint, maxt float64
-		time       float64
-		depth      int
+		Origin     Point
+		Dir        Vector
+		Mint, Maxt float64
+		Time       float64
+		Depth      int
 	}
 
 	RayDifferential struct {
 		Ray
-		hasDifferentials         bool
-		rxOrigin, ryOrigin       Point
-		rxDirection, ryDirection Vector
+		HasDifferentials         bool
+		RxOrigin, RyOrigin       Point
+		RxDirection, RyDirection Vector
 	}
 
 	BBox struct {
-		pMin, pMax Point
+		PMin, PMax Point
 	}
 )
 
@@ -361,47 +361,47 @@ func CreateRay(origin *Point, direction *Vector, start, end, t float64, d int) *
 	return &Ray{*origin, *direction, start, end, t, d}
 }
 func CreateChildRay(origin *Point, direction *Vector, parent *Ray, start, end float64) *Ray {
-	return &Ray{*origin, *direction, start, end, parent.time, parent.depth + 1}
+	return &Ray{*origin, *direction, start, end, parent.Time, parent.Depth + 1}
 }
 
 func (r *Ray) PointAt(t float64) *Point {
-	return r.origin.Add(r.dir.Scale(t))
+	return r.Origin.Add(r.Dir.Scale(t))
 }
 
 func (ray *Ray) HasNaNs() bool {
-	return ray.dir.HasNaNs() || ray.origin.HasNaNs() || math.IsNaN(ray.mint) || math.IsNaN(ray.maxt)
+	return ray.Dir.HasNaNs() || ray.Origin.HasNaNs() || math.IsNaN(ray.Mint) || math.IsNaN(ray.Maxt)
 }
 
 func (r *Ray) String() string {
-	return fmt.Sprintf("ray[origin:%v dir:%v start:%f end:%f time:%f depth:%d]", &r.origin, &r.dir, r.mint, r.maxt, r.time, r.depth)
+	return fmt.Sprintf("ray[origin:%v dir:%v start:%f end:%f time:%f depth:%d]", &r.Origin, &r.Dir, r.Mint, r.Maxt, r.Time, r.Depth)
 }
 func (r *RayDifferential) String() string {
-	return fmt.Sprintf("raydiff[origin:%v dir:%v start:%f end:%f time:%f depth:%d diffs:%s]", &r.origin, &r.dir, r.mint, r.maxt, r.time, r.depth, r.hasDifferentials)
+	return fmt.Sprintf("raydiff[origin:%v dir:%v start:%f end:%f time:%f depth:%d diffs:%s]", &r.Origin, &r.Dir, r.Mint, r.Maxt, r.Time, r.Depth, r.HasDifferentials)
 }
 
 func CreateRayDifferential(origin *Point, direction *Vector, start, end, t float64, d int) *RayDifferential {
 	return &RayDifferential{Ray{*origin, *direction, start, end, t, d}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
 }
 func CreateChildRayDifferential(origin *Point, direction *Vector, parent *Ray, start, end float64) *RayDifferential {
-	return &RayDifferential{Ray{*origin, *direction, start, end, parent.time, parent.depth + 1}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
+	return &RayDifferential{Ray{*origin, *direction, start, end, parent.Time, parent.Depth + 1}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
 }
 func CreateRayDifferentialFromRay(ray *Ray) *RayDifferential {
-	return &RayDifferential{Ray{ray.origin, ray.dir, ray.mint, ray.maxt, ray.time, ray.depth}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
+	return &RayDifferential{Ray{ray.Origin, ray.Dir, ray.Mint, ray.Maxt, ray.Time, ray.Depth}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
 }
 func CreateRayFromRayDifferential(ray *RayDifferential) *Ray {
-	return &Ray{ray.origin, ray.dir, ray.mint, ray.maxt, ray.time, ray.depth}
+	return &Ray{ray.Origin, ray.Dir, ray.Mint, ray.Maxt, ray.Time, ray.Depth}
 }
 
 func (r *RayDifferential) ScaleDifferentials(s float64) {
-	r.rxOrigin = *r.origin.Add(r.rxOrigin.Sub(&r.origin).Scale(s))
-	r.ryOrigin = *r.origin.Add(r.ryOrigin.Sub(&r.origin).Scale(s))
-	r.rxDirection = *r.dir.Add(r.rxDirection.Sub(&r.dir).Scale(s))
-	r.ryDirection = *r.dir.Add(r.ryDirection.Sub(&r.dir).Scale(s))
+	r.RxOrigin = *r.Origin.Add(r.RxOrigin.Sub(&r.Origin).Scale(s))
+	r.RyOrigin = *r.Origin.Add(r.RyOrigin.Sub(&r.Origin).Scale(s))
+	r.RxDirection = *r.Dir.Add(r.RxDirection.Sub(&r.Dir).Scale(s))
+	r.RyDirection = *r.Dir.Add(r.RyDirection.Sub(&r.Dir).Scale(s))
 }
 
 func (ray *RayDifferential) HasNaNs() bool {
-	return ray.dir.HasNaNs() || ray.origin.HasNaNs() || math.IsNaN(ray.mint) || math.IsNaN(ray.maxt) ||
-		(ray.hasDifferentials && ray.rxOrigin.HasNaNs() || ray.ryOrigin.HasNaNs() || ray.rxDirection.HasNaNs() || ray.ryDirection.HasNaNs())
+	return ray.Dir.HasNaNs() || ray.Origin.HasNaNs() || math.IsNaN(ray.Mint) || math.IsNaN(ray.Maxt) ||
+		(ray.HasDifferentials && ray.RxOrigin.HasNaNs() || ray.RyOrigin.HasNaNs() || ray.RxDirection.HasNaNs() || ray.RyDirection.HasNaNs())
 }
 
 func CreateEmptyBBox() *BBox {
@@ -412,44 +412,44 @@ func CreateBBoxFromPoint(p *Point) *BBox {
 }
 func CreateBBoxFromPoints(p1, p2 *Point) *BBox {
 	bbox := new(BBox)
-	bbox.pMin.X, bbox.pMin.Y, bbox.pMin.Z = math.Min(p1.X, p2.X), math.Min(p1.Y, p2.Y), math.Min(p1.Z, p2.Z)
-	bbox.pMax.X, bbox.pMax.Y, bbox.pMax.Z = math.Max(p1.X, p2.X), math.Max(p1.Y, p2.Y), math.Max(p1.Z, p2.Z)
+	bbox.PMin.X, bbox.PMin.Y, bbox.PMin.Z = math.Min(p1.X, p2.X), math.Min(p1.Y, p2.Y), math.Min(p1.Z, p2.Z)
+	bbox.PMax.X, bbox.PMax.Y, bbox.PMax.Z = math.Max(p1.X, p2.X), math.Max(p1.Y, p2.Y), math.Max(p1.Z, p2.Z)
 	return bbox
 }
 func UnionBBoxPoint(b *BBox, p *Point) *BBox {
-	return &BBox{Point{math.Min(b.pMin.X, p.X), math.Min(b.pMin.Y, p.Y), math.Min(b.pMin.Z, p.Z)},
-		Point{math.Max(b.pMax.X, p.X), math.Max(b.pMax.Y, p.Y), math.Max(b.pMax.Z, p.Z)}}
+	return &BBox{Point{math.Min(b.PMin.X, p.X), math.Min(b.PMin.Y, p.Y), math.Min(b.PMin.Z, p.Z)},
+		Point{math.Max(b.PMax.X, p.X), math.Max(b.PMax.Y, p.Y), math.Max(b.PMax.Z, p.Z)}}
 }
 
 func UnionBBoxes(b1, b2 *BBox) *BBox {
-	return &BBox{Point{math.Min(b1.pMin.X, b2.pMin.X), math.Min(b1.pMin.Y, b2.pMin.Y), math.Min(b1.pMin.Z, b2.pMin.Z)},
-		Point{math.Max(b1.pMax.X, b2.pMax.X), math.Max(b1.pMax.Y, b2.pMax.Y), math.Max(b1.pMax.Z, b2.pMax.Z)}}
+	return &BBox{Point{math.Min(b1.PMin.X, b2.PMin.X), math.Min(b1.PMin.Y, b2.PMin.Y), math.Min(b1.PMin.Z, b2.PMin.Z)},
+		Point{math.Max(b1.PMax.X, b2.PMax.X), math.Max(b1.PMax.Y, b2.PMax.Y), math.Max(b1.PMax.Z, b2.PMax.Z)}}
 }
 func (b1 *BBox) Overlaps(b2 *BBox) bool {
-	x := (b1.pMax.X >= b2.pMin.X) && (b1.pMin.X <= b2.pMax.X)
-	y := (b1.pMax.Y >= b2.pMin.Y) && (b1.pMin.Y <= b2.pMax.Y)
-	z := (b1.pMax.Z >= b2.pMin.Z) && (b1.pMin.Z <= b2.pMax.Z)
+	x := (b1.PMax.X >= b2.PMin.X) && (b1.PMin.X <= b2.PMax.X)
+	y := (b1.PMax.Y >= b2.PMin.Y) && (b1.PMin.Y <= b2.PMax.Y)
+	z := (b1.PMax.Z >= b2.PMin.Z) && (b1.PMin.Z <= b2.PMax.Z)
 	return x && y && z
 }
 func (b *BBox) Inside(pt *Point) bool {
-	return (pt.X >= b.pMin.X && pt.X <= b.pMax.X &&
-		pt.Y >= b.pMin.Y && pt.Y <= b.pMax.Y &&
-		pt.Z >= b.pMin.Z && pt.Z <= b.pMax.Z)
+	return (pt.X >= b.PMin.X && pt.X <= b.PMax.X &&
+		pt.Y >= b.PMin.Y && pt.Y <= b.PMax.Y &&
+		pt.Z >= b.PMin.Z && pt.Z <= b.PMax.Z)
 }
 func (b *BBox) Expand(delta float64) {
-	b.pMin = Point{b.pMin.X - delta, b.pMin.Y - delta, b.pMin.Z - delta}
-	b.pMax = Point{b.pMax.X + delta, b.pMax.Y + delta, b.pMax.Z + delta}
+	b.PMin = Point{b.PMin.X - delta, b.PMin.Y - delta, b.PMin.Z - delta}
+	b.PMax = Point{b.PMax.X + delta, b.PMax.Y + delta, b.PMax.Z + delta}
 }
 func (b *BBox) SurfaceArea() float64 {
-	d := b.pMax.Sub(&b.pMin)
+	d := b.PMax.Sub(&b.PMin)
 	return 2.0 * (d.X*d.Y + d.X*d.Z + d.Y*d.Z)
 }
 func (b *BBox) Volume() float64 {
-	d := b.pMax.Sub(&b.pMin)
+	d := b.PMax.Sub(&b.PMin)
 	return d.X * d.Y * d.Z
 }
 func (b *BBox) MaximumExtent() int {
-	diag := b.pMax.Sub(&b.pMin)
+	diag := b.PMax.Sub(&b.PMin)
 	if diag.X > diag.Y && diag.X > diag.Z {
 		return 0
 	} else if diag.Y > diag.Z {
@@ -460,37 +460,37 @@ func (b *BBox) MaximumExtent() int {
 }
 func (b *BBox) PointAtIndex(i int) *Point {
 	if i == 0 {
-		return &b.pMin
+		return &b.PMin
 	} else if i == 1 {
-		return &b.pMax
+		return &b.PMax
 	}
 	panic(fmt.Errorf("PointAtIndex: Invalid index, %d", i))
 }
 
 func (b *BBox) Lerp(tx, ty, tz float64) *Point {
-	return &Point{Lerp(tx, b.pMin.X, b.pMax.X), Lerp(ty, b.pMin.Y, b.pMax.Y), Lerp(tz, b.pMin.Z, b.pMax.Z)}
+	return &Point{Lerp(tx, b.PMin.X, b.PMax.X), Lerp(ty, b.PMin.Y, b.PMax.Y), Lerp(tz, b.PMin.Z, b.PMax.Z)}
 }
 func (b *BBox) Offset(p *Point) *Vector {
-	return &Vector{(p.X - b.pMin.X) / (b.pMax.X - b.pMin.X),
-		(p.Y - b.pMin.Y) / (b.pMax.Y - b.pMin.Y),
-		(p.Z - b.pMin.Z) / (b.pMax.Z - b.pMin.Z)}
+	return &Vector{(p.X - b.PMin.X) / (b.PMax.X - b.PMin.X),
+		(p.Y - b.PMin.Y) / (b.PMax.Y - b.PMin.Y),
+		(p.Z - b.PMin.Z) / (b.PMax.Z - b.PMin.Z)}
 }
 func (b *BBox) BoundingSphere() (c *Point, rad float64) {
-	c = b.pMin.Add(&Vector{b.pMax.X, b.pMax.Y, b.pMax.Z}).Scale(0.5)
+	c = b.PMin.Add(&Vector{b.PMax.X, b.PMax.Y, b.PMax.Z}).Scale(0.5)
 	if b.Inside(c) {
-		rad = DistancePoint(c, &b.pMax)
+		rad = DistancePoint(c, &b.PMax)
 	} else {
 		rad = 0.0
 	}
 	return c, rad
 }
 func (b *BBox) IntersectP(ray *Ray) (bool, float64, float64) {
-	t0, t1 := ray.mint, ray.maxt
+	t0, t1 := ray.Mint, ray.Maxt
 	for i := 0; i < 3; i++ {
 		// Update interval for _i_th bounding box slab
-		invRayDir := 1.0 / ray.dir.At(i)
-		tNear := (b.pMin.At(i) - ray.origin.At(i)) * invRayDir
-		tFar := (b.pMax.At(i) - ray.origin.At(i)) * invRayDir
+		invRayDir := 1.0 / ray.Dir.At(i)
+		tNear := (b.PMin.At(i) - ray.Origin.At(i)) * invRayDir
+		tFar := (b.PMax.At(i) - ray.Origin.At(i)) * invRayDir
 
 		// Update parametric interval from slab intersection $t$s
 		if tNear > tFar {
@@ -509,11 +509,11 @@ func (b *BBox) IntersectP(ray *Ray) (bool, float64, float64) {
 	return true, t0, t1
 }
 func EqualBBox(b1, b2 *BBox) bool {
-	return EqualPoint(&b1.pMin, &b2.pMin) && EqualPoint(&b1.pMax, &b2.pMax)
+	return EqualPoint(&b1.PMin, &b2.PMin) && EqualPoint(&b1.PMax, &b2.PMax)
 }
 func NotEqualBBox(b1, b2 *BBox) bool {
-	return NotEqualPoint(&b1.pMin, &b2.pMin) || NotEqualPoint(&b1.pMax, &b2.pMax)
+	return NotEqualPoint(&b1.PMin, &b2.PMin) || NotEqualPoint(&b1.PMax, &b2.PMax)
 }
 func (b *BBox) String() string {
-	return fmt.Sprintf("bbox[ min: %v max: %v ]", &b.pMin, &b.pMax)
+	return fmt.Sprintf("bbox[ min: %v max: %v ]", &b.PMin, &b.PMax)
 }

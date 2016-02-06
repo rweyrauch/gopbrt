@@ -120,7 +120,7 @@ func (p *GeometricPrimitive) Intersect(r *RayDifferential) (hit bool, isect *Int
 	isect.shapeId = p.shape.ShapeId()
 	isect.primitiveId = p.primitiveId
 	isect.rayEpsilon = rayEpsilon
-	r.maxt = thit
+	r.Maxt = thit
 
 	return true, isect
 }
@@ -187,13 +187,13 @@ func (p *TransformedPrimitive) CanIntersect() bool {
 }
 
 func (p *TransformedPrimitive) Intersect(r *RayDifferential) (hit bool, isect *Intersection) {
-	w2p := p.worldToPrimitive.Interpolate(r.time)
+	w2p := p.worldToPrimitive.Interpolate(r.Time)
 	ray := RayDifferentialTransform(w2p, r)
 	if hit, isect = p.primitive.Intersect(ray); !hit {
 		return false, nil
 	}
 
-	r.maxt = ray.maxt
+	r.Maxt = ray.Maxt
 	isect.primitiveId = p.primitiveId
 	if !IsIdentityTransform(w2p) {
 		// Compute world-to-object transformation for instance

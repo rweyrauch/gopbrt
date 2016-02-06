@@ -76,7 +76,7 @@ type (
 )
 
 func CreateBVHPrimitiveInfo(pn int, b *BBox) BVHPrimitiveInfo {
-	centroid := &Point{b.pMax.X + b.pMin.X, b.pMax.Y + b.pMin.Y, b.pMax.Z + b.pMin.Z}
+	centroid := &Point{b.PMax.X + b.PMin.X, b.PMax.Y + b.PMin.Y, b.PMax.Z + b.PMin.Z}
 	return BVHPrimitiveInfo{pn, *centroid.Scale(0.5), *b}
 }
 
@@ -105,10 +105,10 @@ func (node *BVHBuildNode) InitInterior(axis int, c0, c1 *BVHBuildNode) {
 
 func IntersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg [3]int) bool {
 	// Check for ray intersection against $x$ and $y$ slabs
-	tmin := (bounds.PointAtIndex(dirIsNeg[0]).X - ray.origin.X) * invDir.X
-	tmax := (bounds.PointAtIndex(1-dirIsNeg[0]).X - ray.origin.X) * invDir.X
-	tymin := (bounds.PointAtIndex(dirIsNeg[1]).Y - ray.origin.Y) * invDir.Y
-	tymax := (bounds.PointAtIndex(1-dirIsNeg[1]).Y - ray.origin.Y) * invDir.Y
+	tmin := (bounds.PointAtIndex(dirIsNeg[0]).X - ray.Origin.X) * invDir.X
+	tmax := (bounds.PointAtIndex(1-dirIsNeg[0]).X - ray.Origin.X) * invDir.X
+	tymin := (bounds.PointAtIndex(dirIsNeg[1]).Y - ray.Origin.Y) * invDir.Y
+	tymax := (bounds.PointAtIndex(1-dirIsNeg[1]).Y - ray.Origin.Y) * invDir.Y
 	if (tmin > tymax) || (tymin > tmax) {
 		return false
 	}
@@ -120,8 +120,8 @@ func IntersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg [3]int) bool {
 	}
 
 	// Check for ray intersection against $z$ slab
-	tzmin := (bounds.PointAtIndex(dirIsNeg[2]).Z - ray.origin.Z) * invDir.Z
-	tzmax := (bounds.PointAtIndex(1-dirIsNeg[2]).Z - ray.origin.Z) * invDir.Z
+	tzmin := (bounds.PointAtIndex(dirIsNeg[2]).Z - ray.Origin.Z) * invDir.Z
+	tzmax := (bounds.PointAtIndex(1-dirIsNeg[2]).Z - ray.Origin.Z) * invDir.Z
 	if (tmin > tzmax) || (tzmin > tmax) {
 		return false
 	}
@@ -131,7 +131,7 @@ func IntersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg [3]int) bool {
 	if tzmax < tmax {
 		tmax = tzmax
 	}
-	return (tmin < ray.maxt) && (tmax > ray.mint)
+	return (tmin < ray.Maxt) && (tmax > ray.Mint)
 }
 
 func NewBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
@@ -299,7 +299,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 
 		// Partition primitives into two sets and build children
 		mid := (start + end) / 2
-		if centroidBounds.pMax.At(dim) == centroidBounds.pMin.At(dim) {
+		if centroidBounds.PMax.At(dim) == centroidBounds.PMin.At(dim) {
 			// If nPrimitives is no greater than maxPrimsInNode,
 			// then all the nodes can be stored in a compact bvh node.
 			if nPrimitives <= bvh.maxPrimsInNode {
@@ -330,7 +330,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 		switch bvh.splitMethod {
 		case SPLIT_MIDDLE:
 			// Partition primitives through node's midpoint
-			pmid := 0.5 * (centroidBounds.pMin.At(dim) + centroidBounds.pMax.At(dim))
+			pmid := 0.5 * (centroidBounds.PMin.At(dim) + centroidBounds.PMax.At(dim))
 			compareToMid := func(info *BVHPrimitiveInfo) bool {
 				if info.centroid.At(dim) < pmid {
 					return true
@@ -373,8 +373,8 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 				// Initialize _BucketInfo_ for SAH partition buckets
 				for i := start; i < end; i++ {
 					b := int(float64(SAH_NUM_BUCKETS) *
-						((buildData[i].centroid.At(dim) - centroidBounds.pMin.At(dim)) /
-							(centroidBounds.pMax.At(dim) - centroidBounds.pMin.At(dim))))
+						((buildData[i].centroid.At(dim) - centroidBounds.PMin.At(dim)) /
+							(centroidBounds.PMax.At(dim) - centroidBounds.PMin.At(dim))))
 					if b == SAH_NUM_BUCKETS {
 						b = SAH_NUM_BUCKETS - 1
 					}
@@ -413,7 +413,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 				// Either create leaf or split primitives at selected SAH bucket
 				if nPrimitives > bvh.maxPrimsInNode || minCost < float64(nPrimitives) {
 					compareToBucket := func(info *BVHPrimitiveInfo) bool {
-						b := int(float64(SAH_NUM_BUCKETS) * ((info.centroid.At(dim) - centroidBounds.pMin.At(dim)) / (centroidBounds.pMax.At(dim) - centroidBounds.pMin.At(dim))))
+						b := int(float64(SAH_NUM_BUCKETS) * ((info.centroid.At(dim) - centroidBounds.PMin.At(dim)) / (centroidBounds.PMax.At(dim) - centroidBounds.PMin.At(dim))))
 						if b == SAH_NUM_BUCKETS {
 							b = SAH_NUM_BUCKETS - 1
 						}
@@ -452,7 +452,7 @@ func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	hitSomething := false
 	var isect *Intersection
 
-	invDir := CreateVector(1.0/ray.dir.X, 1.0/ray.dir.Y, 1.0/ray.dir.Z)
+	invDir := CreateVector(1.0/ray.Dir.X, 1.0/ray.Dir.Y, 1.0/ray.Dir.Z)
 	dirIsNeg := [3]int{0, 0, 0}
 	if invDir.X < 0 {
 		dirIsNeg[0] = 1
@@ -518,7 +518,7 @@ func (bvh *BVHAccel) IntersectP(ray *Ray) bool {
 		return false
 	}
 	//PBRT_BVH_INTERSECTIONP_STARTED(const_cast<BVHAccel *>(this), const_cast<Ray *>(&ray))
-	invDir := CreateVector(1.0/ray.dir.X, 1.0/ray.dir.Y, 1.0/ray.dir.Z)
+	invDir := CreateVector(1.0/ray.Dir.X, 1.0/ray.Dir.Y, 1.0/ray.Dir.Z)
 	dirIsNeg := [3]int{0, 0, 0}
 	if invDir.X < 0 {
 		dirIsNeg[0] = 1

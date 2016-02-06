@@ -76,11 +76,11 @@ func (d *Disk) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 	ray := RayTransform(d.worldToObject, r)
 
 	// Compute plane intersection for disk
-	if math.Abs(ray.dir.Z) < 1.0e-7 {
+	if math.Abs(ray.Dir.Z) < 1.0e-7 {
 		return false, 0.0, 0.0, nil
 	}
-	thit := (d.height - ray.origin.Z) / ray.dir.Z
-	if thit < ray.mint || thit > ray.maxt {
+	thit := (d.height - ray.Origin.Z) / ray.Dir.Z
+	if thit < ray.Mint || thit > ray.Maxt {
 		return false, 0.0, 0.0, nil
 	}
 
@@ -131,11 +131,11 @@ func (d *Disk) IntersectP(r *Ray) bool {
 	ray := RayTransform(d.worldToObject, r)
 
 	// Compute plane intersection for disk
-	if math.Abs(ray.dir.Z) < 1.0e-7 {
+	if math.Abs(ray.Dir.Z) < 1.0e-7 {
 		return false
 	}
-	thit := (d.height - ray.origin.Z) / ray.dir.Z
-	if thit < ray.mint || thit > ray.maxt {
+	thit := (d.height - ray.Origin.Z) / ray.Dir.Z
+	if thit < ray.Mint || thit > ray.Maxt {
 		return false
 	}
 
