@@ -518,14 +518,17 @@ func (t *AnimatedTransform) Interpolate(time float64) *Transform {
 	rotate := Slerp(dt, t.r[0], t.r[1])
 
 	// Interpolate scale at _dt_
-	scale := new(Matrix4x4)
+	scale := NewIdentityMatrix4x4()
 	for i := 0; i < 3; i++ {
 		for j := 0; j < 3; j++ {
 			scale.m[i][j] = Lerp(dt, t.s[0].m[i][j], t.s[1].m[i][j])
 		}
 	}
 	// Compute interpolated matrix as product of interpolated components
-	scaleTrans, _ := NewTransform(scale)
+	scaleTrans, err := NewTransform(scale)
+	if err != nil {
+		Severe("Scale transform is not invertable. Scale: %v", scale)
+	}
 	rotTrans := rotate.ToTransform()
 	return TranslateTransform(trans).MultTransform(rotTrans.MultTransform(scaleTrans))
 }
