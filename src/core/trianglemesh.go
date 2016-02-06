@@ -521,15 +521,7 @@ func (t *Triangle) Area() float64 {
 	return 0.5 * CrossVector(p2.Sub(p1), p3.Sub(p1)).Length()
 }
 
-func (t *Triangle) Sample(u1, u2 float64) (*Point, *Normal) {
-	return nil, nil
-}
-
-func (t *Triangle) Pdf(pshape *Point) float64 {
-	return 0.0
-}
-
-func (t *Triangle) SampleAt(p *Point, u1, u2 float64) (ps *Point, ns *Normal) {
+func (t *Triangle) Sample(u1, u2 float64) (ps *Point, ns *Normal) {
 	b1, b2 := UniformSampleTriangle(u1, u2)
 	// Get triangle vertices in _p1_, _p2_, and _p3_
 	p1 := &t.mesh.p[t.v[0]]
@@ -542,6 +534,14 @@ func (t *Triangle) SampleAt(p *Point, u1, u2 float64) (ps *Point, ns *Normal) {
 		ns = ns.Scale(-1.0)
 	}
 	return ps, ns
+}
+
+func (t *Triangle) Pdf(pshape *Point) float64 {
+	return 0.0
+}
+
+func (t *Triangle) SampleAt(p *Point, u1, u2 float64) (ps *Point, ns *Normal) {
+	return t.Sample(u1, u2)
 }
 
 func (t *Triangle) Pdf2(p *Point, wi *Vector) float64 {
