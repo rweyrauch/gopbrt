@@ -351,6 +351,8 @@ func (ps *ParamSet) FindNormalArrayParam(name string) []Normal {
 	return array
 }
 
+var cachedSpectra map[string]*Spectrum = make(map[string]*Spectrum)
+
 func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 	if ps == nil {
 		return defval
@@ -367,9 +369,29 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 		if strings.Compare(p, spectrumparamname) == 0 {
 			if values, ok := ps.params[i].([]Object); ok {
 				if len(values) > 0 {
-					if _, ok := values[0].(string); ok {
-						// TODO: load and read spectrum data file.
-						Unimplemented()
+					if filename, ok := values[0].(string); ok {
+						cs := cachedSpectra[filename]
+						if cs != nil {
+							value = *cs
+						} else {
+							ok, spectra := ReadFloatFile(filename)
+							if ok {
+					            if len(spectra) % 2 != 0 {
+					                Warning("Extra value found in spectrum file \"%s\". Ignoring it.", filename)
+					            }
+					            wls := make([]float64, 0, len(spectra)/2)
+					            v := make([]float64, 0, len(spectra)/2)
+					            for j := 0; j < len(spectra) / 2; j++ {
+					                wls = append(wls, spectra[2*j])
+					                v = append(v, spectra[2*j+1])
+					            }
+					            value = *SpectrumFromSampled(wls, v)
+							} else {
+           						Warning("Unable to read SPD file \"%s\".  Using black distribution.", filename)
+            					value = *NewSpectrum1(0.0)								
+							}
+							cachedSpectra[filename] = &value
+						}
 					} else {
 						// TODO: read pairs of sampld spectrum data
 						Unimplemented()

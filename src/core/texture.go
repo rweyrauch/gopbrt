@@ -674,23 +674,29 @@ func (tex *FBmTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
 }
 
 func NewImageTextureFloat(mapping TextureMapping2D, filename string, trilinear bool, maxanisotropy float64, wrap WrapMode, scale, gamma float64) *ImageTextureFloat {
-	Unimplemented()
-	return nil
+	tex := new(ImageTextureFloat)
+	tex.mapping = mapping
+	tex.mipmap = getTextureFloat(filename, trilinear, maxanisotropy, wrap, scale, gamma)
+	return tex
 }
 
-func (t *ImageTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-	Unimplemented()
-	return 0.0
+func (tex *ImageTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
+    s, t, dsdx, dtdx, dsdy, dtdy := tex.mapping.Map(dg)
+    ret := tex.mipmap.LookupEwa(s, t, dsdx, dtdx, dsdy, dtdy)
+	return ret
 }
 
 func NewImageTextureSpectrum(mapping TextureMapping2D, filename string, trilinear bool, maxanisotropy float64, wrap WrapMode, scale, gamma float64) *ImageTextureSpectrum {
-	Unimplemented()
-	return nil
+	tex := new(ImageTextureSpectrum)
+	tex.mapping = mapping
+	tex.mipmap = getTextureSpectrum(filename, trilinear, maxanisotropy, wrap, scale, gamma)
+	return tex
 }
 
-func (t *ImageTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
-	Unimplemented()
-	return NewSpectrum1(0.0)
+func (tex *ImageTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
+    s, t, dsdx, dtdx, dsdy, dtdy := tex.mapping.Map(dg)
+    ret := tex.mipmap.LookupEwa(s, t, dsdx, dtdx, dsdy, dtdy)
+	return ret
 }
 
 func NewMarbleTextureFloat(oct int, roughness, scale, variation float64, mapping TextureMapping3D) *MarbleTextureFloat {
@@ -804,6 +810,11 @@ var (
 	textureFloatCache    map[texInfo]*MIPMapFloat
 	textureSpectrumCache map[texInfo]*MIPMapSpectrum
 )
+
+func init() {
+	textureFloatCache    = make(map[texInfo]*MIPMapFloat)
+	textureSpectrumCache = make(map[texInfo]*MIPMapSpectrum)	
+}
 
 func getTextureFloat(filename string, doTrilinear bool, maxAniso float64, wrapMode WrapMode, scale, gamma float64) *MIPMapFloat {
 	texKey := texInfo{filename, doTrilinear, maxAniso, wrapMode, scale, gamma}
