@@ -30,7 +30,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"strings"
 )
 
 type LightStrategy int
@@ -83,40 +82,12 @@ type (
 		B              []Spectrum
 	}
 
-	IrradianceCacheIntegrator struct {
-		minSamplePixelSpacing, maxSamplePixelSpacing float64
-		minWeight, cosMaxSampleAngleDifference       float64
-		nSamples, maxSpecularDepth, maxIndirectDepth int
-
-		// Declare sample parameters for light source sampling
-		lightSampleOffsets []LightSampleOffsets
-		bsdfSampleOffsets  []BSDFSampleOffsets
-		//octree []*OctreeIrradianceSample
-	}
-
 	PathIntegrator struct {
 		maxDepth           int
 		lightSampleOffsets [SAMPLE_DEPTH]LightSampleOffsets
 		lightNumOffset     [SAMPLE_DEPTH]int
 		bsdfSampleOffsets  [SAMPLE_DEPTH]BSDFSampleOffsets
 		pathSampleOffsets  [SAMPLE_DEPTH]BSDFSampleOffsets
-	}
-
-	PhotonIntegrator struct {
-		nCausticPhotonsWanted, nIndirectPhotonsWanted, nLookup int
-		maxDistSquared                                         float64
-		maxSpecularDepth, maxPhotonDepth                       int
-		finalGather                                            bool
-		gatherSamples                                          int
-		cosGatherAngle                                         float64
-
-		// Declare sample parameters for light source sampling
-		lightSampleOffsets                                []LightSampleOffsets
-		bsdfSampleOffsets                                 []BSDFSampleOffsets
-		bsdfGatherSampleOffsets, indirGatherSampleOffsets BSDFSampleOffsets
-		nCausticPaths, nIndirectPaths                     int
-		//causticMap, indirectMap *KdTreePhoton
-		//radianceMap *KdTreeRadiancePhoton
 	}
 
 	UseRadianceProbes struct {
@@ -324,21 +295,6 @@ func (integrator *GlossyPRTIntegrator) Li(scene *Scene, renderer Renderer, ray *
 	return L
 }
 
-func NewIrradianceCacheIntegrator(minWeight, minSpacing, maxSpacing, maxAngle float64,
-	maxSpecularDepth, maxIndirectDepth, nSamples int) *IrradianceCacheIntegrator {
-	Unimplemented()
-	return nil
-}
-func (integrator *IrradianceCacheIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer) {
-}
-func (integrator *IrradianceCacheIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {
-}
-func (integrator *IrradianceCacheIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
-	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	Unimplemented()
-	return nil
-}
-
 func NewPathIntegrator(maxDepth int) *PathIntegrator {
 	integrator := new(PathIntegrator)
 	integrator.maxDepth = maxDepth
@@ -423,18 +379,6 @@ func (integrator *PathIntegrator) Li(scene *Scene, renderer Renderer, r *RayDiff
 		isectp = localIsect
 	}
 	return L
-}
-
-func NewPhotonIntegrator(nCaustic, nIndirect, nUsed, maxSpecularDepth, maxPhotonDepth int, maxDist float64, finalGather bool, gatherSamples int, gatherAngle float64) *PhotonIntegrator {
-	Unimplemented()
-	return nil
-}
-func (integrator *PhotonIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
-func (integrator *PhotonIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {}
-func (integrator *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
-	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-	Unimplemented()
-	return nil
 }
 
 func NewUseRadianceProbes(filename string) *UseRadianceProbes {
@@ -604,98 +548,6 @@ func (integrator *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *Ra
 		L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))
 	}
 	return L
-}
-
-func CreateAmbientOcclusionIntegrator(params *ParamSet) *AmbientOcclusionIntegrator {
-	nSamples := params.FindIntParam("nsamples", 2048)
-	maxDist := params.FindFloatParam("maxdist", INFINITY)
-	if options.QuickRender {
-		nSamples = Maxi(1, nSamples/4)
-	}
-	return &AmbientOcclusionIntegrator{nSamples, maxDist}
-}
-
-func CreateDiffusePRTIntegratorSurfaceIntegrator(params *ParamSet) *DiffusePRTIntegrator {
-	lmax := params.FindIntParam("lmax", 4)
-	ns := params.FindIntParam("nsamples", 4096)
-	integrator := &DiffusePRTIntegrator{lmax, int(RoundUpPow2(uint32(ns))), nil}
-	integrator.c_in = make([]Spectrum, SHTerms(lmax), SHTerms(lmax))
-	return integrator
-}
-
-func CreateGlossyPRTIntegratorSurfaceIntegrator(params *ParamSet) *GlossyPRTIntegrator {
-	lmax := params.FindIntParam("lmax", 4)
-	ns := params.FindIntParam("nsamples", 4096)
-	Kd := params.FindSpectrumParam("Kd", *NewSpectrum1(0.5))
-	Ks := params.FindSpectrumParam("Ks", *NewSpectrum1(0.25))
-	roughness := params.FindFloatParam("roughness", 0.1)
-	return NewGlossyPRTIntegrator(Kd, Ks, roughness, lmax, ns)
-}
-
-func CreateIrradianceCacheIntegrator(params *ParamSet) *IrradianceCacheIntegrator {
-	minWeight := params.FindFloatParam("minweight", 0.5)
-	minSpacing := params.FindFloatParam("minpixelspacing", 2.5)
-	maxSpacing := params.FindFloatParam("maxpixelspacing", 15.0)
-	maxAngle := params.FindFloatParam("maxangledifference", 10.0)
-	maxSpecularDepth := params.FindIntParam("maxspeculardepth", 5)
-	maxIndirectDepth := params.FindIntParam("maxindirectdepth", 3)
-	nSamples := params.FindIntParam("nsamples", 4096)
-	if options.QuickRender {
-		nSamples = Maxi(1, nSamples/16)
-	}
-	return NewIrradianceCacheIntegrator(minWeight, minSpacing, maxSpacing, maxAngle,
-		maxSpecularDepth, maxIndirectDepth, nSamples)
-}
-
-func CreatePathSurfaceIntegrator(params *ParamSet) *PathIntegrator {
-	maxDepth := params.FindIntParam("maxdepth", 5)
-	return NewPathIntegrator(maxDepth)
-}
-
-func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator {
-	nCaustic := params.FindIntParam("causticphotons", 20000)
-	nIndirect := params.FindIntParam("indirectphotons", 100000)
-	nUsed := params.FindIntParam("nused", 50)
-	if options.QuickRender {
-		nCaustic = nCaustic / 10
-		nIndirect = nIndirect / 10
-		nUsed = Maxi(1, nUsed/10)
-	}
-	maxSpecularDepth := params.FindIntParam("maxspeculardepth", 5)
-	maxPhotonDepth := params.FindIntParam("maxphotondepth", 5)
-	finalGather := params.FindBoolParam("finalgather", true)
-	gatherSamples := params.FindIntParam("finalgathersamples", 32)
-	if options.QuickRender {
-		gatherSamples = Maxi(1, gatherSamples/4)
-	}
-	maxDist := params.FindFloatParam("maxdist", 0.1)
-	gatherAngle := params.FindFloatParam("gatherangle", 10.0)
-	return NewPhotonIntegrator(nCaustic, nIndirect, nUsed, maxSpecularDepth, maxPhotonDepth, maxDist, finalGather, gatherSamples, gatherAngle)
-}
-
-func CreateRadianceProbesSurfaceIntegrator(params *ParamSet) *UseRadianceProbes {
-	filename := params.FindFilenameParam("filename", "probes.out")
-	return NewUseRadianceProbes(filename)
-}
-
-func CreateDirectLightingIntegrator(params *ParamSet) *DirectLightingIntegrator {
-	maxDepth := params.FindIntParam("maxdepth", 5)
-	var strategy LightStrategy
-	st := params.FindStringParam("strategy", "all")
-	if strings.Compare(st, "one") == 0 {
-		strategy = SAMPLE_ONE_UNIFORM
-	} else if strings.Compare(st, "all") == 0 {
-		strategy = SAMPLE_ALL_UNIFORM
-	} else {
-		Warning("Strategy \"%s\" for direct lighting unknown.  Using \"all\".", st)
-		strategy = SAMPLE_ALL_UNIFORM
-	}
-	return &DirectLightingIntegrator{strategy, maxDepth, nil, nil, 0}
-}
-
-func CreateWhittedSurfaceIntegrator(params *ParamSet) *WhittedIntegrator {
-	maxDepth := params.FindIntParam("maxdepth", 5)
-	return &WhittedIntegrator{maxDepth}
 }
 
 func UniformSampleAllLights(scene *Scene, renderer Renderer,

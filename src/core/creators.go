@@ -1,3 +1,29 @@
+/*
+	gopbrt
+
+	Port of pbrt v2.0.0 by Matt Pharr and Greg Humphreys to the go language.
+    pbrt source code Copyright(c) 1998-2012 Matt Pharr and Greg Humphreys.
+
+	The MIT License (MIT)
+	Copyright (c) 2016 Rick Weyrauch
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of
+	this software and associated documentation files (the "Software"), to deal in
+	the Software without restriction, including without limitation the rights to
+	use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+	of the Software, and to permit persons to whom the Software is furnished to do
+	so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+	OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 package core
 
 import (
@@ -613,7 +639,11 @@ func CreateMixSpectrumTexture(tex2world *Transform, tp *TextureParams) *MixTextu
 }
 
 func CreateScaleFloatTexture(tex2world *Transform, tp *TextureParams) *ScaleTextureFloat {
-	return &ScaleTextureFloat{tp.GetFloatTexture("tex1", 1.0), tp.GetFloatTexture("tex2", 1.0)}
+	tex1 := tp.GetFloatTexture("tex1", 1.0)
+	tex2 := tp.GetFloatTexture("tex2", 1.0)
+	Assert(tex1 != nil)
+	Assert(tex2 != nil)
+	return &ScaleTextureFloat{tex1, tex2}
 }
 func CreateScaleSpectrumTexture(tex2world *Transform, tp *TextureParams) *ScaleTextureSpectrum {
 	return &ScaleTextureSpectrum{tp.GetSpectrumTexture("tex1", *NewSpectrum1(1.0)), tp.GetSpectrumTexture("tex2", *NewSpectrum1(1.0))}
@@ -666,4 +696,100 @@ func CreateWrinkledSpectrumTexture(tex2world *Transform, tp *TextureParams) *Wri
 	// Initialize 3D texture mapping _map_ from _tp_
 	mapping := NewIdentityMapping3D(tex2world)
 	return &WrinkledTextureSpectrum{tp.FindInt("octaves", 8), tp.FindFloat("roughness", 0.5), mapping}
+}
+
+/*
+	Integrators
+*/
+
+func CreateAmbientOcclusionIntegrator(params *ParamSet) *AmbientOcclusionIntegrator {
+	nSamples := params.FindIntParam("nsamples", 2048)
+	maxDist := params.FindFloatParam("maxdist", INFINITY)
+	if options.QuickRender {
+		nSamples = Maxi(1, nSamples/4)
+	}
+	return &AmbientOcclusionIntegrator{nSamples, maxDist}
+}
+
+func CreateDiffusePRTIntegratorSurfaceIntegrator(params *ParamSet) *DiffusePRTIntegrator {
+	lmax := params.FindIntParam("lmax", 4)
+	ns := params.FindIntParam("nsamples", 4096)
+	integrator := &DiffusePRTIntegrator{lmax, int(RoundUpPow2(uint32(ns))), nil}
+	integrator.c_in = make([]Spectrum, SHTerms(lmax), SHTerms(lmax))
+	return integrator
+}
+
+func CreateGlossyPRTIntegratorSurfaceIntegrator(params *ParamSet) *GlossyPRTIntegrator {
+	lmax := params.FindIntParam("lmax", 4)
+	ns := params.FindIntParam("nsamples", 4096)
+	Kd := params.FindSpectrumParam("Kd", *NewSpectrum1(0.5))
+	Ks := params.FindSpectrumParam("Ks", *NewSpectrum1(0.25))
+	roughness := params.FindFloatParam("roughness", 0.1)
+	return NewGlossyPRTIntegrator(Kd, Ks, roughness, lmax, ns)
+}
+
+func CreateIrradianceCacheIntegrator(params *ParamSet) *IrradianceCacheIntegrator {
+	minWeight := params.FindFloatParam("minweight", 0.5)
+	minSpacing := params.FindFloatParam("minpixelspacing", 2.5)
+	maxSpacing := params.FindFloatParam("maxpixelspacing", 15.0)
+	maxAngle := params.FindFloatParam("maxangledifference", 10.0)
+	maxSpecularDepth := params.FindIntParam("maxspeculardepth", 5)
+	maxIndirectDepth := params.FindIntParam("maxindirectdepth", 3)
+	nSamples := params.FindIntParam("nsamples", 4096)
+	if options.QuickRender {
+		nSamples = Maxi(1, nSamples/16)
+	}
+	return NewIrradianceCacheIntegrator(minWeight, minSpacing, maxSpacing, maxAngle,
+		maxSpecularDepth, maxIndirectDepth, nSamples)
+}
+
+func CreatePathSurfaceIntegrator(params *ParamSet) *PathIntegrator {
+	maxDepth := params.FindIntParam("maxdepth", 5)
+	return NewPathIntegrator(maxDepth)
+}
+
+func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator {
+	nCaustic := params.FindIntParam("causticphotons", 20000)
+	nIndirect := params.FindIntParam("indirectphotons", 100000)
+	nUsed := params.FindIntParam("nused", 50)
+	if options.QuickRender {
+		nCaustic = nCaustic / 10
+		nIndirect = nIndirect / 10
+		nUsed = Maxi(1, nUsed/10)
+	}
+	maxSpecularDepth := params.FindIntParam("maxspeculardepth", 5)
+	maxPhotonDepth := params.FindIntParam("maxphotondepth", 5)
+	finalGather := params.FindBoolParam("finalgather", true)
+	gatherSamples := params.FindIntParam("finalgathersamples", 32)
+	if options.QuickRender {
+		gatherSamples = Maxi(1, gatherSamples/4)
+	}
+	maxDist := params.FindFloatParam("maxdist", 0.1)
+	gatherAngle := params.FindFloatParam("gatherangle", 10.0)
+	return NewPhotonIntegrator(nCaustic, nIndirect, nUsed, maxSpecularDepth, maxPhotonDepth, maxDist, finalGather, gatherSamples, gatherAngle)
+}
+
+func CreateRadianceProbesSurfaceIntegrator(params *ParamSet) *UseRadianceProbes {
+	filename := params.FindFilenameParam("filename", "probes.out")
+	return NewUseRadianceProbes(filename)
+}
+
+func CreateDirectLightingIntegrator(params *ParamSet) *DirectLightingIntegrator {
+	maxDepth := params.FindIntParam("maxdepth", 5)
+	var strategy LightStrategy
+	st := params.FindStringParam("strategy", "all")
+	if strings.Compare(st, "one") == 0 {
+		strategy = SAMPLE_ONE_UNIFORM
+	} else if strings.Compare(st, "all") == 0 {
+		strategy = SAMPLE_ALL_UNIFORM
+	} else {
+		Warning("Strategy \"%s\" for direct lighting unknown.  Using \"all\".", st)
+		strategy = SAMPLE_ALL_UNIFORM
+	}
+	return &DirectLightingIntegrator{strategy, maxDepth, nil, nil, 0}
+}
+
+func CreateWhittedSurfaceIntegrator(params *ParamSet) *WhittedIntegrator {
+	maxDepth := params.FindIntParam("maxdepth", 5)
+	return &WhittedIntegrator{maxDepth}
 }
