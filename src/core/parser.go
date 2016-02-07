@@ -498,7 +498,7 @@ func (tp *TextureParams) GetFloatTexture(name string, defval float64) TextureFlo
 	}
 	if len(texname) != 0 {
 		if tp.floatTextures[texname] != nil {
-			return tp.floatTextures[name]
+			return tp.floatTextures[texname]
 		} else {
 			Error("Couldn't find float texture named \"%s\" for parameter \"%s\"", texname, name)
 		}
