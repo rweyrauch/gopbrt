@@ -28,10 +28,11 @@ package core
 
 import (
 	"math"
+	"github.com/rweyrauch/gopbrt/src/os"	
 )
 
 const (
-	GOPBRT_VERSION = "0.0.0"
+	GOPBRT_VERSION = "0.0.1"
 	PBRT_VERSION   = "2.0.0"
 )
 
@@ -175,7 +176,8 @@ func Xor(a, b bool) bool {
 	return false
 }
 func NumSystemCores() int {
-	return 1
+	if options.NumCores > 0 { return options.NumCores }
+	return os.NumSystemCores()
 }
 
 func AtomicAdd(dest *float64, delta float64) {

@@ -30,9 +30,12 @@ import (
 	"fmt"
 	"math"
 	"time"
+	"github.com/rweyrauch/gopbrt/src/os"
 )
 
-func TerminalWidth() int { return 80 }
+func TerminalWidth() int {
+	return os.TerminalWidth()
+}
 
 type ProgressReporter struct {
 	totalWork              int
