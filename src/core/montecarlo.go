@@ -51,15 +51,39 @@ type PermutedHalton struct {
 	b, permute []uint32
 }
 
-func (ph *PermutedHalton) Sample(n int, out []float64) {
-	Unimplemented()
-	/*
-	   	p := 0
-	       for i := 0; i < ph.dims; i++ {
-	           out[i] = math.Min(float64(PermutedRadicalInverse(n, ph.b[i], ph.permute[p])), OneMinusEpsilon)
-	           p += ph.b[i]
-	       }
-	*/
+func NewPermutedHalton(d int, rng *RNG) *PermutedHalton {
+	ph := new(PermutedHalton)
+	
+    ph.dims = d
+    // Determine bases $b_i$ and their sum
+    ph.b = make([]uint32, ph.dims, ph.dims)
+    var sumBases uint32 = 0
+    for i := 0; i < ph.dims; i++ {
+        ph.b[i] = primes[i]
+        sumBases += ph.b[i]
+    }
+
+    // Compute permutation tables for each base
+    ph.permute = make([]uint32, sumBases, sumBases)
+    var pi uint32 = 0
+    for i := 0; i < ph.dims; i++ {
+        perm := GeneratePermutation(ph.b[i], rng)
+        copy(ph.permute[pi:pi+ph.b[i]], perm)
+        pi += ph.b[i]
+    }
+	
+	return ph
+}
+
+func (ph *PermutedHalton) Sample(n int) []float64 {
+	out := make([]float64, ph.dims, ph.dims)
+	
+	pi := 0
+	for i := 0; i < ph.dims; i++ {
+	    out[i] = math.Min(float64(PermutedRadicalInverse(uint32(n), ph.b[i], ph.permute[pi:])), OneMinusEpsilon)
+	    pi += int(ph.b[i])
+	}	
+	return out
 }
 
 func NewDistribution1D(f []float64) *Distribution1D {
@@ -124,7 +148,7 @@ func (d *Distribution1D) SampleDiscrete(u float64) (offset int, pdf float64) {
 	return offset, pdf
 }
 
-var primes = []int{
+var primes = []uint32{
 	// First 1000 prime numbers
 	2, 3, 5, 7, 11, 13, 17, 19, 23, 29,
 	31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
@@ -319,12 +343,14 @@ func Shuffle(samp *[]float64, count, dims uint32, rng *RNG) {
 	}
 }
 
-func GeneratePermutation(buf *[]uint32, b uint32, rng *RNG) {
+func GeneratePermutation(b uint32, rng *RNG) []uint32 {
 	var i uint32
+	buf := make([]uint32, int(b),int(b))
 	for i = 0; i < b; i++ {
-		(*buf)[i] = i
+		buf[i] = i
 	}
-	Shufflei(buf, b, 1, rng)
+	Shufflei(&buf, b, 1, rng)
+	return buf
 }
 
 func PermutedRadicalInverse(n uint32, base uint32, p []uint32) float64 {

@@ -45,6 +45,7 @@ const (
 )
 const (
 	MAX_BxDFS = 8
+	DEFAULT_BSDF_SQRT_SAMPLES = 6
 )
 
 type (

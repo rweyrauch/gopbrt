@@ -392,6 +392,10 @@ func CreateRayFromRayDifferential(ray *RayDifferential) *Ray {
 	return &Ray{ray.Origin, ray.Dir, ray.Mint, ray.Maxt, ray.Time, ray.Depth}
 }
 
+func CreateChildRayDifferentialFromRayDifferential(origin *Point, direction *Vector, parent *RayDifferential, start, end float64) *RayDifferential {
+	return &RayDifferential{Ray{*origin, *direction, start, end, parent.Time, parent.Depth + 1}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
+}
+
 func (r *RayDifferential) ScaleDifferentials(s float64) {
 	r.RxOrigin = *r.Origin.Add(r.RxOrigin.Sub(&r.Origin).Scale(s))
 	r.RyOrigin = *r.Origin.Add(r.RyOrigin.Sub(&r.Origin).Scale(s))
