@@ -26,6 +26,10 @@
 */
 package core
 
+const (
+	DEFAULT_OCTREE_MAX_DEPTH = 16
+)
+
 // Octree Declarations
 type (
 	OctNode struct {
