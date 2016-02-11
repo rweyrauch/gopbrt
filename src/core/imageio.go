@@ -27,10 +27,12 @@
 package core
 
 import (
+	"github.com/ftrvxmtrx/tga"
 	"github.com/rweyrauch/gopbrt/src/openexr"
 	"image"
 	"image/color"
 	"image/png"
+	"image/jpeg"
 	"math"
 	"os"
 	"path/filepath"
@@ -44,9 +46,11 @@ func ReadImage(name string) (pixels []Spectrum, xSize, ySize int) {
 	} else if strings.Compare(ext, ".pfm") == 0 {
 		Warning("PFM file load not implemented.")
 	} else if strings.Compare(ext, ".tga") == 0 {
-		Warning("TGA file load not implemented.")
+		return readImageTga(name) 
 	} else if strings.Compare(ext, ".png") == 0 {
 		return readImagePng(name)
+	} else if strings.Compare(ext, ".jpg") == 0 {
+		return readImageJpeg(name)
 	}
 
 	Error("Unable to load image stored in format \"%s\" for filename \"%s\". Returning a constant grey image instead.", ext, name)
@@ -63,9 +67,11 @@ func WriteImage(name string, pixels, alpha []float32, XRes, YRes, totalXRes, tot
 	} else if strings.Compare(ext, ".pfm") == 0 {
 		Warning("PFM file save not implemented.")
 	} else if strings.Compare(ext, ".tga") == 0 {
-		Warning("TGA file save not implemented.")
+		writeImageTga(name, pixels, XRes, YRes)
 	} else if strings.Compare(ext, ".png") == 0 {
 		writeImagePng(name, pixels, XRes, YRes)
+	} else if strings.Compare(ext, ".jpg") == 0 {
+		writeImageJpeg(name, pixels, XRes, YRes)
 	} else {
 		Error("Can't determine image file type from suffix of filename \"%s\"", name)
 	}
@@ -122,6 +128,127 @@ func readImagePng(filename string) (image []Spectrum, width, height int) {
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			rb, gb, bb, _ := pngImage.At(x, y).RGBA()
+			r := float64(rb) / float64(0xffff)
+			g := float64(gb) / float64(0xffff)
+			b := float64(bb) / float64(0xffff)
+			image[y*width+x] = *NewSpectrumRGB(r, g, b)
+		}
+	}
+	return image, width, height
+}
+
+func writeImageJpeg(filename string, pixels []float32, xres, yres int) {
+	outImage := image.NewNRGBA(image.Rect(0, 0, xres, yres))
+
+	to_byte := func(v float32) uint8 {
+		// apply gamma and convert to 0..255
+		return uint8(Clamp(255.0*math.Pow(float64(v), 1.0/2.2), 0.0, 255.0))
+	}
+
+	for y := 0; y < yres; y++ {
+		for x := 0; x < xres; x++ {
+			var fcolor color.NRGBA
+			fcolor.R = to_byte(pixels[3*(y*xres+x)+2])
+			fcolor.G = to_byte(pixels[3*(y*xres+x)+1])
+			fcolor.B = to_byte(pixels[3*(y*xres+x)+0])
+			fcolor.A = 0xff
+			outImage.Set(x, y, fcolor)
+		}
+	}
+	f, err := os.Create(filename)
+	defer f.Close()
+
+	if err != nil {
+		Error("Error writing JPEG \"%s\"", filename)
+	} else {
+		options := jpeg.Options{85}
+		jpeg.Encode(f, outImage, &options)
+	}
+}
+
+func readImageJpeg(filename string) (image []Spectrum, width, height int) {
+	f, err := os.Open(filename)
+	defer f.Close()
+	if err != nil {
+		Error("Error reading JPEG \"%s\"", filename)
+		return nil, 0, 0
+	}
+
+	jpegImage, err := jpeg.Decode(f)
+	if err != nil {
+		Error("Error decoding JPEG \"%s\"", filename)
+		return nil, 0, 0
+	}
+
+	bounds := jpegImage.Bounds()
+
+	width = bounds.Dx()
+	height = bounds.Dy()
+	image = make([]Spectrum, width*height, width*height)
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			rb, gb, bb, _ := jpegImage.At(x, y).RGBA()
+			r := float64(rb) / float64(0xffff)
+			g := float64(gb) / float64(0xffff)
+			b := float64(bb) / float64(0xffff)
+			image[y*width+x] = *NewSpectrumRGB(r, g, b)
+		}
+	}
+	return image, width, height
+}
+
+func writeImageTga(filename string, pixels []float32, xres, yres int) {
+	outImage := image.NewNRGBA(image.Rect(0, 0, xres, yres))
+
+	to_byte := func(v float32) uint8 {
+		// apply gamma and convert to 0..255
+		return uint8(Clamp(255.0*math.Pow(float64(v), 1.0/2.2), 0.0, 255.0))
+	}
+
+	for y := 0; y < yres; y++ {
+		for x := 0; x < xres; x++ {
+			var fcolor color.NRGBA
+			fcolor.R = to_byte(pixels[3*(y*xres+x)+2])
+			fcolor.G = to_byte(pixels[3*(y*xres+x)+1])
+			fcolor.B = to_byte(pixels[3*(y*xres+x)+0])
+			fcolor.A = 0xff
+			outImage.Set(x, y, fcolor)
+		}
+	}
+	f, err := os.Create(filename)
+	defer f.Close()
+
+	if err != nil {
+		Error("Error writing TGA \"%s\"", filename)
+	} else {
+		tga.Encode(f, outImage)
+	}
+}
+
+func readImageTga(filename string) (image []Spectrum, width, height int) {
+	f, err := os.Open(filename)
+	defer f.Close()
+	if err != nil {
+		Error("Error reading TGA \"%s\"", filename)
+		return nil, 0, 0
+	}
+
+	tgaImage, err := tga.Decode(f)
+	if err != nil {
+		Error("Error decoding TGA \"%s\"", filename)
+		return nil, 0, 0
+	}
+
+	bounds := tgaImage.Bounds()
+
+	width = bounds.Dx()
+	height = bounds.Dy()
+	image = make([]Spectrum, width*height, width*height)
+
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			rb, gb, bb, _ := tgaImage.At(x, y).RGBA()
 			r := float64(rb) / float64(0xffff)
 			g := float64(gb) / float64(0xffff)
 			b := float64(bb) / float64(0xffff)
