@@ -130,7 +130,7 @@ func CreateRenderOptions() *RenderOptions {
 	opts.FilterName = "box"
 	opts.FilmName = "image"
 	opts.SamplerName = "lowdiscrepancy"
-	opts.AcceleratorName = "kdtree"
+	opts.AcceleratorName = "bvh"
 	opts.RendererName = "sampler"
 	opts.SurfIntegratorName = "directlighting"
 	opts.VolIntegratorName = "emission"

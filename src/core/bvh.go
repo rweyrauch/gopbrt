@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	SPLIT_MIDDLE = iota
+	SPLIT_MIDDLE SplitMethod = iota
 	SPLIT_EQUAL_COUNTS
 	SPLIT_SAH
 )
@@ -43,45 +43,46 @@ const (
 type SplitMethod int
 
 type (
-	SAHBucketInfo struct {
-		count  int
-		bounds BBox
-	}
-
-	BVHPrimitiveInfo struct {
-		primitiveNumber int
-		centroid        Point
-		bounds          BBox
-	}
-
-	BVHBuildNode struct {
-		bounds                                  BBox
-		children                                [2]*BVHBuildNode
-		splitAxis, firstPrimOffset, nPrimitives int
-	}
-
-	LinearBVHNode struct {
-		bounds            BBox
-		offset            int // primitive or second child
-		nPrimitives, axis int
-	}
 
 	BVHAccel struct {
 		PrimitiveData
 		maxPrimsInNode int
 		splitMethod    SplitMethod
 		primitives     []Primitive
-		nodes          []LinearBVHNode
+		nodes          []linearBVHNode
+	}
+	
+	sahBucketInfo struct {
+		count  int
+		bounds BBox
+	}
+
+	bvhPrimitiveInfo struct {
+		primitiveNumber int
+		centroid        Point
+		bounds          BBox
+	}
+
+	bvhBuildNode struct {
+		bounds                                  BBox
+		children                                [2]*bvhBuildNode
+		splitAxis, firstPrimOffset, nPrimitives int
+	}
+
+	linearBVHNode struct {
+		bounds            BBox
+		offset            int // primitive or second child
+		nPrimitives, axis int
 	}
 )
 
-func CreateBVHPrimitiveInfo(pn int, b *BBox) BVHPrimitiveInfo {
+func createBVHPrimitiveInfo(pn int, b *BBox) bvhPrimitiveInfo {
 	centroid := &Point{b.PMax.X + b.PMin.X, b.PMax.Y + b.PMin.Y, b.PMax.Z + b.PMin.Z}
-	return BVHPrimitiveInfo{pn, *centroid.Scale(0.5), *b}
+	return bvhPrimitiveInfo{pn, *centroid.Scale(0.5), *b}
 }
 
-func NewBVHBuildNode() *BVHBuildNode {
-	node := new(BVHBuildNode)
+func newBVHBuildNode() *bvhBuildNode {
+	node := new(bvhBuildNode)
 	node.bounds = *CreateEmptyBBox()
 	node.children[0] = nil
 	node.children[1] = nil
@@ -90,12 +91,12 @@ func NewBVHBuildNode() *BVHBuildNode {
 	node.nPrimitives = 0
 	return node
 }
-func (node *BVHBuildNode) InitLeaf(first, n int, b *BBox) {
+func (node *bvhBuildNode) initLeaf(first, n int, b *BBox) {
 	node.firstPrimOffset = first
 	node.nPrimitives = n
 	node.bounds = *b
 }
-func (node *BVHBuildNode) InitInterior(axis int, c0, c1 *BVHBuildNode) {
+func (node *bvhBuildNode) InitInterior(axis int, c0, c1 *bvhBuildNode) {
 	node.children[0] = c0
 	node.children[1] = c1
 	node.bounds = *UnionBBoxes(&c0.bounds, &c1.bounds)
@@ -103,7 +104,7 @@ func (node *BVHBuildNode) InitInterior(axis int, c0, c1 *BVHBuildNode) {
 	node.nPrimitives = 0
 }
 
-func IntersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg [3]int) bool {
+func intersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg [3]int) bool {
 	// Check for ray intersection against $x$ and $y$ slabs
 	tmin := (bounds.PointAtIndex(dirIsNeg[0]).X - ray.Origin.X) * invDir.X
 	tmax := (bounds.PointAtIndex(1-dirIsNeg[0]).X - ray.Origin.X) * invDir.X
@@ -138,12 +139,10 @@ func NewBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 	bvh := new(BVHAccel)
 	bvh.primitiveId = GeneratePrimitiveId()
 	bvh.maxPrimsInNode = Mini(255, maxPrims)
-	bvh.primitives = make([]Primitive, 0, 256)
-	Debug("Incoming BVH prims: %d", len(prims))
+	bvh.primitives = make([]Primitive, 0, len(prims))
 	for _, p := range prims {
 		bvh.primitives = p.FullyRefine(bvh.primitives)
 	}
-	Debug("Refined BVH prims: %d", len(bvh.primitives))
 	if strings.Compare(sm, "sah") == 0 {
 		bvh.splitMethod = SPLIT_SAH
 	} else if strings.Compare(sm, "middle") == 0 {
@@ -165,21 +164,23 @@ func NewBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 	//PBRT_BVH_STARTED_CONSTRUCTION(bvh, len(bvh.primitives))
 
 	// Initialize _buildData_ array for primitives
-	buildData := make([]BVHPrimitiveInfo, 0, len(bvh.primitives))
+	buildData := make([]bvhPrimitiveInfo, 0, len(bvh.primitives))
 	for i, p := range bvh.primitives {
 		bbox := p.WorldBound()
-		buildData = append(buildData, CreateBVHPrimitiveInfo(i, bbox))
+		buildData = append(buildData, createBVHPrimitiveInfo(i, bbox))
 	}
 
 	// Recursively build BVH tree for primitives
 	var buildArena *MemoryArena = nil
 	orderedPrims := make([]Primitive, 0, len(bvh.primitives))
-	root, totalNodes := bvh.recursiveBuild(buildArena, buildData, 0, len(bvh.primitives), orderedPrims)
+	root, totalNodes := bvh.recursiveBuild(buildArena, buildData, 0, len(bvh.primitives), &orderedPrims)
+	Info("BVH created with %d(%d) primitives", len(orderedPrims), len(bvh.primitives))
+	Assert(len(bvh.primitives) == len(orderedPrims))
 	copy(bvh.primitives, orderedPrims)
 	Info("BVH created with %d nodes for %d primitives", totalNodes, len(bvh.primitives))
 
 	// Compute representation of depth-first traversal of BVH tree
-	bvh.nodes = make([]LinearBVHNode, totalNodes, totalNodes)
+	bvh.nodes = make([]linearBVHNode, totalNodes, totalNodes)
 	var offset int = 0
 	_, offset = bvh.flattenBVHTree(root, offset)
 	if offset != totalNodes {
@@ -191,7 +192,7 @@ func NewBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 	return bvh
 }
 
-func (bvh *BVHAccel) flattenBVHTree(node *BVHBuildNode, offset int) (myOffset, nextOffset int) {
+func (bvh *BVHAccel) flattenBVHTree(node *bvhBuildNode, offset int) (myOffset, nextOffset int) {
 	linearNode := &bvh.nodes[offset]
 	linearNode.bounds = node.bounds
 	myOffset = offset
@@ -218,7 +219,7 @@ func (bvh *BVHAccel) WorldBound() *BBox {
 	}
 }
 
-func partition(buildData []BVHPrimitiveInfo, first, last int, comp func(info *BVHPrimitiveInfo) bool) int {
+func partition(buildData []bvhPrimitiveInfo, first, last int, comp func(info *bvhPrimitiveInfo) bool) int {
 	if first == last {
 		return first
 	}
@@ -244,8 +245,8 @@ func partition(buildData []BVHPrimitiveInfo, first, last int, comp func(info *BV
 }
 
 type bvhInfoSorter struct {
-	buildData []BVHPrimitiveInfo
-	by        func(info0, info1 *BVHPrimitiveInfo) bool
+	buildData []bvhPrimitiveInfo
+	by        func(info0, info1 *bvhPrimitiveInfo) bool
 }
 
 func (s *bvhInfoSorter) Len() int {
@@ -258,22 +259,22 @@ func (s *bvhInfoSorter) Less(i, j int) bool {
 	return s.by(&s.buildData[i], &s.buildData[j])
 }
 
-type By func(i0, i1 *BVHPrimitiveInfo) bool
+type By func(i0, i1 *bvhPrimitiveInfo) bool
 
-func (by By) Sort(buildData []BVHPrimitiveInfo) {
+func (by By) Sort(buildData []bvhPrimitiveInfo) {
 	infoSorter := &bvhInfoSorter{buildData, by}
 	sort.Sort(infoSorter)
 }
 
 // TODO: implement a real nth_element function rather than a full sort on the range
-func nth_element(buildData []BVHPrimitiveInfo, first, nth, last int, comp func(info0, info1 *BVHPrimitiveInfo) bool) {
+func nth_element(buildData []bvhPrimitiveInfo, first, nth, last int, comp func(info0, info1 *bvhPrimitiveInfo) bool) {
 	By(comp).Sort(buildData[first:last])
 }
 
-func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrimitiveInfo, start, end int, orderedPrims []Primitive) (node *BVHBuildNode, totalNodes int) {
+func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []bvhPrimitiveInfo, start, end int, orderedPrims *[]Primitive) (node *bvhBuildNode, totalNodes int) {
 	Assert(start != end)
 	totalNodes++
-	node = NewBVHBuildNode()
+	node = newBVHBuildNode()
 	// Compute bounds of all primitives in BVH node
 	bbox := CreateEmptyBBox()
 	for i := start; i < end; i++ {
@@ -283,12 +284,12 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 	nPrimitives := end - start
 	if nPrimitives == 1 {
 		// Create leaf _BVHBuildNode_
-		firstPrimOffset := len(orderedPrims)
+		firstPrimOffset := len(*orderedPrims)
 		for i := start; i < end; i++ {
 			primNum := buildData[i].primitiveNumber
-			orderedPrims = append(orderedPrims, bvh.primitives[primNum])
+			*orderedPrims = append(*orderedPrims, bvh.primitives[primNum])
 		}
-		node.InitLeaf(firstPrimOffset, nPrimitives, bbox)
+		node.initLeaf(firstPrimOffset, nPrimitives, bbox)
 	} else {
 		// Compute bound of primitive centroids, choose split dimension _dim_
 		centroidBounds := CreateEmptyBBox()
@@ -304,12 +305,12 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 			// then all the nodes can be stored in a compact bvh node.
 			if nPrimitives <= bvh.maxPrimsInNode {
 				// Create leaf _BVHBuildNode_
-				firstPrimOffset := len(orderedPrims)
+				firstPrimOffset := len(*orderedPrims)
 				for i := start; i < end; i++ {
 					primNum := buildData[i].primitiveNumber
-					orderedPrims = append(orderedPrims, bvh.primitives[primNum])
+					*orderedPrims = append(*orderedPrims, bvh.primitives[primNum])
 				}
-				node.InitLeaf(firstPrimOffset, nPrimitives, bbox)
+				node.initLeaf(firstPrimOffset, nPrimitives, bbox)
 
 				return node, totalNodes
 			} else {
@@ -331,7 +332,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 		case SPLIT_MIDDLE:
 			// Partition primitives through node's midpoint
 			pmid := 0.5 * (centroidBounds.PMin.At(dim) + centroidBounds.PMax.At(dim))
-			compareToMid := func(info *BVHPrimitiveInfo) bool {
+			compareToMid := func(info *bvhPrimitiveInfo) bool {
 				if info.centroid.At(dim) < pmid {
 					return true
 				} else {
@@ -344,7 +345,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 				// may fail to partition; in that case don't break and fall through
 				// to SPLIT_EQUAL_COUNTS
 				mid = (start + end) / 2
-				comparePoints := func(info0, info1 *BVHPrimitiveInfo) bool {
+				comparePoints := func(info0, info1 *bvhPrimitiveInfo) bool {
 					return info0.centroid.At(dim) < info0.centroid.At(dim)
 				}
 				nth_element(buildData, start, mid, end-1, comparePoints)
@@ -352,7 +353,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 		case SPLIT_EQUAL_COUNTS:
 			// Partition primitives into equally-sized subsets
 			mid = (start + end) / 2
-			comparePoints := func(info0, info1 *BVHPrimitiveInfo) bool {
+			comparePoints := func(info0, info1 *bvhPrimitiveInfo) bool {
 				return info0.centroid.At(dim) < info0.centroid.At(dim)
 			}
 			nth_element(buildData, start, mid, end-1, comparePoints)
@@ -362,13 +363,13 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 			if nPrimitives <= 4 {
 				// Partition primitives into equally-sized subsets
 				mid = (start + end) / 2
-				comparePoints := func(info0, info1 *BVHPrimitiveInfo) bool {
+				comparePoints := func(info0, info1 *bvhPrimitiveInfo) bool {
 					return info0.centroid.At(dim) < info0.centroid.At(dim)
 				}
 				nth_element(buildData, start, mid, end-1, comparePoints)
 			} else {
 				// Allocate _BucketInfo_ for SAH partition buckets
-				buckets := make([]SAHBucketInfo, SAH_NUM_BUCKETS, SAH_NUM_BUCKETS)
+				buckets := make([]sahBucketInfo, SAH_NUM_BUCKETS, SAH_NUM_BUCKETS)
 
 				// Initialize _BucketInfo_ for SAH partition buckets
 				for i := start; i < end; i++ {
@@ -412,7 +413,7 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 
 				// Either create leaf or split primitives at selected SAH bucket
 				if nPrimitives > bvh.maxPrimsInNode || minCost < float64(nPrimitives) {
-					compareToBucket := func(info *BVHPrimitiveInfo) bool {
+					compareToBucket := func(info *bvhPrimitiveInfo) bool {
 						b := int(float64(SAH_NUM_BUCKETS) * ((info.centroid.At(dim) - centroidBounds.PMin.At(dim)) / (centroidBounds.PMax.At(dim) - centroidBounds.PMin.At(dim))))
 						if b == SAH_NUM_BUCKETS {
 							b = SAH_NUM_BUCKETS - 1
@@ -423,12 +424,12 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []BVHPrim
 					mid = partition(buildData, start, end-1, compareToBucket)
 				} else {
 					// Create leaf _BVHBuildNode_
-					firstPrimOffset := len(orderedPrims)
+					firstPrimOffset := len(*orderedPrims)
 					for i := start; i < end; i++ {
 						primNum := buildData[i].primitiveNumber
-						orderedPrims = append(orderedPrims, bvh.primitives[primNum])
+						*orderedPrims = append(*orderedPrims, bvh.primitives[primNum])
 					}
-					node.InitLeaf(firstPrimOffset, nPrimitives, bbox)
+					node.initLeaf(firstPrimOffset, nPrimitives, bbox)
 					return node, totalNodes
 				}
 			}
@@ -469,7 +470,7 @@ func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	for {
 		node := &bvh.nodes[nodeNum]
 		// Check ray against BVH node
-		if IntersectP(&node.bounds, CreateRayFromRayDifferential(ray), invDir, dirIsNeg) {
+		if intersectP(&node.bounds, CreateRayFromRayDifferential(ray), invDir, dirIsNeg) {
 			if node.nPrimitives > 0 {
 				// Intersect ray with primitives in leaf BVH node
 				//PBRT_BVH_INTERSECTION_TRAVERSED_LEAF_NODE(const_cast<LinearBVHNode *>(node))
@@ -533,7 +534,7 @@ func (bvh *BVHAccel) IntersectP(ray *Ray) bool {
 	todoOffset, nodeNum := 0, 0
 	for {
 		node := &bvh.nodes[nodeNum]
-		if IntersectP(&node.bounds, ray, invDir, dirIsNeg) {
+		if intersectP(&node.bounds, ray, invDir, dirIsNeg) {
 			// Process BVH node _node_ for traversal
 			if node.nPrimitives > 0 {
 				//PBRT_BVH_INTERSECTIONP_TRAVERSED_LEAF_NODE(const_cast<LinearBVHNode *>(node))
