@@ -136,6 +136,7 @@ func CreateRenderOptions() *RenderOptions {
 	opts.VolIntegratorName = "emission"
 	opts.CameraName = "perspective"
 	opts.CameraToWorld = CreateTransformSet()
+	opts.instances = make(map[string][]Primitive, 4)
 	opts.currentInstance = nil
 	return opts
 }
@@ -157,6 +158,7 @@ func CreateGraphicsState() *GraphicsState {
 	gs := &GraphicsState{material: "matte", reverseOrientation: false}
 	gs.floatTextures = make(map[string]TextureFloat, 4)
 	gs.spectrumTextures = make(map[string]TextureSpectrum, 4)
+	gs.namedMaterials = make(map[string]Material, 4)
 	gs.materialParams = &ParamSet{nil, nil}
 	gs.areaLightParams = &ParamSet{nil, nil}
 	return gs
