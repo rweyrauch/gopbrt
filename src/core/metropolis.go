@@ -130,17 +130,44 @@ func (r *MetropolisRenderer) Render(scene *Scene) {
 				sampler := NewLDSampler(x0, x1, y0, y1, r.nDirectPixelSamples, t0, t1)
 				sample := NewSample(sampler, r.directLighting, nil, scene)
 
+				nWorkers := Maxi(NumSystemCores(), 1)
 				nDirectTasks := Maxi(32*NumSystemCores(),
 					(r.camera.Film().XResolution()*r.camera.Film().YResolution())/(16*16))
 				nDirectTasks = int(RoundUpPow2(uint32(nDirectTasks)))
 				directProgress := NewProgressReporter(nDirectTasks, "Direct Lighting", TerminalWidth())
-				for i := 0; i < nDirectTasks; i++ {
-					srt := newSamplerRendererTask(scene, r, r.camera, directProgress, sampler, sample, false, i, nDirectTasks)
-					srt.run()
+				
+				jobs := make(chan *samplerRendererTask, nDirectTasks)
+				producedSamples := make(chan taskOutput, 128)
+				completed := make(chan bool, nDirectTasks)
+
+				for w := 0; w < nWorkers; w++ {
+					go samplerRendererWorker(jobs, producedSamples, completed)
 				}
-				//std::reverse(directTasks.begin(), directTasks.end())
-				//EnqueueTasks(directTasks)
-				//WaitForAllTasks()
+				
+				for i := 0; i < nDirectTasks; i++ {
+					subsampler := sampler.GetSubSampler(i, nDirectTasks)				
+					srt := newSamplerRendererTask(scene, r, r.camera, directProgress, subsampler, sample, false, i, nDirectTasks)
+					jobs <- srt
+				}
+				close(jobs)
+				numCompleted := 0
+				for numCompleted < nWorkers {
+					select {
+					case output := <-producedSamples:
+						r.camera.Film().AddSample(&output.sample, &output.Li)
+					case done := <-completed:
+						if done {
+							numCompleted++
+						}
+					default:
+						break
+					}
+				}
+				// close and drain the queue of any unprocessed samples
+				close(producedSamples)
+				for output := range producedSamples {
+					r.camera.Film().AddSample(&output.sample, &output.Li)		
+				}
 				directProgress.Done()
 
 			}

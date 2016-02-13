@@ -1088,6 +1088,21 @@ func (ro *RenderOptions) MakeRenderer() Renderer {
 	} else if strings.Compare(ro.RendererName, "aggregatetest") == 0 {
 		renderer = CreateAggregateTestRenderer(ro.RendererParams, ro.primitives)
 		//RendererParams.ReportUnused();
+	} else if strings.Compare(ro.RendererName, "testrenderer") == 0 {
+		sampler := MakeSampler(ro.SamplerName, ro.SamplerParams, camera.Film(), camera)
+		if sampler == nil {
+			Severe("Unable to create sampler.")
+		}		
+		// Create surface and volume integrators
+		surfaceIntegrator := MakeSurfaceIntegrator(ro.SurfIntegratorName, ro.SurfIntegratorParams)
+		if surfaceIntegrator == nil {
+			Severe("Unable to create surface integrator.")
+		}
+		volumeIntegrator := MakeVolumeIntegrator(ro.VolIntegratorName, ro.VolIntegratorParams)
+		if volumeIntegrator == nil {
+			Severe("Unable to create volume integrator.")
+		}		
+		renderer = &TestRenderer{sampler, surfaceIntegrator, volumeIntegrator, camera}
 	} else if strings.Compare(ro.RendererName, "surfacepoints") == 0 {
 		pCamera := PointAnimatedTransform(camera.CameraToWorld(), camera.ShutterOpen(), CreatePoint(0, 0, 0))
 		renderer = CreateSurfacePointsRenderer(ro.RendererParams, pCamera, camera.ShutterOpen())

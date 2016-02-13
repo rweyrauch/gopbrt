@@ -40,7 +40,7 @@ func main() {
 	var profile bool
 	var profileOutputFile string
 
-	flag.IntVar(&options.NumCores, "ncores", 1, "Number of cores to use.")
+	flag.IntVar(&options.NumCores, "ncores", -1, "Number of cores to use.")
 	flag.StringVar(&options.ImageFile, "outfile", "", "Output image file.")
 	flag.BoolVar(&options.QuickRender, "quick", false, "Quick render mode.")
 	flag.BoolVar(&options.Quiet, "quiet", false, "Quiet mode.")
@@ -66,7 +66,7 @@ func main() {
 	// Print welcome banner
 	if !options.Quiet {
 		fmt.Printf("gopbrt version %s\n", core.GOPBRT_VERSION)
-		fmt.Printf("Copyright (c)2016 Rick Weyrauch.\n\n")
+		fmt.Printf("Copyright (c)2016 Rick Weyrauch.\n")
 		fmt.Printf("gopbrt based on pbrt 2.0.0 (see http://pbrt.org)\n")
 		fmt.Printf("Copyright (c)1998-2014 Matt Pharr and Greg Humphreys.\n")
 		fmt.Printf("The source code to pbrt (but *not* the book contents) is covered by the BSD License.\n")
