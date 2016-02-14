@@ -326,7 +326,6 @@ func MakeMaterial(name string, mtl2world *Transform, mp *TextureParams) Material
 	} else {
 		Warning("Material \"%s\" unknown.", name)
 	}
-	//mp.ReportUnused()
 	if material == nil {
 		Error("Unable to create material \"%s\"", name)
 	}
@@ -362,7 +361,6 @@ func MakeFloatTexture(name string, tex2world *Transform, tp *TextureParams) Text
 	} else {
 		Warning("Float texture \"%s\" unknown.", name)
 	}
-	//tp.ReportUnused()
 	return tex
 }
 
@@ -395,7 +393,6 @@ func MakeSpectrumTexture(name string, tex2world *Transform, tp *TextureParams) T
 	} else {
 		Warning("Spectrum texture \"%s\" unknown.", name)
 	}
-	//tp.ReportUnused()
 	return tex
 }
 
@@ -416,7 +413,6 @@ func MakeLight(name string, light2world *Transform, paramSet *ParamSet) Light {
 	} else {
 		Warning("Light \"%s\" unknown.", name)
 	}
-	//paramSet.ReportUnused()
 	return light
 }
 
@@ -427,7 +423,6 @@ func MakeAreaLight(name string, light2world *Transform, paramSet *ParamSet, shap
 	} else {
 		Warning("Area light \"%s\" unknown.", name)
 	}
-	//paramSet.ReportUnused()
 	return area
 }
 
@@ -442,7 +437,6 @@ func MakeVolumeRegion(name string, volume2world *Transform, paramSet *ParamSet) 
 	} else {
 		Warning("Volume region \"%s\" unknown.", name)
 	}
-	//paramSet.ReportUnused()
 	return vr
 }
 
@@ -473,7 +467,6 @@ func MakeSurfaceIntegrator(name string, paramSet *ParamSet) SurfaceIntegrator {
 	} else {
 		Warning("Surface integrator \"%s\" unknown.", name)
 	}
-	//paramSet.ReportUnused()
 	return si
 }
 
@@ -486,7 +479,6 @@ func MakeVolumeIntegrator(name string, paramSet *ParamSet) VolumeIntegrator {
 	} else {
 		Warning("Volume integrator \"%s\" unknown.", name)
 	}
-	//paramSet.ReportUnused();
 	return vi
 }
 
@@ -503,7 +495,6 @@ func MakeAccelerator(name string, prims []Primitive, paramSet *ParamSet) Primiti
 	} else {
 		Warning("Accelerator \"%s\" unknown.", name)
 	}
-	//paramSet.ReportUnused()
 	return accel
 }
 
@@ -522,7 +513,6 @@ func MakeCamera(name string, paramSet *ParamSet, cam2worldSet *TransformSet, tra
 	} else {
 		Warning("Camera \"%s\" unknown.", name)
 	}
-	//paramSet.ReportUnused()
 	return camera
 }
 
@@ -543,7 +533,6 @@ func MakeSampler(name string, paramSet *ParamSet, film Film, camera Camera) Samp
 	} else {
 		Warning("Sampler \"%s\" unknown.", name)
 	}
-	//paramSet.ReportUnused()
 	return sampler
 }
 
@@ -562,7 +551,6 @@ func MakeFilter(name string, paramSet *ParamSet) Filter {
 	} else {
 		Warning("Filter \"%s\" unknown.", name)
 	}
-	//paramSet.ReportUnused()
 	return filter
 }
 
@@ -573,7 +561,6 @@ func MakeFilm(name string, paramSet *ParamSet, filter Filter) Film {
 	} else {
 		Warning("Film \"%s\" unknown.", name)
 	}
-	//paramSet.ReportUnused()
 	return film
 }
 
@@ -587,11 +574,9 @@ func PbrtInit(opt *Options) {
 	currentApiState = STATE_OPTIONS_BLOCK
 	renderOptions = *CreateRenderOptions()
 	graphicsState = *CreateGraphicsState()
-	//SampledSpectrum::Init()
 }
 
 func PbrtCleanup() {
-	//ProbesCleanup()
 	// API Cleanup
 	if currentApiState == STATE_UNINITIALIZED {
 		Error("pbrtCleanup() called without pbrtInit().")
@@ -867,7 +852,6 @@ func PbrtShape(name string, params *ParamSet) {
 		}
 
 		mtl := graphicsState.CreateMaterial(params)
-		//params.ReportUnused()
 
 		// Possibly create area light for shape
 		if len(graphicsState.areaLight) != 0 {
@@ -888,7 +872,6 @@ func PbrtShape(name string, params *ParamSet) {
 		}
 
 		mtl := graphicsState.CreateMaterial(params)
-		//params.ReportUnused()
 
 		// Get _animatedWorldToObject_ transform for shape
 		Assert(MAX_TRANSFORMS == 2)
@@ -1015,7 +998,6 @@ func PbrtWorldEnd() {
 	if scene != nil && renderer != nil {
 		renderer.Render(scene)
 	}
-	//TasksCleanup()
 	renderer = nil
 	scene = nil
 
@@ -1023,15 +1005,14 @@ func PbrtWorldEnd() {
 	graphicsState = *CreateGraphicsState()
 	transformCache.Clear()
 	currentApiState = STATE_OPTIONS_BLOCK
-	//ProbesPrint(stdout)
 	for i := 0; i < MAX_TRANSFORMS; i++ {
 		curTransform.t[i] = NewTransformExplicit(NewIdentityMatrix4x4(), NewIdentityMatrix4x4())
 	}
 	activeTransformBits = ALL_TRANSFORMS_BITS
 	namedCoordinateSystems = make(map[string]*TransformSet)
 
-	//ImageTextureFloatClearCache()
-	//ImageTextureSpectrumClearCache()
+	ImageTextureFloatClearCache()
+	ImageTextureSpectrumClearCache()
 }
 
 func (ro *RenderOptions) MakeScene() *Scene {
@@ -1064,7 +1045,6 @@ func (ro *RenderOptions) MakeRenderer() Renderer {
 	camera := ro.MakeCamera()
 	if strings.Compare(ro.RendererName, "metropolis") == 0 {
 		renderer = CreateMetropolisRenderer(ro.RendererParams, camera)
-		// RendererParams.ReportUnused()
 		// Warn if no light sources are defined
 		if len(ro.lights) == 0 {
 			Warning("No light sources defined in scene; possibly rendering a black image.")
@@ -1080,14 +1060,12 @@ func (ro *RenderOptions) MakeRenderer() Renderer {
 			Severe("Unable to create volume integrator.")
 		}
 		renderer = CreateRadianceProbesRenderer(camera, surfaceIntegrator, volumeIntegrator, ro.RendererParams)
-		//RendererParams.ReportUnused();
 		// Warn if no light sources are defined
 		if len(ro.lights) == 0 {
 			Warning("No light sources defined in scene; possibly rendering a black image.")
 		}
 	} else if strings.Compare(ro.RendererName, "aggregatetest") == 0 {
 		renderer = CreateAggregateTestRenderer(ro.RendererParams, ro.primitives)
-		//RendererParams.ReportUnused();
 	} else if strings.Compare(ro.RendererName, "testrenderer") == 0 {
 		sampler := MakeSampler(ro.SamplerName, ro.SamplerParams, camera.Film(), camera)
 		if sampler == nil {
@@ -1106,13 +1084,11 @@ func (ro *RenderOptions) MakeRenderer() Renderer {
 	} else if strings.Compare(ro.RendererName, "surfacepoints") == 0 {
 		pCamera := PointAnimatedTransform(camera.CameraToWorld(), camera.ShutterOpen(), CreatePoint(0, 0, 0))
 		renderer = CreateSurfacePointsRenderer(ro.RendererParams, pCamera, camera.ShutterOpen())
-		//RendererParams.ReportUnused()
 	} else {
 		if strings.Compare(ro.RendererName, "sampler") != 0 {
 			Warning("Renderer type \"%s\" unknown.  Using \"sampler\".", ro.RendererName)
 		}
 		visIds := ro.RendererParams.FindBoolParam("visualizeobjectids", false)
-		//RendererParams.ReportUnused();
 		sampler := MakeSampler(ro.SamplerName, ro.SamplerParams, camera.Film(), camera)
 		if sampler == nil {
 			Severe("Unable to create sampler.")

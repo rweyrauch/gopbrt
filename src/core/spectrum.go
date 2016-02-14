@@ -57,6 +57,104 @@ type SampledSpectrum struct {
 	c []float64
 }
 
+const (
+	sampledLambdaStart = 400
+	sampledLambdaEnd   = 700
+	nSpectralSamples   = 30
+	nRGB2SpectSamples  = 32
+)
+
+var (
+	X, Y, Z                                     SampledSpectrum
+	rgbRefl2SpectWhite, rgbRefl2SpectCyan       SampledSpectrum
+	rgbRefl2SpectMagenta, rgbRefl2SpectYellow   SampledSpectrum
+	rgbRefl2SpectRed, rgbRefl2SpectGreen        SampledSpectrum
+	rgbRefl2SpectBlue                           SampledSpectrum
+	rgbIllum2SpectWhite, rgbIllum2SpectCyan     SampledSpectrum
+	rgbIllum2SpectMagenta, rgbIllum2SpectYellow SampledSpectrum
+	rgbIllum2SpectRed, rgbIllum2SpectGreen      SampledSpectrum
+	rgbIllum2SpectBlue                          SampledSpectrum
+)
+
+func init() {
+	// Compute XYZ matching functions for _SampledSpectrum_
+	for i := 0; i < nSpectralSamples; i++ {
+		wl0 := Lerp(float64(i)/float64(nSpectralSamples), sampledLambdaStart, sampledLambdaEnd)
+		wl1 := Lerp(float64(i+1)/float64(nSpectralSamples), sampledLambdaStart, sampledLambdaEnd)
+		X.c[i] = averageSpectrumSamples(CIE_lambda, CIE_X, wl0, wl1)
+		Y.c[i] = averageSpectrumSamples(CIE_lambda, CIE_Y, wl0, wl1)
+		Z.c[i] = averageSpectrumSamples(CIE_lambda, CIE_Z, wl0, wl1)
+	}
+
+	// Compute RGB to spectrum functions for _SampledSpectrum_
+	for i := 0; i < nSpectralSamples; i++ {
+		wl0 := Lerp(float64(i)/float64(nSpectralSamples), sampledLambdaStart, sampledLambdaEnd)
+		wl1 := Lerp(float64(i+1)/float64(nSpectralSamples), sampledLambdaStart, sampledLambdaEnd)
+		rgbRefl2SpectWhite.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBRefl2SpectWhite, wl0, wl1)
+		rgbRefl2SpectCyan.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBRefl2SpectCyan, wl0, wl1)
+		rgbRefl2SpectMagenta.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBRefl2SpectMagenta, wl0, wl1)
+		rgbRefl2SpectYellow.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBRefl2SpectYellow, wl0, wl1)
+		rgbRefl2SpectRed.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBRefl2SpectRed, wl0, wl1)
+		rgbRefl2SpectGreen.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBRefl2SpectGreen, wl0, wl1)
+		rgbRefl2SpectBlue.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBRefl2SpectBlue, wl0, wl1)
+
+		rgbIllum2SpectWhite.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBIllum2SpectWhite, wl0, wl1)
+		rgbIllum2SpectCyan.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBIllum2SpectCyan, wl0, wl1)
+		rgbIllum2SpectMagenta.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBIllum2SpectMagenta, wl0, wl1)
+		rgbIllum2SpectYellow.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBIllum2SpectYellow, wl0, wl1)
+		rgbIllum2SpectRed.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBIllum2SpectRed, wl0, wl1)
+		rgbIllum2SpectGreen.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBIllum2SpectGreen, wl0, wl1)
+		rgbIllum2SpectBlue.c[i] = averageSpectrumSamples(RGB2SpectLambda, RGBIllum2SpectBlue, wl0, wl1)
+	}
+}
+
+func averageSpectrumSamples(lambda, vals []float64, lambdaStart, lambdaEnd float64) float64 {
+	for i := 0; i < len(lambda)-1; i++ {
+		Assert(lambda[i+1] > lambda[i])
+	}
+	Assert(lambdaStart < lambdaEnd)
+	Assert(len(lambda) == len(vals))
+	n := len(lambda)
+	// Handle cases with out-of-bounds range or single sample only
+	if lambdaEnd <= lambda[0] {
+		return vals[0]
+	}
+	if lambdaStart >= lambda[n-1] {
+		return vals[n-1]
+	}
+	if n == 1 {
+		return vals[0]
+	}
+	sum := 0.0
+	// Add contributions of constant segments before/after samples
+	if lambdaStart < lambda[0] {
+		sum += vals[0] * (lambda[0] - lambdaStart)
+	}
+	if lambdaEnd > lambda[n-1] {
+		sum += vals[n-1] * (lambdaEnd - lambda[n-1])
+	}
+
+	// Advance to first relevant wavelength segment
+	i := 0
+	for lambdaStart > lambda[i+1] {
+		i++
+	}
+	Assert(i+1 < n)
+
+	// Loop over wavelength sample segments and add contributions
+	INTERP := func(w float64, i int) float64 {
+		return Lerp((w-lambda[i])/(lambda[i+1]-lambda[i]), vals[i], vals[i+1])
+	}
+	SEG_AVG := func(wl0, wl1 float64, i int) float64 { return (0.5 * (INTERP(wl0, i) + INTERP(wl1, i))) }
+
+	for ; i+1 < len(lambda) && lambdaEnd >= lambda[i]; i++ {
+		segStart := math.Max(lambdaStart, lambda[i])
+		segEnd := math.Min(lambdaEnd, lambda[i+1])
+		sum += SEG_AVG(segStart, segEnd, i) * (segEnd - segStart)
+	}
+	return sum / (lambdaEnd - lambdaStart)
+}
+
 func (rgb *Spectrum) String() string {
 	return fmt.Sprintf("rgb[%2.4f,%2.4f,%2.4f]", rgb.c[0], rgb.c[1], rgb.c[2])
 }

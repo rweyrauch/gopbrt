@@ -152,15 +152,34 @@ func (integrator *PhotonIntegrator) Preprocess(scene *Scene, camera Camera, rend
 	}
 
 	// Run parallel tasks for photon shooting
-	progress := NewProgressReporter(integrator.nCausticPhotonsWanted+integrator.nIndirectPhotonsWanted, "Shooting photons", TerminalWidth())
 	nTasks := NumSystemCores()
+	jobs := make(chan *photonShootingTask, nTasks)
+	completed := make(chan bool, nTasks)
+
+	for w := 0; w < nTasks; w++ {
+		go photonShootingWorker(jobs, completed)
+	}
+	
+	progress := NewProgressReporter(integrator.nCausticPhotonsWanted+integrator.nIndirectPhotonsWanted, "Shooting photons", TerminalWidth())
 	for i := 0; i < nTasks; i++ {
 		shooter := newPhotonShootingTask(
 			i, shutterOpen, integrator, progress, abortTasks, nDirectPaths,
 			directPhotons, indirectPhotons, causticPhotons, radiancePhotons,
 			rpReflectances, rpTransmittances,
 			nshot, lightDistribution, scene, renderer)
-		shooter.run()
+		jobs <- shooter
+	}
+	close(jobs)
+	numCompleted := 0
+	for numCompleted < nTasks {
+		select {
+		case done := <-completed:
+			if done {
+				numCompleted++
+			}
+		default:
+			break
+		}
 	}
 	progress.Done()
 
@@ -192,6 +211,13 @@ func (integrator *PhotonIntegrator) Preprocess(scene *Scene, camera Camera, rend
 	if integrator.finalGather && len(radiancePhotons) > 0 {
 		// Launch tasks to compute photon radiances
 		numTasks := 64
+		jobs := make(chan *computeRadianceTask, numTasks)
+		completed := make(chan bool, numTasks)
+
+		for w := 0; w < numTasks; w++ {
+			go computeRadianceWorker(jobs, completed)
+		}
+		
 		progRadiance := NewProgressReporter(numTasks, "Computing photon radiances", TerminalWidth())
 		for i := 0; i < numTasks; i++ {
 			compRad := newComputeRadianceTask(progRadiance,
@@ -199,8 +225,21 @@ func (integrator *PhotonIntegrator) Preprocess(scene *Scene, camera Camera, rend
 				integrator.nLookup, integrator.maxDistSquared, nDirectPaths, directMap,
 				integrator.nIndirectPaths, integrator.indirectMap,
 				integrator.nCausticPaths, integrator.causticMap)
-			compRad.run()
+			jobs <- compRad
 		}
+		close(jobs)
+		numCompleted := 0
+		for numCompleted < numTasks {
+			select {
+			case done := <-completed:
+				if done {
+					numCompleted++
+				}
+			default:
+				break
+			}
+		}
+		
 		progRadiance.Done()
 		radianceNodeData := make([]NodeData, len(radiancePhotons), len(radiancePhotons))
 		for i, p := range radiancePhotons {
@@ -778,6 +817,13 @@ func newPhotonShootingTask(taskNum int, time float64, integrator *PhotonIntegrat
 	return shooter
 }
 
+func photonShootingWorker(workQueue <-chan *photonShootingTask, completed chan<- bool) {
+	for task := range workQueue {
+		task.run()
+	}
+	completed <- true
+}
+
 func newComputeRadianceTask(progRadiance *ProgressReporter,
 	taskNum, numTasks int, radiancePhotons []*radiancePhoton, rpReflectances, rpTransmittances []Spectrum,
 	nLookup int, maxDistSquared float64, nDirectPaths int, directMap *KdTree,
@@ -799,4 +845,11 @@ func newComputeRadianceTask(progRadiance *ProgressReporter,
 	compute.indirectMap = indirectMap
 	compute.causticMap = causticMap
 	return compute
+}
+
+func computeRadianceWorker(workQueue <-chan *computeRadianceTask, completed chan<- bool) {
+	for task := range workQueue {
+		task.run()
+	}
+	completed <- true
 }

@@ -816,6 +816,14 @@ func init() {
 	textureSpectrumCache = make(map[texInfo]*MIPMapSpectrum)	
 }
 
+func ImageTextureFloatClearCache() {
+	textureFloatCache    = make(map[texInfo]*MIPMapFloat)
+}
+
+func ImageTextureSpectrumClearCache() {
+	textureSpectrumCache = make(map[texInfo]*MIPMapSpectrum)		
+}
+
 func getTextureFloat(filename string, doTrilinear bool, maxAniso float64, wrapMode WrapMode, scale, gamma float64) *MIPMapFloat {
 	texKey := texInfo{filename, doTrilinear, maxAniso, wrapMode, scale, gamma}
 
