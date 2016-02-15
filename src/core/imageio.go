@@ -259,24 +259,23 @@ func readImageTga(filename string) (image []Spectrum, width, height int) {
 }
 
 func readImageExr(filename string) (image []Spectrum, width, height int) {
-	var planarRGBA []float32
+	var packedPixels []float32
 	var channels int
-	width, height, channels, planarRGBA = openexr.ReadImageEXR(filename)
-	if planarRGBA != nil {
+	width, height, channels, packedPixels = openexr.ReadImageEXR(filename)
+	if packedPixels != nil {
 		Debug("Read EXR image (%dx%dx%d)", width, height, channels)
 		image = make([]Spectrum, width*height, width*height)
 		if channels == 3 || channels == 4 {
-			for c := 0; c < 3; c++ { // ignore 4th channel
-				chanStart := c * width * height
-				for i, _ := range image {
-					image[i].c[c] = float64(planarRGBA[i+chanStart])
-				}
-			}
+			for i, _ := range image {
+				image[i].c[0] = float64(packedPixels[i*channels+0])
+				image[i].c[1] = float64(packedPixels[i*channels+1])
+				image[i].c[2] = float64(packedPixels[i*channels+2])
+			}	
 		} else { // channels == 1 || channels == 2 (ignore second channel)
 			for i, _ := range image {
-				image[i].c[0] = float64(planarRGBA[i])
-				image[i].c[1] = float64(planarRGBA[i])
-				image[i].c[2] = float64(planarRGBA[i])
+				image[i].c[0] = float64(packedPixels[i*channels])
+				image[i].c[1] = float64(packedPixels[i*channels])
+				image[i].c[2] = float64(packedPixels[i*channels])
 			}
 		}
 	}

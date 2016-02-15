@@ -30,7 +30,7 @@ package openexr
 import "C"
 import "unsafe"
 
-func ReadImageEXR(filename string) (width, height, channels int, planarRGBA []float32) {
+func ReadImageEXR(filename string) (width, height, channels int, packedPixels []float32) {
 	
 	var pixels *C.Pixel
 	var cpixel C.Pixel
@@ -42,20 +42,20 @@ func ReadImageEXR(filename string) (width, height, channels int, planarRGBA []fl
 	width = int(cwidth)
 	height = int(cheight)
 	channels = 4
-	planarRGBA = make([]float32, width*height*channels, width*height*channels)
+	packedPixels = make([]float32, width*height*channels, width*height*channels)
 	pixelPtr := unsafe.Pointer(pixels)
 	for i := 0; i < width*height; i++ {
 		curPixel := (*C.Pixel)(pixelPtr)
-		planarRGBA[i*4] = float32(curPixel.r)
-		planarRGBA[i*4+1] = float32(curPixel.g)
-		planarRGBA[i*4+2] = float32(curPixel.b)
-		planarRGBA[i*4+3] = float32(curPixel.a)
+		packedPixels[i*4] = float32(curPixel.r)
+		packedPixels[i*4+1] = float32(curPixel.g)
+		packedPixels[i*4+2] = float32(curPixel.b)
+		packedPixels[i*4+3] = float32(curPixel.a)
 		pixelPtr = unsafe.Pointer(uintptr(pixelPtr) + unsafe.Sizeof(cpixel))
 	}
-	return width, height, channels, planarRGBA
+	return width, height, channels, packedPixels
 }
 
-func WriteImageEXR(filename string, width, height, channels int, planarRGBA []float32) {	
+func WriteImageEXR(filename string, width, height, channels int, packedPixels []float32) {	
 	cfilename := C.CString(filename)
 	cwidth := C.int(width)
 	cheight := C.int(height)	
@@ -66,9 +66,9 @@ func WriteImageEXR(filename string, width, height, channels int, planarRGBA []fl
 	
 	for i := 0; i < width*height; i++ {
 		curPixel := (*C.Pixel)(cpixelsptr)
-		curPixel.r = C.float(planarRGBA[i*channels])
-		curPixel.g = C.float(planarRGBA[i*channels+1])
-		curPixel.b = C.float(planarRGBA[i*channels+2])
+		curPixel.r = C.float(packedPixels[i*channels])
+		curPixel.g = C.float(packedPixels[i*channels+1])
+		curPixel.b = C.float(packedPixels[i*channels+2])
 		curPixel.a = 1.0
 		cpixelsptr = unsafe.Pointer(uintptr(cpixelsptr) + unsafe.Sizeof(cpixel))
 	}
