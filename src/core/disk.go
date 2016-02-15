@@ -180,14 +180,14 @@ func (d *Disk) Sample(u1, u2 float64) (*Point, *Normal) {
 }
 
 func (d *Disk) Pdf(pshape *Point) float64 {
-	return 0.0
+	return 1.0 / d.Area()
 }
 func (d *Disk) SampleAt(p *Point, u1, u2 float64) (*Point, *Normal) {
 	return d.Sample(u1, u2)
 }
 
 func (d *Disk) Pdf2(p *Point, wi *Vector) float64 {
-	return 0.0
+	return ShapePdf(d, p, wi)
 }
 
 func (d *Disk) ObjectToWorld() *Transform {
