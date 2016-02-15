@@ -54,7 +54,7 @@ type Spectrum struct {
 }
 
 type SampledSpectrum struct {
-	c []float64
+	c [nSpectralSamples]float64
 }
 
 const (
