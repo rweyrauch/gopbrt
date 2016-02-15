@@ -298,7 +298,15 @@ func RayDifferentialTransform(t *Transform, r *RayDifferential) *RayDifferential
 }
 
 func BBoxTransform(t *Transform, b *BBox) *BBox {
-	return CreateBBoxFromPoints(PointTransform(t, &b.PMin), PointTransform(t, &b.PMax))
+	bbox := CreateBBoxFromPoint(PointTransform(t, &b.PMin))
+   	bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMax.X, b.PMin.Y, b.PMin.Z)))
+    bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMin.X, b.PMax.Y, b.PMin.Z)))
+    bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMin.X, b.PMin.Y, b.PMax.Z)))
+    bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMin.X, b.PMax.Y, b.PMax.Z)))
+    bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMax.X, b.PMax.Y, b.PMin.Z)))
+    bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMax.X, b.PMin.Y, b.PMax.Z)))
+    bbox = UnionBBoxPoint(bbox, PointTransform(t, &b.PMax))	
+	return bbox
 }
 
 func (t1 *Transform) MultTransform(t2 *Transform) *Transform {
@@ -385,7 +393,8 @@ func LookAtTransform(pos, look *Point, up *Vector) (*Transform, error) {
 	// Initialize first three columns of viewing matrix
 	dir := NormalizeVector(look.Sub(pos))
 	if CrossVector(NormalizeVector(up), dir).Length() == 0 {
-		return nil, fmt.Errorf("\"up\" vector (%f, %f, %f) and viewing direction (%f, %f, %f) passed to LookAt are pointing in the same direction.  Using the identity transformation.", up.X, up.Y, up.Z, dir.X, dir.Y, dir.Z)
+		return nil, fmt.Errorf("\"up\" vector (%f, %f, %f) and viewing direction (%f, %f, %f) passed to LookAt are pointing in the same direction.  Using the identity transformation.", 
+			up.X, up.Y, up.Z, dir.X, dir.Y, dir.Z)
 	}
 
 	camToWorld := new(Matrix4x4)
