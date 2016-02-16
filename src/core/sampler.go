@@ -33,7 +33,7 @@ import (
 )
 
 type Sampler interface {
-	GetMoreSamples(samples []Sample, rng *RNG) int
+	GetMoreSamples(samples *[]Sample, rng *RNG) int
 	MaximumSampleCount() int
 	ReportResults(samples []Sample, rays []*RayDifferential, Ls []*Spectrum, isects []*Intersection, count int) bool
 	GetSubSampler(num, count int) Sampler
@@ -245,9 +245,9 @@ func NewAdaptiveSampler(xstart, xend, ystart, yend, minsamp, maxsamp int, method
 	return sampler
 }
 
-func (s *AdaptiveSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
+func (s *AdaptiveSampler) GetMoreSamples(samples *[]Sample, rng *RNG) int {
 	if s.sampleBuf == nil {
-		samplesNeeded := LDPixelSampleFloatsNeeded(&samples[0], s.maxSamples)
+		samplesNeeded := LDPixelSampleFloatsNeeded(&(*samples)[0], s.maxSamples)
 		s.sampleBuf = make([]float64, samplesNeeded, samplesNeeded)
 	}
 
@@ -276,11 +276,9 @@ func (s *AdaptiveSampler) ReportResults(samples []Sample, rays []*RayDifferentia
 		}
 		return true
 	} else if s.needsSupersampling(samples, rays, Ls, isects, count) {
-		//PBRT_SUPERSAMPLE_PIXEL_YES(xPos, yPos);
 		s.supersamplePixel = true
 		return false
 	} else {
-		//PBRT_SUPERSAMPLE_PIXEL_NO(xPos, yPos);
 		// Advance to next pixel for sampling for _AdaptiveSampler_
 		s.xPos++
 		if s.xPos == s.xPixelEnd {
@@ -368,7 +366,7 @@ func NewBestCandidateSampler(xstart, xend, ystart, yend, ps int, sopen, sclose f
 	return sampler
 }
 
-func (s *BestCandidateSampler) GetMoreSamples(sample []Sample, rng *RNG) int {
+func (s *BestCandidateSampler) GetMoreSamples(sample *[]Sample, rng *RNG) int {
 again:
 	if s.tableOffset == SAMPLE_TABLE_SIZE {
 		// Advance to next best-candidate sample table position
@@ -396,25 +394,25 @@ again:
 			return x
 		}
 	}
-	sample[0].imageX = (float64(s.xTile) + bestCandidateSampleTable[s.tableOffset][0]) * s.tableWidth
-	sample[0].imageY = (float64(s.yTile) + bestCandidateSampleTable[s.tableOffset][1]) * s.tableWidth
-	sample[0].time = Lerp(WRAP(s.sampleOffsets[0]+bestCandidateSampleTable[s.tableOffset][2]), s.shutterOpen, s.shutterClose)
-	sample[0].lensU = WRAP(s.sampleOffsets[1] + bestCandidateSampleTable[s.tableOffset][3])
-	sample[0].lensV = WRAP(s.sampleOffsets[2] + bestCandidateSampleTable[s.tableOffset][4])
+	(*sample)[0].imageX = (float64(s.xTile) + bestCandidateSampleTable[s.tableOffset][0]) * s.tableWidth
+	(*sample)[0].imageY = (float64(s.yTile) + bestCandidateSampleTable[s.tableOffset][1]) * s.tableWidth
+	(*sample)[0].time = Lerp(WRAP(s.sampleOffsets[0]+bestCandidateSampleTable[s.tableOffset][2]), s.shutterOpen, s.shutterClose)
+	(*sample)[0].lensU = WRAP(s.sampleOffsets[1] + bestCandidateSampleTable[s.tableOffset][3])
+	(*sample)[0].lensV = WRAP(s.sampleOffsets[2] + bestCandidateSampleTable[s.tableOffset][4])
 
 	// Check sample against crop window, goto _again_ if outside
-	if sample[0].imageX < float64(s.xPixelStart) || sample[0].imageX >= float64(s.xPixelEnd) ||
-		sample[0].imageY < float64(s.yPixelStart) || sample[0].imageY >= float64(s.yPixelEnd) {
+	if (*sample)[0].imageX < float64(s.xPixelStart) || (*sample)[0].imageX >= float64(s.xPixelEnd) ||
+		(*sample)[0].imageY < float64(s.yPixelStart) || (*sample)[0].imageY >= float64(s.yPixelEnd) {
 		s.tableOffset++
 		goto again
 	}
 
 	// Compute integrator samples for best-candidate sample
-	for i := 0; i < len(sample[0].n1D); i++ {
-		LDShuffleScrambled1D(sample[0].n1D[i], 1, &sample[0].oneD[i], rng)
+	for i := 0; i < len((*sample)[0].n1D); i++ {
+		LDShuffleScrambled1D((*sample)[0].n1D[i], 1, &(*sample)[0].oneD[i], rng)
 	}
-	for i := 0; i < len(sample[0].n2D); i++ {
-		LDShuffleScrambled2D(sample[0].n2D[i], 1, &sample[0].twoD[i], rng)
+	for i := 0; i < len((*sample)[0].n2D); i++ {
+		LDShuffleScrambled2D((*sample)[0].n2D[i], 1, &(*sample)[0].twoD[i], rng)
 	}
 	s.tableOffset++
 	return 1
@@ -462,7 +460,7 @@ func NewHaltonSampler(xstart, xend, ystart, yend, ps int, sopen, sclose float64)
 	return sampler
 }
 
-func (s *HaltonSampler) GetMoreSamples(sample []Sample, rng *RNG) int {
+func (s *HaltonSampler) GetMoreSamples(sample *[]Sample, rng *RNG) int {
 retry:
 	if s.currentSample >= s.wantedSamples {
 		return 0
@@ -471,22 +469,22 @@ retry:
 	u := float64(RadicalInverse(s.currentSample, 3))
 	v := float64(RadicalInverse(s.currentSample, 2))
 	lerpDelta := float64(Maxi(s.xPixelEnd-s.xPixelStart, s.yPixelEnd-s.yPixelStart))
-	sample[0].imageX = Lerp(u, float64(s.xPixelStart), float64(s.xPixelStart)+lerpDelta)
-	sample[0].imageY = Lerp(v, float64(s.yPixelStart), float64(s.yPixelStart)+lerpDelta)
+	(*sample)[0].imageX = Lerp(u, float64(s.xPixelStart), float64(s.xPixelStart)+lerpDelta)
+	(*sample)[0].imageY = Lerp(v, float64(s.yPixelStart), float64(s.yPixelStart)+lerpDelta)
 	s.currentSample++
-	if sample[0].imageX >= float64(s.xPixelEnd) || sample[0].imageY >= float64(s.yPixelEnd) {
+	if (*sample)[0].imageX >= float64(s.xPixelEnd) || (*sample)[0].imageY >= float64(s.yPixelEnd) {
 		goto retry
 	}
 
 	// Generate lens, time, and integrator samples for _HaltonSampler_
-	sample[0].lensU = float64(RadicalInverse(s.currentSample, 5))
-	sample[0].lensV = float64(RadicalInverse(s.currentSample, 7))
-	sample[0].time = Lerp(float64(RadicalInverse(s.currentSample, 11)), s.shutterOpen, s.shutterClose)
-	for i := 0; i < len(sample[0].n1D); i++ {
-		LatinHypercube(sample[0].oneD[i], uint32(sample[0].n1D[i]), 1, rng)
+	(*sample)[0].lensU = float64(RadicalInverse(s.currentSample, 5))
+	(*sample)[0].lensV = float64(RadicalInverse(s.currentSample, 7))
+	(*sample)[0].time = Lerp(float64(RadicalInverse(s.currentSample, 11)), s.shutterOpen, s.shutterClose)
+	for i := 0; i < len((*sample)[0].n1D); i++ {
+		LatinHypercube((*sample)[0].oneD[i], uint32((*sample)[0].n1D[i]), 1, rng)
 	}
-	for i := 0; i < len(sample[0].n2D); i++ {
-		LatinHypercube(sample[0].twoD[i], uint32(sample[0].n2D[i]), 2, rng)
+	for i := 0; i < len((*sample)[0].n2D); i++ {
+		LatinHypercube((*sample)[0].twoD[i], uint32((*sample)[0].n2D[i]), 2, rng)
 	}
 	return 1
 }
@@ -530,12 +528,12 @@ func NewLDSampler(xstart, xend, ystart, yend, ps int, sopen, sclose float64) *LD
 	return sampler
 }
 
-func (s *LDSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
+func (s *LDSampler) GetMoreSamples(samples *[]Sample, rng *RNG) int {
 	if s.yPos == s.yPixelEnd {
 		return 0
 	}
 	if s.sampleBuf == nil {
-		samplesNeeded := LDPixelSampleFloatsNeeded(&samples[0], s.nPixelSamples)
+		samplesNeeded := LDPixelSampleFloatsNeeded(&(*samples)[0], s.nPixelSamples)
 		s.sampleBuf = make([]float64, samplesNeeded, samplesNeeded)
 	}
 	LDPixelSample(s.xPos, s.yPos, s.shutterOpen, s.shutterClose, s.nPixelSamples, samples, s.sampleBuf, rng)
@@ -603,7 +601,7 @@ func NewRandomSampler(xstart, xend, ystart, yend, ns int, sopen, sclose float64)
 	return sampler
 }
 
-func (s *RandomSampler) GetMoreSamples(sample []Sample, rng *RNG) int {
+func (s *RandomSampler) GetMoreSamples(sample *[]Sample, rng *RNG) int {
 	if s.samplePos == s.nSamples {
 		if s.xPixelStart == s.xPixelEnd || s.yPixelStart == s.yPixelEnd {
 			return 0
@@ -635,20 +633,20 @@ func (s *RandomSampler) GetMoreSamples(sample []Sample, rng *RNG) int {
 		s.samplePos = 0
 	}
 	// Return next \mono{RandomSampler} sample point
-	sample[0].imageX = s.imageSamples[2*s.samplePos]
-	sample[0].imageY = s.imageSamples[2*s.samplePos+1]
-	sample[0].lensU = s.lensSamples[2*s.samplePos]
-	sample[0].lensV = s.lensSamples[2*s.samplePos+1]
-	sample[0].time = Lerp(s.timeSamples[s.samplePos], s.shutterOpen, s.shutterClose)
+	(*sample)[0].imageX = s.imageSamples[2*s.samplePos]
+	(*sample)[0].imageY = s.imageSamples[2*s.samplePos+1]
+	(*sample)[0].lensU = s.lensSamples[2*s.samplePos]
+	(*sample)[0].lensV = s.lensSamples[2*s.samplePos+1]
+	(*sample)[0].time = Lerp(s.timeSamples[s.samplePos], s.shutterOpen, s.shutterClose)
 	// Generate stratified samples for integrators
-	for i := 0; i < len(sample[0].n1D); i++ {
-		for j := 0; j < sample[0].n1D[i]; j++ {
-			sample[0].oneD[i][j] = rng.RandomFloat()
+	for i := 0; i < len((*sample)[0].n1D); i++ {
+		for j := 0; j < (*sample)[0].n1D[i]; j++ {
+			(*sample)[0].oneD[i][j] = rng.RandomFloat()
 		}
 	}
-	for i := 0; i < len(sample[0].n2D); i++ {
-		for j := 0; j < 2*sample[0].n2D[i]; j++ {
-			sample[0].twoD[i][j] = rng.RandomFloat()
+	for i := 0; i < len((*sample)[0].n2D); i++ {
+		for j := 0; j < 2*(*sample)[0].n2D[i]; j++ {
+			(*sample)[0].twoD[i][j] = rng.RandomFloat()
 		}
 	}
 	s.samplePos++
@@ -691,7 +689,7 @@ func NewStratifiedSampler(xstart, xend, ystart, yend, xsamp, ysamp int, jitter b
 
 	return sampler
 }
-func (s *StratifiedSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
+func (s *StratifiedSampler) GetMoreSamples(samples *[]Sample, rng *RNG) int {
 	if s.yPos == s.yPixelEnd {
 		return 0
 	}
@@ -719,17 +717,17 @@ func (s *StratifiedSampler) GetMoreSamples(samples []Sample, rng *RNG) int {
 
 	// Initialize stratified _samples_ with sample values
 	for i := 0; i < nSamples; i++ {
-		samples[i].imageX = imageSamples[2*i]
-		samples[i].imageY = imageSamples[2*i+1]
-		samples[i].lensU = lensSamples[2*i]
-		samples[i].lensV = lensSamples[2*i+1]
-		samples[i].time = Lerp(timeSamples[i], s.shutterOpen, s.shutterClose)
+		(*samples)[i].imageX = imageSamples[2*i]
+		(*samples)[i].imageY = imageSamples[2*i+1]
+		(*samples)[i].lensU = lensSamples[2*i]
+		(*samples)[i].lensV = lensSamples[2*i+1]
+		(*samples)[i].time = Lerp(timeSamples[i], s.shutterOpen, s.shutterClose)
 		// Generate stratified samples for integrators
-		for j := 0; j < len(samples[i].n1D); j++ {
-			LatinHypercube(samples[i].oneD[j], uint32(samples[i].n1D[j]), 1, rng)
+		for j := 0; j < len((*samples)[i].n1D); j++ {
+			LatinHypercube((*samples)[i].oneD[j], uint32((*samples)[i].n1D[j]), 1, rng)
 		}
-		for j := 0; j < len(samples[i].n2D); j++ {
-			LatinHypercube(samples[i].twoD[j], uint32(samples[i].n2D[j]), 2, rng)
+		for j := 0; j < len((*samples)[i].n2D); j++ {
+			LatinHypercube((*samples)[i].twoD[j], uint32((*samples)[i].n2D[j]), 2, rng)
 		}
 	}
 

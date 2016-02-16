@@ -308,7 +308,7 @@ func (primeTask *irradiancePrimeTask) run() {
 	maxSamples := primeTask.sampler.MaximumSampleCount()
 	samples := primeTask.origSample.Duplicate(maxSamples)
 	for {
-		if sampleCount := primeTask.sampler.GetMoreSamples(samples, rng); sampleCount > 0 {
+		if sampleCount := primeTask.sampler.GetMoreSamples(&samples, rng); sampleCount > 0 {
 			for i := 0; i < sampleCount; i++ {
 				ray, _ := GenerateRayDifferential(primeTask.camera, &samples[i])
 				if ok, isect := primeTask.scene.Intersect(ray); ok {

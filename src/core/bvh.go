@@ -104,7 +104,7 @@ func (node *bvhBuildNode) InitInterior(axis int, c0, c1 *bvhBuildNode) {
 	node.nPrimitives = 0
 }
 
-func intersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg [3]int) bool {
+func intersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg *[3]int) bool {
 	// Check for ray intersection against $x$ and $y$ slabs
 	tmin := (bounds.PointAtIndex(dirIsNeg[0]).X - ray.Origin.X) * invDir.X
 	tmax := (bounds.PointAtIndex(1-dirIsNeg[0]).X - ray.Origin.X) * invDir.X
@@ -161,7 +161,6 @@ func NewBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 	}
 
 	// Build BVH from _primitives_
-	//PBRT_BVH_STARTED_CONSTRUCTION(bvh, len(bvh.primitives))
 
 	// Initialize _buildData_ array for primitives
 	buildData := make([]bvhPrimitiveInfo, 0, len(bvh.primitives))
@@ -174,10 +173,9 @@ func NewBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 	var buildArena *MemoryArena = nil
 	orderedPrims := make([]Primitive, 0, len(bvh.primitives))
 	root, totalNodes := bvh.recursiveBuild(buildArena, buildData, 0, len(bvh.primitives), &orderedPrims)
-	Info("BVH created with %d(%d) primitives", len(orderedPrims), len(bvh.primitives))
 	Assert(len(bvh.primitives) == len(orderedPrims))
 	copy(bvh.primitives, orderedPrims)
-	Info("BVH created with %d nodes for %d primitives", totalNodes, len(bvh.primitives))
+	Debug("BVH created with %d nodes for %d primitives", totalNodes, len(bvh.primitives))
 
 	// Compute representation of depth-first traversal of BVH tree
 	bvh.nodes = make([]linearBVHNode, totalNodes, totalNodes)
@@ -186,8 +184,6 @@ func NewBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
 	if offset != totalNodes {
 		Severe("Incorrect number of BVH detected.  Expected: %d  Got: %d", totalNodes, offset)
 	}
-	//PBRT_BVH_FINISHED_CONSTRUCTION(bvh)
-	Info("BVH construction finished.")
 
 	return bvh
 }
@@ -449,7 +445,6 @@ func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	if bvh.nodes == nil {
 		return false, nil
 	}
-	//PBRT_BVH_INTERSECTION_STARTED(const_cast<BVHAccel *>(this), const_cast<Ray *>(&ray))
 	hitSomething := false
 	var isect *Intersection
 
@@ -470,18 +465,14 @@ func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	for {
 		node := &bvh.nodes[nodeNum]
 		// Check ray against BVH node
-		if intersectP(&node.bounds, CreateRayFromRayDifferential(ray), invDir, dirIsNeg) {
+		if intersectP(&node.bounds, CreateRayFromRayDifferential(ray), invDir, &dirIsNeg) {
 			if node.nPrimitives > 0 {
 				// Intersect ray with primitives in leaf BVH node
-				//PBRT_BVH_INTERSECTION_TRAVERSED_LEAF_NODE(const_cast<LinearBVHNode *>(node))
 				for i := 0; i < node.nPrimitives; i++ {
-					//PBRT_BVH_INTERSECTION_PRIMITIVE_TEST(const_cast<Primitive *>(primitives[node->primitivesOffset+i].GetPtr()))
 					if hit, nisect := bvh.primitives[node.offset+i].Intersect(ray); hit {
-						//PBRT_BVH_INTERSECTION_PRIMITIVE_HIT(const_cast<Primitive *>(primitives[node->primitivesOffset+i].GetPtr()))
 						hitSomething = true
 						isect = nisect
 					} else {
-						//PBRT_BVH_INTERSECTION_PRIMITIVE_MISSED(const_cast<Primitive *>(primitives[node->primitivesOffset+i].GetPtr()))
 					}
 				}
 				if todoOffset == 0 {
@@ -491,7 +482,6 @@ func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 				nodeNum = todo[todoOffset]
 			} else {
 				// Put far BVH node on _todo_ stack, advance to near node
-				//PBRT_BVH_INTERSECTION_TRAVERSED_INTERIOR_NODE(const_cast<LinearBVHNode *>(node))
 				if dirIsNeg[node.axis] != 0 {
 					todo[todoOffset] = nodeNum + 1
 					todoOffset++
@@ -510,7 +500,6 @@ func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 			nodeNum = todo[todoOffset]
 		}
 	}
-	//PBRT_BVH_INTERSECTION_FINISHED()
 	return hitSomething, isect
 }
 
@@ -518,7 +507,6 @@ func (bvh *BVHAccel) IntersectP(ray *Ray) bool {
 	if bvh.nodes == nil {
 		return false
 	}
-	//PBRT_BVH_INTERSECTIONP_STARTED(const_cast<BVHAccel *>(this), const_cast<Ray *>(&ray))
 	invDir := CreateVector(1.0/ray.Dir.X, 1.0/ray.Dir.Y, 1.0/ray.Dir.Z)
 	dirIsNeg := [3]int{0, 0, 0}
 	if invDir.X < 0 {
@@ -534,17 +522,13 @@ func (bvh *BVHAccel) IntersectP(ray *Ray) bool {
 	todoOffset, nodeNum := 0, 0
 	for {
 		node := &bvh.nodes[nodeNum]
-		if intersectP(&node.bounds, ray, invDir, dirIsNeg) {
+		if intersectP(&node.bounds, ray, invDir, &dirIsNeg) {
 			// Process BVH node _node_ for traversal
 			if node.nPrimitives > 0 {
-				//PBRT_BVH_INTERSECTIONP_TRAVERSED_LEAF_NODE(const_cast<LinearBVHNode *>(node))
 				for i := 0; i < node.nPrimitives; i++ {
-					//PBRT_BVH_INTERSECTIONP_PRIMITIVE_TEST(const_cast<Primitive *>(primitives[node->primitivesOffset + i].GetPtr()))
 					if bvh.primitives[node.offset+i].IntersectP(ray) {
-						//PBRT_BVH_INTERSECTIONP_PRIMITIVE_HIT(const_cast<Primitive *>(primitives[node->primitivesOffset+i].GetPtr()))
 						return true
 					} else {
-						//PBRT_BVH_INTERSECTIONP_PRIMITIVE_MISSED(const_cast<Primitive *>(primitives[node->primitivesOffset + i].GetPtr()))
 					}
 				}
 				if todoOffset == 0 {
@@ -553,7 +537,6 @@ func (bvh *BVHAccel) IntersectP(ray *Ray) bool {
 				todoOffset--
 				nodeNum = todo[todoOffset]
 			} else {
-				//PBRT_BVH_INTERSECTIONP_TRAVERSED_INTERIOR_NODE(const_cast<LinearBVHNode *>(node))
 				if dirIsNeg[node.axis] != 0 {
 					/// second child first
 					todo[todoOffset] = nodeNum + 1
@@ -573,7 +556,6 @@ func (bvh *BVHAccel) IntersectP(ray *Ray) bool {
 			nodeNum = todo[todoOffset]
 		}
 	}
-	//PBRT_BVH_INTERSECTIONP_FINISHED()
 	return false
 }
 

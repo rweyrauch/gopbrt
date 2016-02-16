@@ -378,7 +378,7 @@ func LDPixelSampleFloatsNeeded(sample *Sample, nPixelSamples int) int {
 	return nPixelSamples * n
 }
 
-func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamples int, samples []Sample, buf []float64, rng *RNG) {
+func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamples int, samples *[]Sample, buf []float64, rng *RNG) {
 	Assert(len(buf) >= nPixelSamples*5)
 
 	bufOffset := 0
@@ -391,18 +391,18 @@ func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamp
 	//Assert(len(timeSamples) == nPixelSamples)
 
 	// Prepare temporary array pointers for low-discrepancy integrator samples
-	count1D := len(samples[0].n1D)
-	count2D := len(samples[0].n2D)
+	count1D := len((*samples)[0].n1D)
+	count2D := len((*samples)[0].n2D)
 
    	oneDSamples := make([][]float64, count1D, count1D)
    	twoDSamples := make([][]float64, count2D, count2D)
    	for i := 0; i < count1D; i++ {
-       	oneDSamples[i] = buf[bufOffset : bufOffset + samples[0].n1D[i] * nPixelSamples]
-       	bufOffset += samples[0].n1D[i] * nPixelSamples
+       	oneDSamples[i] = buf[bufOffset : bufOffset + (*samples)[0].n1D[i] * nPixelSamples]
+       	bufOffset += (*samples)[0].n1D[i] * nPixelSamples
    	}
    	for i := 0; i < count2D; i++ {
-       	twoDSamples[i] = buf[bufOffset : bufOffset + 2 * samples[0].n2D[i] * nPixelSamples]
-       	bufOffset += 2 * samples[0].n2D[i] * nPixelSamples
+       	twoDSamples[i] = buf[bufOffset : bufOffset + 2 * (*samples)[0].n2D[i] * nPixelSamples]
+       	bufOffset += 2 * (*samples)[0].n2D[i] * nPixelSamples
    	}
 
 	// Generate low-discrepancy pixel samples
@@ -411,32 +411,32 @@ func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamp
 	LDShuffleScrambled1D(1, nPixelSamples, &timeSamples, rng)
 		
    	for i := 0; i < count1D; i++ {
-       	LDShuffleScrambled1D(samples[0].n1D[i], nPixelSamples, &oneDSamples[i], rng)
+       	LDShuffleScrambled1D((*samples)[0].n1D[i], nPixelSamples, &oneDSamples[i], rng)
    	}    
    	for i := 0; i < count2D; i++ {
-       	LDShuffleScrambled2D(samples[0].n2D[i], nPixelSamples, &twoDSamples[i], rng)
+       	LDShuffleScrambled2D((*samples)[0].n2D[i], nPixelSamples, &twoDSamples[i], rng)
 	}
 	
 	// Initialize _samples_ with computed sample values
 	for i := 0; i < nPixelSamples; i++ {
-		samples[i].imageX = float64(xPos) + imageSamples[2*i]
-		samples[i].imageY = float64(yPos) + imageSamples[2*i+1]
-		samples[i].time = Lerp(timeSamples[i], shutterOpen, shutterClose)
-		samples[i].lensU = lensSamples[2*i]
-		samples[i].lensV = lensSamples[2*i+1]
+		(*samples)[i].imageX = float64(xPos) + imageSamples[2*i]
+		(*samples)[i].imageY = float64(yPos) + imageSamples[2*i+1]
+		(*samples)[i].time = Lerp(timeSamples[i], shutterOpen, shutterClose)
+		(*samples)[i].lensU = lensSamples[2*i]
+		(*samples)[i].lensV = lensSamples[2*i+1]
 		
 	   // Copy integrator samples into _samples[i]_
 	   for j := 0; j < count1D; j++ {
-	       startSamp := samples[0].n1D[j] * i;
-	       for k := 0; k < samples[0].n1D[j]; k++ {
-	           samples[i].oneD[j][k] = oneDSamples[j][startSamp+k]
+	       startSamp := (*samples)[0].n1D[j] * i;
+	       for k := 0; k < (*samples)[0].n1D[j]; k++ {
+	           (*samples)[i].oneD[j][k] = oneDSamples[j][startSamp+k]
 	        }
 	   }
 	   
 	   for j := 0; j < count2D; j++ {
-	       startSamp := 2 * samples[0].n2D[j] * i;
-	       for k := 0; k < 2*samples[0].n2D[j]; k++ {
-	           samples[i].twoD[j][k] = twoDSamples[j][startSamp+k]
+	       startSamp := 2 * (*samples)[0].n2D[j] * i;
+	       for k := 0; k < 2*(*samples)[0].n2D[j]; k++ {
+	           (*samples)[i].twoD[j][k] = twoDSamples[j][startSamp+k]
 	       }
 	   }	   
 	}
@@ -498,10 +498,11 @@ func LDShuffleScrambled2D(nSamples, nPixel int, samples *[]float64, rng *RNG) {
 
 // Monte Carlo Function Definitions
 func RejectionSampleDisk(rng *RNG) (x, y float64) {
-	sx, sy := 1.0, 1.0
-	for sx*sx+sy*sy > 1.0 {
+	sx, sy := 0.0, 0.0
+	for {
 		sx = 1.0 - 2.0*rng.RandomFloat()
 		sy = 1.0 - 2.0*rng.RandomFloat()
+		if sx*sx+sy*sy <= 1.0 { break }
 	}
 	x = sx
 	y = sy

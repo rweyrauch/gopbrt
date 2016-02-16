@@ -122,7 +122,7 @@ func rendererWorker(workQueue <-chan taskInput, results chan<- taskOutput, compl
 		isects := make([]*Intersection, maxSamples, maxSamples)
 
 		// Get samples from _Sampler_ and update image
-		sampleCount := work.sampler.GetMoreSamples(samples, rng)
+		sampleCount := work.sampler.GetMoreSamples(&samples, rng)
 		for sampleCount > 0 {
 			// Generate camera rays and compute radiance along rays
 			for i := 0; i < sampleCount; i++ {
@@ -162,7 +162,7 @@ func rendererWorker(workQueue <-chan taskInput, results chan<- taskOutput, compl
 				}
 			}
 
-			sampleCount = work.sampler.GetMoreSamples(samples, rng)
+			sampleCount = work.sampler.GetMoreSamples(&samples, rng)
 		}
 		work.reporter.Update(1)
 	}

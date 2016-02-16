@@ -27,24 +27,101 @@
 package core
 
 import (
+	"fmt"
 	"math"
 )
 
-type Light interface {
-	Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (s *Spectrum, wi *Vector, pdf float64)
-	Power(scene *Scene) *Spectrum
-	IsDeltaLight() bool
-	Le(ray *RayDifferential) *Spectrum
-	Pdf(p *Point, wi *Vector) float64
-	Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64)
-	SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum)
-	NumSamples() int
-}
+type (
+	Light interface {
+		Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (s *Spectrum, wi *Vector, pdf float64)
+		Power(scene *Scene) *Spectrum
+		IsDeltaLight() bool
+		Le(ray *RayDifferential) *Spectrum
+		Pdf(p *Point, wi *Vector) float64
+		Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (s *Spectrum, ray *Ray, Ns *Normal, pdf float64)
+		SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum)
+		NumSamples() int
+	}
+	AreaLight interface {
+		Light
+		L(p *Point, n *Normal, w *Vector) *Spectrum
+	}
 
-type LightData struct {
-	nSamples                   int
-	LightToWorld, WorldToLight *Transform
-}
+	LightData struct {
+		nSamples                   int
+		LightToWorld, WorldToLight *Transform
+	}
+
+	DiffuseAreaLight struct {
+		LightData
+		Lemit    Spectrum
+		shapeSet *ShapeSet
+		area     float64
+	}
+
+	InfiniteAreaLight struct {
+		LightData
+		radianceMap  *MIPMapSpectrum
+		distribution *Distribution2D
+	}
+
+	DistantLight struct {
+		LightData
+		lightDir Vector
+		L        Spectrum
+	}
+
+	GonioPhotometricLight struct {
+		LightData
+		lightPos  Point
+		Intensity Spectrum
+		mipmap    *MIPMapSpectrum
+	}
+
+	PointLight struct {
+		LightData
+		lightPos  Point
+		Intensity Spectrum
+	}
+
+	ProjectionLight struct {
+		LightData
+		projectionMap                          *MIPMapSpectrum
+		lightPos                               Point
+		Intensity                              Spectrum
+		lightProjection                        *Transform
+		hither, yon                            float64
+		screenX0, screenX1, screenY0, screenY1 float64
+		cosTotalWidth                          float64
+	}
+
+	SpotLight struct {
+		LightData
+		lightPos                       Point
+		Intensity                      Spectrum
+		cosTotalWidth, cosFalloffStart float64
+	}
+
+	VisibilityTester struct {
+		r Ray
+	}
+
+	LightSample struct {
+		uPos       [2]float64
+		uComponent float64
+	}
+
+	LightSampleOffsets struct {
+		nSamples, componentOffset, posOffset int
+	}
+
+	ShapeSet struct {
+		shapes           []Shape
+		sumArea          float64
+		areas            []float64
+		areaDistribution *Distribution1D
+	}
+)
 
 func LightSHProject(light Light, p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
 	coeffs = make([]Spectrum, SHTerms(lmax), SHTerms(lmax))
@@ -75,10 +152,6 @@ func LightSHProject(light Light, p *Point, pEpsilon float64, lmax int, scene *Sc
 	return coeffs
 }
 
-type VisibilityTester struct {
-	r Ray
-}
-
 func (v *VisibilityTester) SetSegment(p1 *Point, eps1 float64, p2 *Point, eps2, time float64) {
 	dist := DistancePoint(p1, p2)
 	v.r = *CreateRay(p1, p2.Sub(p1).InvScale(dist), eps1, dist*(1.0-eps2), time, 0)
@@ -94,20 +167,6 @@ func (v *VisibilityTester) Transmittance(scene *Scene, renderer Renderer,
 	return renderer.Transmittance(scene, CreateRayDifferentialFromRay(&v.r), sample, rng, arena)
 }
 
-type AreaLight interface {
-	Light
-	L(p *Point, n *Normal, w *Vector) *Spectrum
-}
-
-type LightSample struct {
-	uPos       [2]float64
-	uComponent float64
-}
-
-type LightSampleOffsets struct {
-	nSamples, componentOffset, posOffset int
-}
-
 func CreateLightSampleOffsets(count int, sample *Sample) *LightSampleOffsets {
 	return &LightSampleOffsets{count, sample.Add1D(count), sample.Add2D(count)}
 }
@@ -118,13 +177,6 @@ func CreateLightSample(sample *Sample, offsets *LightSampleOffsets, n int) *Ligh
 
 func CreateLightSampleRandom(rng *RNG) *LightSample {
 	return &LightSample{[2]float64{rng.RandomFloat(), rng.RandomFloat()}, rng.RandomFloat()}
-}
-
-type ShapeSet struct {
-	shapes           []Shape
-	sumArea          float64
-	areas            []float64
-	areaDistribution *Distribution1D
 }
 
 func NewShapeSet(s Shape) *ShapeSet {
@@ -189,58 +241,6 @@ func (s *ShapeSet) Pdf(p *Point) float64 {
 	return pdf / (float64(len(s.shapes)) * s.sumArea)
 }
 
-type (
-	DiffuseAreaLight struct {
-		LightData
-		Lemit    Spectrum
-		shapeSet *ShapeSet
-		area     float64
-	}
-
-	InfiniteAreaLight struct {
-		LightData
-		radianceMap  *MIPMapSpectrum
-		distribution *Distribution2D
-	}
-
-	DistantLight struct {
-		LightData
-		lightDir Vector
-		L        Spectrum
-	}
-
-	GonioPhotometricLight struct {
-		LightData
-		lightPos  Point
-		Intensity Spectrum
-		mipmap    *MIPMapSpectrum
-	}
-
-	PointLight struct {
-		LightData
-		lightPos  Point
-		Intensity Spectrum
-	}
-
-	ProjectionLight struct {
-		LightData
-		projectionMap                          *MIPMapSpectrum
-		lightPos                               Point
-		Intensity                              Spectrum
-		lightProjection                        *Transform
-		hither, yon                            float64
-		screenX0, screenX1, screenY0, screenY1 float64
-		cosTotalWidth                          float64
-	}
-
-	SpotLight struct {
-		LightData
-		lightPos                       Point
-		Intensity                      Spectrum
-		cosTotalWidth, cosFalloffStart float64
-	}
-)
-
 func NewDiffuseAreaLight(light2world *Transform, Le *Spectrum, ns int, shape Shape) *DiffuseAreaLight {
 	light := new(DiffuseAreaLight)
 	light.nSamples = ns
@@ -250,17 +250,21 @@ func NewDiffuseAreaLight(light2world *Transform, Le *Spectrum, ns int, shape Sha
 	light.shapeSet = NewShapeSet(shape)
 	light.area = light.shapeSet.Area()
 
+	Debug("AreaLight: %v", light)
+
 	return light
 }
 
+func (l *DiffuseAreaLight) String() string {
+	return fmt.Sprintf("diffuse area light[ns:%d Le:%v Area:%f]", l.nSamples, l.Lemit, l.area)
+}
+
 func (l *DiffuseAreaLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (Ls *Spectrum, wi *Vector, pdf float64) {
-	//PBRT_AREA_LIGHT_STARTED_SAMPLE()
 	ps, ns := l.shapeSet.SampleAt(p, ls)
 	wi = NormalizeVector(ps.Sub(p))
 	pdf = l.shapeSet.Pdf2(p, wi)
 	vis.SetSegment(p, pEpsilon, ps, 1.0e-3, time)
 	Ls = l.L(ps, ns, wi.Negate())
-	//PBRT_AREA_LIGHT_FINISHED_SAMPLE()
 	return Ls, wi, pdf
 }
 
@@ -279,7 +283,6 @@ func (l *DiffuseAreaLight) Pdf(p *Point, wi *Vector) float64 {
 }
 
 func (l *DiffuseAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (Ls *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
-	//PBRT_AREA_LIGHT_STARTED_SAMPLE();
 	org, Ns := l.shapeSet.Sample(ls)
 	dir := UniformSampleSphere(u1, u2)
 	if DotVectorNormal(dir, Ns) < 0.0 {
@@ -288,7 +291,6 @@ func (l *DiffuseAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time
 	ray = CreateRay(org, dir, 1.0e-3, INFINITY, time, 0)
 	pdf = l.shapeSet.Pdf(org) * INV_TWOPI
 	Ls = l.L(org, Ns, dir)
-	//PBRT_AREA_LIGHT_FINISHED_SAMPLE()
 	return Ls, ray, Ns, pdf
 }
 func (l *DiffuseAreaLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
@@ -494,7 +496,6 @@ func NewInfiniteAreaLight(light2world *Transform, L *Spectrum, ns int, texmap st
 }
 
 func (l *InfiniteAreaLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample, time float64, vis *VisibilityTester) (Ls *Spectrum, wi *Vector, pdf float64) {
-	//PBRT_INFINITE_LIGHT_STARTED_SAMPLE();
 	// Find $(u,v)$ sample coordinates in infinite light texture
 	uv, mapPdf := l.distribution.SampleContinuous(ls.uPos[0], ls.uPos[1])
 	if mapPdf == 0.0 {
@@ -516,7 +517,6 @@ func (l *InfiniteAreaLight) Sample_L(p *Point, pEpsilon float64, ls *LightSample
 	// Return radiance value for infinite light direction
 	vis.SetRay(p, pEpsilon, wi, time)
 	Ls = l.radianceMap.Lookup(uv[0], uv[1], 0.0)
-	//PBRT_INFINITE_LIGHT_FINISHED_SAMPLE();
 	return Ls, wi, pdf
 }
 
@@ -535,7 +535,6 @@ func (l *InfiniteAreaLight) Le(ray *RayDifferential) *Spectrum {
 }
 
 func (l *InfiniteAreaLight) Pdf(p *Point, w *Vector) float64 {
-	//PBRT_INFINITE_LIGHT_STARTED_PDF();
 	wi := VectorTransform(l.WorldToLight, w)
 	theta, phi := SphericalTheta(wi), SphericalPhi(wi)
 	sintheta := math.Sin(theta)
@@ -543,12 +542,10 @@ func (l *InfiniteAreaLight) Pdf(p *Point, w *Vector) float64 {
 		return 0.0
 	}
 	pdf := l.distribution.Pdf(phi/(2.0*math.Pi), theta/math.Pi) / (2.0 * math.Pi * math.Pi * sintheta)
-	//PBRT_INFINITE_LIGHT_FINISHED_PDF();
 	return pdf
 }
 
 func (l *InfiniteAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (Ls *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
-	//PBRT_INFINITE_LIGHT_STARTED_SAMPLE();
 	// Compute direction for infinite light sample ray
 
 	// Find $(u,v)$ sample coordinates in infinite light texture
@@ -578,7 +575,6 @@ func (l *InfiniteAreaLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, tim
 		pdf = 0.0
 	}
 	Ls = l.radianceMap.Lookup(uv[0], uv[1], 0.0)
-	//PBRT_INFINITE_LIGHT_FINISHED_SAMPLE();
 	return Ls, ray, Ns, pdf
 }
 
