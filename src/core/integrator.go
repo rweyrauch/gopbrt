@@ -315,8 +315,9 @@ func (integrator *PathIntegrator) Li(scene *Scene, renderer Renderer, r *RayDiff
 	pathThroughput, L := NewSpectrum1(1.0), NewSpectrum1(0.0)
 	ray := &RayDifferential{Ray{r.Origin, r.Dir, r.Mint, r.Maxt, r.Time, r.Depth}, r.HasDifferentials, r.RxOrigin, r.RyOrigin, r.RxDirection, r.RyDirection}
 	specularBounce := false
-	localIsect := new(Intersection)
+	localIsect := NewIntersection()
 	isectp := isect
+	Assert(isectp != nil)
 	for bounces := 0; ; bounces++ {
 		// Possibly add emitted light at path vertex
 		if bounces == 0 || specularBounce {
@@ -367,7 +368,9 @@ func (integrator *PathIntegrator) Li(scene *Scene, renderer Renderer, r *RayDiff
 		}
 		// Find next vertex of path
 		var ok bool
-		if ok, localIsect = scene.Intersect(ray); ok {
+		var tempIsect *Intersection
+		if ok, tempIsect = scene.Intersect(ray); ok {
+			localIsect = tempIsect
 			if specularBounce {
 				for i := 0; i < len(scene.lights); i++ {
 					L = L.Add(pathThroughput.Mult(scene.lights[i].Le(ray)))
@@ -377,6 +380,7 @@ func (integrator *PathIntegrator) Li(scene *Scene, renderer Renderer, r *RayDiff
 		}
 		pathThroughput = pathThroughput.Mult(renderer.Transmittance(scene, ray, nil, rng, arena))
 		isectp = localIsect
+		
 	}
 	return L
 }

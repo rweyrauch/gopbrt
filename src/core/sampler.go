@@ -768,7 +768,10 @@ func CreateAdaptiveSampler(params *ParamSet, film Film, camera Camera) *Adaptive
 	xstart, xend, ystart, yend := film.GetSampleExtent()
 	minsamp := params.FindIntParam("minsamples", 4)
 	maxsamp := params.FindIntParam("maxsamples", 32)
-	if options.QuickRender {
+	if options.FastRender {
+		minsamp = 4
+		minsamp = 16
+	} else if options.QuickRender {
 		minsamp = 2
 		maxsamp = 4
 	}
@@ -780,7 +783,9 @@ func CreateBestCandidateSampler(params *ParamSet, film Film, camera Camera) *Bes
 	// Initialize common sampler parameters
 	xstart, xend, ystart, yend := film.GetSampleExtent()
 	nsamp := params.FindIntParam("pixelsamples", 4)
-	if options.QuickRender {
+	if options.FastRender {
+		nsamp = 2
+	} else if options.QuickRender {
 		nsamp = 1
 	}
 	return NewBestCandidateSampler(xstart, xend, ystart, yend, nsamp, camera.ShutterOpen(), camera.ShutterClose())
@@ -790,7 +795,9 @@ func CreateHaltonSampler(params *ParamSet, film Film, camera Camera) *HaltonSamp
 	// Initialize common sampler parameters
 	xstart, xend, ystart, yend := film.GetSampleExtent()
 	nsamp := params.FindIntParam("pixelsamples", 4)
-	if options.QuickRender {
+	if options.FastRender {
+		nsamp = 2
+	} else if options.QuickRender {
 		nsamp = 1
 	}
 	return NewHaltonSampler(xstart, xend, ystart, yend, nsamp, camera.ShutterOpen(), camera.ShutterClose())
@@ -800,7 +807,9 @@ func CreateLowDiscrepancySampler(params *ParamSet, film Film, camera Camera) *LD
 	// Initialize common sampler parameters
 	xstart, xend, ystart, yend := film.GetSampleExtent()
 	nsamp := params.FindIntParam("pixelsamples", 4)
-	if options.QuickRender {
+	if options.FastRender {
+		nsamp = 2
+	} else if options.QuickRender {
 		nsamp = 1
 	}
 	return NewLDSampler(xstart, xend, ystart, yend, nsamp, camera.ShutterOpen(), camera.ShutterClose())
@@ -810,7 +819,9 @@ func CreateRandomSampler(params *ParamSet, film Film, camera Camera) *RandomSamp
 	// Initialize common sampler parameters
 	xstart, xend, ystart, yend := film.GetSampleExtent()
 	nsamp := params.FindIntParam("pixelsamples", 4)
-	if options.QuickRender {
+	if options.FastRender {
+		nsamp = 2
+	} else if options.QuickRender {
 		nsamp = 1
 	}
 	return NewRandomSampler(xstart, xend, ystart, yend, nsamp, camera.ShutterOpen(), camera.ShutterClose())
@@ -821,8 +832,8 @@ func CreateStratifiedSampler(params *ParamSet, film Film, camera Camera) *Strati
 	// Initialize common sampler parameters
 	xstart, xend, ystart, yend := film.GetSampleExtent()
 	xsamp := params.FindIntParam("xsamples", 2)
-	ysamp := params.FindIntParam("ysamples", 2)
-	if options.QuickRender {
+	ysamp := params.FindIntParam("ysamples", 2)	
+	if options.QuickRender || options.FastRender {
 		xsamp, ysamp = 1, 1
 	}
 	return NewStratifiedSampler(xstart, xend, ystart, yend, xsamp, ysamp, jitter, camera.ShutterOpen(), camera.ShutterClose())

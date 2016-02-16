@@ -54,8 +54,8 @@ type (
 		minSampleDist float64
 		maxFails      int
 
-		repeatedFails, maxRepeatedFails                   int
-		totalPathsTraced, totalRaysTraced, numPointsAdded int
+		repeatedFails, maxRepeatedFails                   *int
+		totalPathsTraced, totalRaysTraced, numPointsAdded *int
 
 		sphere        *GeometricPrimitive
 		octree        *Octree
@@ -96,14 +96,13 @@ func (renderer *SurfacePointsRenderer) Render(scene *Scene) {
 	totalPathsTraced, totalRaysTraced, numPointsAdded := 0, 0, 0
 	prog := NewProgressReporter(maxFails, "Depositing samples", TerminalWidth())
 	// Launch tasks to trace rays to find Poisson points
-	//PBRT_SUBSURFACE_STARTED_RAYS_FOR_POINTS();
 	//vector<Task *> tasks;
 	//RWMutex *mutex = RWMutex::Create();
 	nTasks := NumSystemCores()
 	for i := 0; i < nTasks; i++ {
 		spt := newSurfacePointTask(scene, &renderer.pCamera, renderer.time, i,
-			renderer.minDist, maxFails, repeatedFails, maxRepeatedFails,
-			totalPathsTraced, totalRaysTraced, numPointsAdded, sphere, pointOctree,
+			renderer.minDist, maxFails, &repeatedFails, &maxRepeatedFails,
+			&totalPathsTraced, &totalRaysTraced, &numPointsAdded, sphere, pointOctree,
 			renderer.points, prog)
 		spt.Run()
 	}
@@ -113,7 +112,7 @@ func (renderer *SurfacePointsRenderer) Render(scene *Scene) {
 	//    delete tasks[i];
 	//RWMutex::Destroy(mutex);
 	prog.Done()
-	//PBRT_SUBSURFACE_FINISHED_RAYS_FOR_POINTS(totalRaysTraced, numPointsAdded);
+
 	if len(renderer.filename) != 0 {
 		// Write surface points to file
 		fi, err := os.Open(renderer.filename)
@@ -139,10 +138,26 @@ func (*SurfacePointsRenderer) Transmittance(scene *Scene, ray *RayDifferential, 
 	return NewSpectrum1(0.0)
 }
 
-func newSurfacePointTask(scene *Scene, pCamera *Point, time float64, taskNum int,
-	minDist float64, maxFails, repeatedFails, maxRepeatedFails,
-	totalPathsTraced, totalRaysTraced, numPointsAdded int, sphere Primitive, octree *Octree, points []SurfacePoint, prog *ProgressReporter) *surfacePointTask {
-	return nil
+func newSurfacePointTask(scene *Scene, origin *Point, time float64, taskNum int,
+	minDist float64, maxFails int, repeatedFails, maxRepeatedFails,
+	totalPathsTraced, totalRaysTraced, numPointsAdded *int, sphere *GeometricPrimitive, octree *Octree, points []SurfacePoint, prog *ProgressReporter) *surfacePointTask {
+	spt := new(surfacePointTask)
+	spt.taskNum = taskNum
+	spt.scene = scene
+	spt.origin = *origin
+	spt.time = time
+	spt.minSampleDist = minDist
+	spt.maxFails = maxFails
+	spt.repeatedFails = repeatedFails
+	spt.maxRepeatedFails = maxRepeatedFails
+	spt.totalPathsTraced = totalPathsTraced
+	spt.totalRaysTraced = totalRaysTraced
+	spt.numPointsAdded = numPointsAdded
+	spt.sphere = sphere
+	spt.octree = octree
+	spt.surfacePoints = points
+	spt.prog = prog
+	return spt
 }
 
 func (spt *surfacePointTask) Run() {
@@ -211,18 +226,18 @@ func (spt *surfacePointTask) Run() {
 
 		// Make second pass through points with writer lock and update octree
 		//lock.UpgradeToWrite();
-		if spt.repeatedFails >= spt.maxFails {
+		if *spt.repeatedFails >= spt.maxFails {
 			return
 		}
-		spt.totalPathsTraced += pathsTraced
-		spt.totalRaysTraced += raysTraced
-		oldMaxRepeatedFails := spt.maxRepeatedFails
+		*spt.totalPathsTraced += pathsTraced
+		*spt.totalRaysTraced += raysTraced
+		oldMaxRepeatedFails := *spt.maxRepeatedFails
 		for i, sp := range candidates {
 			if candidateRejected[i] {
 				// Update for rejected candidate point
-				spt.repeatedFails++
-				spt.maxRepeatedFails = Maxi(spt.maxRepeatedFails, spt.repeatedFails)
-				if spt.repeatedFails >= spt.maxFails {
+				*spt.repeatedFails++
+				*spt.maxRepeatedFails = Maxi(*spt.maxRepeatedFails, *spt.repeatedFails)
+				if *spt.repeatedFails >= spt.maxFails {
 					return
 				}
 			} else {
@@ -243,28 +258,27 @@ func (spt *surfacePointTask) Run() {
 				spt.octree.Lookup(&sp.p, checkPoisson)
 				if check.failed {
 					// Update for rejected candidate point
-					spt.repeatedFails++
-					spt.maxRepeatedFails = Maxi(spt.maxRepeatedFails, spt.repeatedFails)
-					if spt.repeatedFails >= spt.maxFails {
+					*spt.repeatedFails++
+					*spt.maxRepeatedFails = Maxi(*spt.maxRepeatedFails, *spt.repeatedFails)
+					if *spt.repeatedFails >= spt.maxFails {
 						return
 					}
 				} else {
-					spt.numPointsAdded++
-					spt.repeatedFails = 0
+					*spt.numPointsAdded++
+					*spt.repeatedFails = 0
 					delta := CreateVector(spt.minSampleDist, spt.minSampleDist, spt.minSampleDist)
 					spt.octree.Add(sp, CreateBBoxFromPoints(sp.p.SubVector(delta), sp.p.Add(delta)))
-					//PBRT_SUBSURFACE_ADDED_POINT_TO_OCTREE(&sp, minSampleDist);
 					spt.surfacePoints = append(spt.surfacePoints, sp)
 				}
 			}
 		}
 
 		// Stop following paths if not finding new points
-		if spt.repeatedFails > oldMaxRepeatedFails {
-			delta := spt.repeatedFails - oldMaxRepeatedFails
+		if *spt.repeatedFails > oldMaxRepeatedFails {
+			delta := *spt.repeatedFails - oldMaxRepeatedFails
 			spt.prog.Update(delta)
 		}
-		if spt.totalPathsTraced > 50000 && spt.numPointsAdded == 0 {
+		if *spt.totalPathsTraced > 50000 && *spt.numPointsAdded == 0 {
 			Warning("There don't seem to be any objects with BSSRDFs in this scene.  Giving up.")
 			return
 		}

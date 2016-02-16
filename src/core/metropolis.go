@@ -459,7 +459,11 @@ func CreateMetropolisRenderer(params *ParamSet, camera Camera) *MetropolisRender
 	md := params.FindIntParam("maxdepth", 7)
 	doBidirectional := params.FindBoolParam("bidirectional", true)
 
-	if options.QuickRender {
+	if options.FastRender {
+		perPixelSamples = Maxi(1, perPixelSamples/2)
+		nBootstrap = Maxi(1, nBootstrap/2)
+		nDirectPixelSamples = Maxi(1, nDirectPixelSamples/2)
+	} else if options.QuickRender {
 		perPixelSamples = Maxi(1, perPixelSamples/4)
 		nBootstrap = Maxi(1, nBootstrap/4)
 		nDirectPixelSamples = Maxi(1, nDirectPixelSamples/4)

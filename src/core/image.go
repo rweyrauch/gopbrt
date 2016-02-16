@@ -51,7 +51,7 @@ type ImageFilm struct {
 	filterTable [filterTableSize * filterTableSize]float64
 }
 
-func NewImageFilm(xres, yres int, filter Filter, crop []float64, filename string, openWindow bool) *ImageFilm {
+func NewImageFilm(xres, yres int, filter Filter, crop []float64, filename string) *ImageFilm {
 	film := new(ImageFilm)
 	film.xResolution = xres
 	film.yResolution = yres
@@ -76,11 +76,6 @@ func NewImageFilm(xres, yres int, filter Filter, crop []float64, filename string
 			film.filterTable[i] = filter.Evaluate(fx, fy)
 			i++
 		}
-	}
-
-	// Possibly open window for image display
-	if openWindow || options.OpenWindow {
-		Warning("Support for opening image display window not available in this build.")
 	}
 
 	return film
@@ -230,7 +225,6 @@ func CreateImageFilmFromParams(params *ParamSet, filter Filter) *ImageFilm {
 	filename := params.FindStringParam("filename", "")
 	xres := params.FindIntParam("xresolution", 640)
 	yres := params.FindIntParam("yresolution", 480)
-	openwin := params.FindBoolParam("display", false)
 	crop := params.FindFloatArrayParam("cropwindow")
 	if crop == nil {
 		crop = []float64{0, 1, 0, 1}
@@ -246,10 +240,13 @@ func CreateImageFilmFromParams(params *ParamSet, filter Filter) *ImageFilm {
 	if len(filename) == 0 {
 		filename = "pbrt.exr"
 	}
-	if options.QuickRender {
+	if options.FastRender {
+		xres = Maxi(1, xres/2)
+		yres = Maxi(1, yres/2)
+	} else if options.QuickRender {
 		xres = Maxi(1, xres/4)
 		yres = Maxi(1, yres/4)
 	}
 
-	return NewImageFilm(xres, yres, filter, crop, filename, openwin)
+	return NewImageFilm(xres, yres, filter, crop, filename)
 }

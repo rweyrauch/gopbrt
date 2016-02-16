@@ -43,7 +43,7 @@ const (
 
 type Options struct {
 	NumCores                                       int
-	QuickRender, Quiet, Verbose, OpenWindow, Debug bool
+	QuickRender, FastRender, Quiet, Verbose, Debug bool
 	ImageFile                                      string
 }
 

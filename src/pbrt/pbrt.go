@@ -43,6 +43,7 @@ func main() {
 	flag.IntVar(&options.NumCores, "ncores", -1, "Number of cores to use.")
 	flag.StringVar(&options.ImageFile, "outfile", "", "Output image file.")
 	flag.BoolVar(&options.QuickRender, "quick", false, "Quick render mode.")
+	flag.BoolVar(&options.FastRender, "fast", true, "Fast render mode.")
 	flag.BoolVar(&options.Quiet, "quiet", false, "Quiet mode.")
 	flag.BoolVar(&options.Verbose, "verbose", false, "Verbose mode.")
 	flag.BoolVar(&options.Debug, "debug", false, "Debug mode.")

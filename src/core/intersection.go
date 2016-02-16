@@ -34,18 +34,25 @@ type Intersection struct {
 	rayEpsilon                   float64
 }
 
+func NewIntersection() *Intersection {
+	isect := new(Intersection)
+	isect.dg = CreateDiffGeometry(CreatePoint(0,0,0), CreateVector(0,0,0), CreateVector(0,0,0), CreateNormal(0,0,0), CreateNormal(0,0,0), 0.0, 0.0, nil)
+	isect.primitive = nil
+	isect.WorldToObject = NewTransformExplicit(NewIdentityMatrix4x4(), NewIdentityMatrix4x4())
+	isect.ObjectToWorld = InverseTransform(isect.WorldToObject)
+	isect.shapeId = 0
+	isect.primitiveId = 0
+	isect.rayEpsilon = 0
+	return isect
+}
 func (isect *Intersection) GetBSDF(ray *RayDifferential, arena *MemoryArena) *BSDF {
-	//PBRT_STARTED_BSDF_SHADING(const_cast<RayDifferential *>(&ray));
 	isect.dg.ComputeDifferentials(ray)
 	bsdf := isect.primitive.GetBSDF(isect.dg, isect.ObjectToWorld, arena)
-	//PBRT_FINISHED_BSDF_SHADING(const_cast<RayDifferential *>(&ray), bsdf);
 	return bsdf
 }
 func (isect *Intersection) GetBSSRDF(ray *RayDifferential, arena *MemoryArena) *BSSRDF {
-	//PBRT_STARTED_BSSRDF_SHADING(const_cast<RayDifferential *>(&ray));
 	isect.dg.ComputeDifferentials(ray)
 	bssrdf := isect.primitive.GetBSSRDF(isect.dg, isect.ObjectToWorld, arena)
-	//PBRT_FINISHED_BSSRDF_SHADING(const_cast<RayDifferential *>(&ray), bssrdf);
 	return bssrdf
 }
 func (isect *Intersection) Le(wo *Vector) *Spectrum {

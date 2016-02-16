@@ -705,7 +705,9 @@ func CreateWrinkledSpectrumTexture(tex2world *Transform, tp *TextureParams) *Wri
 func CreateAmbientOcclusionIntegrator(params *ParamSet) *AmbientOcclusionIntegrator {
 	nSamples := params.FindIntParam("nsamples", 2048)
 	maxDist := params.FindFloatParam("maxdist", INFINITY)
-	if options.QuickRender {
+	if options.FastRender {
+		nSamples = Maxi(1, nSamples/2)
+	} else if options.QuickRender {
 		nSamples = Maxi(1, nSamples/4)
 	}
 	return &AmbientOcclusionIntegrator{nSamples, maxDist}
@@ -736,7 +738,9 @@ func CreateIrradianceCacheIntegrator(params *ParamSet) *IrradianceCacheIntegrato
 	maxSpecularDepth := params.FindIntParam("maxspeculardepth", 5)
 	maxIndirectDepth := params.FindIntParam("maxindirectdepth", 3)
 	nSamples := params.FindIntParam("nsamples", 4096)
-	if options.QuickRender {
+	if options.FastRender {
+		nSamples = Maxi(1, nSamples/4)
+	} else if options.QuickRender {
 		nSamples = Maxi(1, nSamples/16)
 	}
 	return NewIrradianceCacheIntegrator(minWeight, minSpacing, maxSpacing, maxAngle,
@@ -752,7 +756,11 @@ func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator {
 	nCaustic := params.FindIntParam("causticphotons", 20000)
 	nIndirect := params.FindIntParam("indirectphotons", 100000)
 	nUsed := params.FindIntParam("nused", 50)
-	if options.QuickRender {
+	if options.FastRender {
+		nCaustic = nCaustic / 5
+		nIndirect = nIndirect / 5
+		nUsed = Maxi(1, nUsed / 5)		
+	} else if options.QuickRender {
 		nCaustic = nCaustic / 10
 		nIndirect = nIndirect / 10
 		nUsed = Maxi(1, nUsed/10)
@@ -761,7 +769,9 @@ func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator {
 	maxPhotonDepth := params.FindIntParam("maxphotondepth", 5)
 	finalGather := params.FindBoolParam("finalgather", true)
 	gatherSamples := params.FindIntParam("finalgathersamples", 32)
-	if options.QuickRender {
+	if options.FastRender {
+		gatherSamples = Maxi(1, gatherSamples/2)		
+	} else if options.QuickRender {
 		gatherSamples = Maxi(1, gatherSamples/4)
 	}
 	maxDist := params.FindFloatParam("maxdist", 0.1)

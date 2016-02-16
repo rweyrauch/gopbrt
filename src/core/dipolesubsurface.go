@@ -178,7 +178,6 @@ func (node *SubsurfaceOctreeNode) Mo(nodeBound *BBox, pt *Point, Rd *DiffusionRe
 	// Compute $M_\roman{o}$ at node if error is low enough
 	dw := node.sumArea / DistanceSquaredPoint(pt, &node.p)
 	if dw < maxError && !nodeBound.Inside(pt) {
-		//PBRT_SUBSURFACE_ADDED_INTERIOR_CONTRIBUTION(const_cast<SubsurfaceOctreeNode *>(this))
 		return Rd.Evaluate(DistanceSquaredPoint(pt, &node.p)).Mult(node.E.Scale(node.sumArea))
 	}
 
@@ -190,7 +189,6 @@ func (node *SubsurfaceOctreeNode) Mo(nodeBound *BBox, pt *Point, Rd *DiffusionRe
 			if node.ips[i] == nil {
 				break
 			}
-			//PBRT_SUBSURFACE_ADDED_POINT_CONTRIBUTION(const_cast<IrradiancePoint *>(ips[i]))
 			mo = mo.Add(Rd.Evaluate(DistanceSquaredPoint(pt, &node.ips[i].p)).Mult(node.ips[i].E.Scale(node.ips[i].area)))
 		}
 	} else {
@@ -268,8 +266,7 @@ func (integrator *DipoleSubsurfaceIntegrator) Preprocess(scene *Scene, camera Ca
 	// Compute irradiance values at sample points
 	rng := NewRNG(10)
 	var arena *MemoryArena
-	//PBRT_SUBSURFACE_STARTED_COMPUTING_IRRADIANCE_VALUES();
-	progress := NewProgressReporter(len(pts), "Computing Irradiances", TerminalWidth())
+	progress := NewProgressReporter(len(pts), "Computing Irradiances", -1)
 	for i := 0; i < len(pts); i++ {
 		sp := &pts[i]
 		E := NewSpectrum1(0.0)
@@ -302,12 +299,9 @@ func (integrator *DipoleSubsurfaceIntegrator) Preprocess(scene *Scene, camera Ca
 			E = E.Add(Elight.InvScale(float64(nSamples)))
 		}
 		integrator.irradiancePoints = append(integrator.irradiancePoints, *NewIrradiancePoint(sp, E))
-		//PBRT_SUBSURFACE_COMPUTED_IRRADIANCE_AT_POINT(&sp, &E);
-		//arena.FreeAll();
 		progress.Update(1)
 	}
 	progress.Done()
-	//PBRT_SUBSURFACE_FINISHED_COMPUTING_IRRADIANCE_VALUES();
 
 	// Create octree of clustered irradiance samples
 	integrator.octree = make([]SubsurfaceOctreeNode, 1, 1)
@@ -356,14 +350,12 @@ func (integrator *DipoleSubsurfaceIntegrator) Li(scene *Scene, renderer Renderer
 		sigmap_t := sigmap_s.Add(sigma_a)
 		if !sigmap_t.IsBlack() {
 			// Use hierarchical integration to evaluate reflection from dipole model
-			//PBRT_SUBSURFACE_STARTED_OCTREE_LOOKUP(const_cast<Point *>(&p));
 			Rd := NewDiffusionReflectance(sigma_a, sigmap_s, bssrdf.eta)
 			Mo := integrator.octree[0].Mo(&integrator.octreeBounds, p, Rd, integrator.maxError)
 			fresnel := &FresnelDielectric{1.0, bssrdf.eta}
 			Ft := NewSpectrum1(1.0).Sub(fresnel.Evaluate(AbsDotVectorNormal(wo, n)))
 			Fdt := 1.0 - Fdr(bssrdf.eta)
 			L = L.Add(Ft.InvScale(math.Pi).Mult(Mo.Scale(Fdt)))
-			//PBRT_SUBSURFACE_FINISHED_OCTREE_LOOKUP();
 		}
 	}
 	L = L.Add(UniformSampleAllLights(scene, renderer, arena, p, n,
@@ -382,7 +374,10 @@ func CreateDipoleSubsurfaceIntegrator(params *ParamSet) *DipoleSubsurfaceIntegra
 	maxError := params.FindFloatParam("maxerror", 0.05)
 	minDist := params.FindFloatParam("minsampledistance", 0.25)
 	pointsfile := params.FindFilenameParam("pointsfile", "")
-	if options.QuickRender {
+	if options.FastRender {
+		maxError *= 2.0
+		minDist *= 2.0
+	} else if options.QuickRender {
 		maxError *= 4.0
 		minDist *= 4.0
 	}

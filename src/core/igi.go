@@ -252,7 +252,9 @@ func (integrator *IGIIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDif
 
 func CreateIGISurfaceIntegrator(params *ParamSet) *IGIIntegrator {
 	nLightPaths := params.FindIntParam("nlights", 64)
-	if options.QuickRender {
+	if options.FastRender {
+		nLightPaths = Maxi(1, nLightPaths/2)
+	} else if options.QuickRender {
 		nLightPaths = Maxi(1, nLightPaths/4)
 	}
 	nLightSets := params.FindIntParam("nsets", 4)
