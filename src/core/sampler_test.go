@@ -73,9 +73,9 @@ func TestLDSampler(t *testing.T) {
 	}
 	
 	rng := NewRNG(13)
-	ns := ldsampler.GetMoreSamples(samples, rng)	
+	ns := ldsampler.GetMoreSamples(&samples, rng)	
 	fmt.Printf("Ns: %d\n", ns)
 	for i := 0; i < ns; i++ {
-		fmt.Printf("Sample[%d]: %v\n", i, &samples[i])
+		fmt.Printf("Sample[%d]: %v\n", i, samples[i])
 	}
 }

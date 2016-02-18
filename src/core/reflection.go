@@ -54,7 +54,7 @@ type (
 	}
 
 	FresnelConductor struct {
-		k, eta *Spectrum
+		eta, k *Spectrum
 	}
 
 	FresnelNoOp struct {
