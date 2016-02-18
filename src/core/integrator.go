@@ -315,27 +315,25 @@ func (integrator *PathIntegrator) Li(scene *Scene, renderer Renderer, r *RayDiff
 	pathThroughput, L := NewSpectrum1(1.0), NewSpectrum1(0.0)
 	ray := &RayDifferential{Ray{r.Origin, r.Dir, r.Mint, r.Maxt, r.Time, r.Depth}, r.HasDifferentials, r.RxOrigin, r.RyOrigin, r.RxDirection, r.RyDirection}
 	specularBounce := false
-	localIsect := NewIntersection()
-	isectp := isect
-	Assert(isectp != nil)
+	currentIsect := isect
 	for bounces := 0; ; bounces++ {
 		// Possibly add emitted light at path vertex
 		if bounces == 0 || specularBounce {
-			L = L.Add(pathThroughput.Mult(isectp.Le(ray.Dir.Negate())))
+			L = L.Add(pathThroughput.Mult(currentIsect.Le(ray.Dir.Negate())))
 		}
 		// Sample illumination from lights to find path contribution
-		bsdf := isectp.GetBSDF(ray, arena)
+		bsdf := currentIsect.GetBSDF(ray, arena)
 		p := bsdf.dgShading.p
 		n := bsdf.dgShading.nn
 		wo := ray.Dir.Negate()
 		if bounces < SAMPLE_DEPTH {
 			L = L.Add(pathThroughput.Mult(UniformSampleOneLight(scene, renderer, arena, p, n, wo,
-				isectp.rayEpsilon, ray.Time, bsdf, sample, rng,
+				currentIsect.rayEpsilon, ray.Time, bsdf, sample, rng,
 				integrator.lightNumOffset[bounces], &integrator.lightSampleOffsets[bounces],
 				&integrator.bsdfSampleOffsets[bounces])))
 		} else {
 			L = L.Add(pathThroughput.Mult(UniformSampleOneLight(scene, renderer, arena, p, n, wo,
-				isectp.rayEpsilon, ray.Time, bsdf, sample, rng, 0, nil, nil)))
+				currentIsect.rayEpsilon, ray.Time, bsdf, sample, rng, 0, nil, nil)))
 		}
 		// Sample BSDF to get new path direction
 
@@ -353,7 +351,7 @@ func (integrator *PathIntegrator) Li(scene *Scene, renderer Renderer, r *RayDiff
 		}
 		specularBounce = (flags & BSDF_SPECULAR) != 0
 		pathThroughput = pathThroughput.Mult(f.Scale(AbsDotVectorNormal(wi, n) / pdf))
-		ray = CreateChildRayDifferential(p, wi, CreateRayFromRayDifferential(ray), isectp.rayEpsilon, INFINITY)
+		ray = CreateChildRayDifferential(p, wi, CreateRayFromRayDifferential(ray), currentIsect.rayEpsilon, INFINITY)
 
 		// Possibly terminate the path
 		if bounces > 3 {
@@ -367,10 +365,8 @@ func (integrator *PathIntegrator) Li(scene *Scene, renderer Renderer, r *RayDiff
 			break
 		}
 		// Find next vertex of path
-		var ok bool
-		var tempIsect *Intersection
-		if ok, tempIsect = scene.Intersect(ray); ok {
-			localIsect = tempIsect
+		if ok, nextIsect := scene.Intersect(ray); ok {
+			currentIsect = nextIsect
 			if specularBounce {
 				for i := 0; i < len(scene.lights); i++ {
 					L = L.Add(pathThroughput.Mult(scene.lights[i].Le(ray)))
@@ -379,8 +375,6 @@ func (integrator *PathIntegrator) Li(scene *Scene, renderer Renderer, r *RayDiff
 			break
 		}
 		pathThroughput = pathThroughput.Mult(renderer.Transmittance(scene, ray, nil, rng, arena))
-		isectp = localIsect
-		
 	}
 	return L
 }
