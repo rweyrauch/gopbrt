@@ -122,7 +122,7 @@ func RdToAlphap(reflectance, A float64) float64 {
 
 type VolumeRegion interface {
 	WorldBound() *BBox
-	IntersectP(ray *Ray) (hit bool, t0, t1 float64)
+	IntersectP(ray RayBase) (hit bool, t0, t1 float64)
 	Sigma_a(p *Point, w *Vector, time float64) *Spectrum
 	Sigma_s(p *Point, w *Vector, time float64) *Spectrum
 	Lve(p *Point, w *Vector, time float64) *Spectrum
@@ -169,8 +169,8 @@ func (dens *ExponentialDensity) WorldBound() *BBox {
 	return BBoxTransform(InverseTransform(dens.worldToVolume), dens.extent)
 }
 
-func (dens *ExponentialDensity) IntersectP(r *Ray) (hit bool, t0, t1 float64) {
-	ray := RayTransform(dens.worldToVolume, r)
+func (dens *ExponentialDensity) IntersectP(r RayBase) (hit bool, t0, t1 float64) {
+	ray := r.Transform(dens.worldToVolume)
 	return dens.extent.IntersectP(ray)
 }
 
@@ -196,11 +196,11 @@ func (dens *ExponentialDensity) Sigma_t(p *Point, wo *Vector, time float64) *Spe
 
 func (dens *ExponentialDensity) Tau(r *Ray, stepSize, offset float64) *Spectrum {
 	var t0, t1 float64
-	length := r.Dir.Length()
+	length := r.Dir().Length()
 	if length == 0.0 {
 		return NewSpectrum1(0.0)
 	}
-	rn := CreateRay(&r.Origin, r.Dir.InvScale(length), r.Mint*length, r.Maxt*length, r.Time, 0)
+	rn := CreateRay(r.Origin(), r.Dir().InvScale(length), r.Mint()*length, r.Maxt()*length, r.Time(), 0)
 	var hit bool
 	if hit, t0, t0 = dens.IntersectP(rn); !hit {
 		return NewSpectrum1(0.0)
@@ -209,7 +209,7 @@ func (dens *ExponentialDensity) Tau(r *Ray, stepSize, offset float64) *Spectrum 
 	tau := NewSpectrum1(0.0)
 	t0 += offset * stepSize
 	for t0 < t1 {
-		tau = tau.Add(dens.Sigma_t(rn.PointAt(t0), rn.Dir.Negate(), r.Time))
+		tau = tau.Add(dens.Sigma_t(rn.PointAt(t0), rn.Dir().Negate(), r.Time()))
 		t0 += stepSize
 	}
 	return tau.Scale(stepSize)
@@ -258,8 +258,8 @@ func (dens *HomogeneousVolumeDensity) WorldBound() *BBox {
 	return BBoxTransform(InverseTransform(dens.worldToVolume), dens.extent)
 }
 
-func (dens *HomogeneousVolumeDensity) IntersectP(r *Ray) (hit bool, t0, t1 float64) {
-	ray := RayTransform(dens.worldToVolume, r)
+func (dens *HomogeneousVolumeDensity) IntersectP(r RayBase) (hit bool, t0, t1 float64) {
+	ray := r.Transform(dens.worldToVolume)
 	return dens.extent.IntersectP(ray)
 }
 
@@ -352,8 +352,8 @@ func (dens *VolumeGridDensity) WorldBound() *BBox {
 	return BBoxTransform(InverseTransform(dens.worldToVolume), dens.extent)
 }
 
-func (dens *VolumeGridDensity) IntersectP(r *Ray) (hit bool, t0, t1 float64) {
-	ray := RayTransform(dens.worldToVolume, r)
+func (dens *VolumeGridDensity) IntersectP(r RayBase) (hit bool, t0, t1 float64) {
+	ray := r.Transform(dens.worldToVolume)
 	return dens.extent.IntersectP(ray)
 }
 
@@ -379,11 +379,11 @@ func (dens *VolumeGridDensity) Sigma_t(p *Point, wo *Vector, time float64) *Spec
 
 func (dens *VolumeGridDensity) Tau(r *Ray, stepSize, offset float64) *Spectrum {
 	var t0, t1 float64
-	length := r.Dir.Length()
+	length := r.Dir().Length()
 	if length == 0.0 {
 		return NewSpectrum1(0.0)
 	}
-	rn := CreateRay(&r.Origin, r.Dir.InvScale(length), r.Mint*length, r.Maxt*length, r.Time, 0)
+	rn := CreateRay(r.Origin(), r.Dir().InvScale(length), r.Mint()*length, r.Maxt()*length, r.Time(), 0)
 	var hit bool
 	if hit, t0, t0 = dens.IntersectP(rn); !hit {
 		return NewSpectrum1(0.0)
@@ -392,7 +392,7 @@ func (dens *VolumeGridDensity) Tau(r *Ray, stepSize, offset float64) *Spectrum {
 	tau := NewSpectrum1(0.0)
 	t0 += offset * stepSize
 	for t0 < t1 {
-		tau = tau.Add(dens.Sigma_t(rn.PointAt(t0), rn.Dir.Negate(), r.Time))
+		tau = tau.Add(dens.Sigma_t(rn.PointAt(t0), rn.Dir().Negate(), r.Time()))
 		t0 += stepSize
 	}
 	return tau.Scale(stepSize)
@@ -467,7 +467,7 @@ func (v *AggregateVolume) WorldBound() *BBox {
 	return v.bound
 }
 
-func (v *AggregateVolume) IntersectP(ray *Ray) (hit bool, t0, t1 float64) {
+func (v *AggregateVolume) IntersectP(ray RayBase) (hit bool, t0, t1 float64) {
 	t0 = INFINITY
 	t1 = -INFINITY
 	var tr0, tr1 float64
@@ -584,13 +584,13 @@ func (integrator *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *R
 	Tr := NewSpectrum1(1.0)
 	p := ray.PointAt(t0)
 	var pPrev *Point
-	w := ray.Dir.Negate()
+	w := ray.Dir().Negate()
 	t0 += sample.oneD[integrator.scatterSampleOffset][0] * step
 	for i := 0; i < nSamples; i++ {
 		// Advance to sample at _t0_ and update _T_
 		pPrev = p
 		p = ray.PointAt(t0)
-		tauRay := CreateRay(pPrev, p.Sub(pPrev), 0.0, 1.0, ray.Time, ray.Depth)
+		tauRay := CreateRay(pPrev, p.Sub(pPrev), 0.0, 1.0, ray.Time(), ray.Depth())
 		stepTau := scene.volumeRegion.Tau(tauRay, 0.5*integrator.stepSize, rng.RandomFloat())
 		Tr = Tr.Mult(ExpSpectrum(stepTau.Negate()))
 
@@ -605,7 +605,7 @@ func (integrator *EmissionIntegrator) Li(scene *Scene, renderer Renderer, ray *R
 		}
 
 		// Compute emission-only source term at _p_
-		Lv = Lv.Add(Tr.Mult(scene.volumeRegion.Lve(p, w, ray.Time)))
+		Lv = Lv.Add(Tr.Mult(scene.volumeRegion.Lve(p, w, ray.Time())))
 		t0 += step
 	}
 	transmittance = Tr
@@ -671,7 +671,7 @@ func (integrator *SingleScatteringIntegrator) Li(scene *Scene, renderer Renderer
     Tr := NewSpectrum1(1.0)
     p := ray.PointAt(t0)
     var pPrev *Point
-    w := ray.Dir.Negate()
+    w := ray.Dir().Negate()
     t0 += sample.oneD[integrator.scatterSampleOffset][0] * step
 
     // Compute sample patterns for single scattering samples
@@ -686,7 +686,7 @@ func (integrator *SingleScatteringIntegrator) Li(scene *Scene, renderer Renderer
         // Advance to sample at _t0_ and update _T_
         pPrev = p
         p = ray.PointAt(t0)
-        tauRay := CreateRay(pPrev, p.Sub(pPrev), 0.0, 1.0, ray.Time, ray.Depth)
+        tauRay := CreateRay(pPrev, p.Sub(pPrev), 0.0, 1.0, ray.Time(), ray.Depth())
         stepTau := vr.Tau(tauRay, 0.5 * integrator.stepSize, rng.RandomFloat())
         Tr = Tr.Mult(ExpSpectrum(stepTau.Negate()))
 
@@ -701,8 +701,8 @@ func (integrator *SingleScatteringIntegrator) Li(scene *Scene, renderer Renderer
         }
 
         // Compute single-scattering source term at _p_
-        Lv = Lv.Add(Tr.Mult(vr.Lve(p, w, ray.Time)))
-        ss := vr.Sigma_s(p, w, ray.Time)
+        Lv = Lv.Add(Tr.Mult(vr.Lve(p, w, ray.Time())))
+        ss := vr.Sigma_s(p, w, ray.Time())
         if !ss.IsBlack() && len(scene.lights) > 0 {
             nLights := len(scene.lights)
             ln := Mini(Floor2Int(lightNum[sampOffset] * float64(nLights)), nLights-1)
@@ -710,11 +710,11 @@ func (integrator *SingleScatteringIntegrator) Li(scene *Scene, renderer Renderer
             // Add contribution of _light_ due to scattering at _p_
             var vis VisibilityTester
             ls := &LightSample{[2]float64{lightComp[sampOffset], lightPos[2*sampOffset]}, lightPos[2*sampOffset+1]}
-            L, wo, pdf := light.Sample_L(p, 0.0, ls, ray.Time, &vis)
+            L, wo, pdf := light.Sample_L(p, 0.0, ls, ray.Time(), &vis)
             
             if !L.IsBlack() && pdf > 0.0 && vis.Unoccluded(scene) {
                 Ld := L.Mult(vis.Transmittance(scene, renderer, nil, rng, arena))
-                Lv = Lv.Add(Tr.Mult(ss.Scale(vr.P(p, w, wo.Negate(), ray.Time))).Mult(Ld.Scale(float64(nLights) / pdf)))
+                Lv = Lv.Add(Tr.Mult(ss.Scale(vr.P(p, w, wo.Negate(), ray.Time()))).Mult(Ld.Scale(float64(nLights) / pdf)))
             }
         }
         sampOffset++

@@ -122,17 +122,17 @@ func (integrator *IrradianceCacheIntegrator) Li(scene *Scene, renderer Renderer,
 	L := NewSpectrum1(0.0)
 	// Evaluate BSDF at hit point
 	bsdf := isect.GetBSDF(ray, arena)
-	wo := ray.Dir.Negate()
+	wo := ray.Dir().Negate()
 	p := bsdf.dgShading.p
 	n := bsdf.dgShading.nn
 	L = L.Add(isect.Le(wo))
 	// Compute direct lighting for irradiance cache
 	L = L.Add(UniformSampleAllLights(scene, renderer, arena, p, n, wo,
-		isect.rayEpsilon, ray.Time, bsdf, sample, rng,
+		isect.rayEpsilon, ray.Time(), bsdf, sample, rng,
 		integrator.lightSampleOffsets, integrator.bsdfSampleOffsets))
 
 	// Compute indirect lighting for irradiance cache
-	if ray.Depth+1 < integrator.maxSpecularDepth {
+	if ray.Depth()+1 < integrator.maxSpecularDepth {
 		// Trace rays for specular reflection and refraction
 		L = L.Add(SpecularReflect(ray, bsdf, rng, isect, renderer, scene, sample, arena))
 		L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))
@@ -164,7 +164,6 @@ func (integrator *IrradianceCacheIntegrator) indirectLo(p *Point, ng *Normal, pi
 	// Get irradiance _E_ and average incident direction _wi_ at point _p_
 	if ok, E, wi = integrator.interpolateE(scene, p, ng); !ok {
 		// Compute irradiance at current point
-		//PBRT_IRRADIANCE_CACHE_STARTED_COMPUTING_IRRADIANCE(const_cast<Point *>(&p), const_cast<Normal *>(&ng));
 		scramble := [2]uint32{rng.RandomUInt(), rng.RandomUInt()}
 		minHitDistance := INFINITY
 		wAvg := CreateVector(0, 0, 0)
@@ -174,18 +173,15 @@ func (integrator *IrradianceCacheIntegrator) indirectLo(p *Point, ng *Normal, pi
 			u0, u1 := Sample02(uint32(i), scramble)
 			w := CosineSampleHemisphere(u0, u1)
 			r := CreateRayDifferential(p, bsdf.LocalToWorld(w), rayEpsilon, INFINITY, 0.0, 0)
-			r.Dir = *FaceforwardVectorNormal(&r.Dir, ng)
+			r.dir = *FaceforwardVectorNormal(r.Dir(), ng)
 
 			// Trace ray to sample radiance for irradiance estimate
-			//PBRT_IRRADIANCE_CACHE_STARTED_RAY(&r);
 			L := integrator.pathL(r, scene, renderer, rng, arena)
 			LiSum = LiSum.Add(L)
-			wAvg = wAvg.Add(r.Dir.Scale(L.Y()))
-			minHitDistance = math.Min(minHitDistance, r.Maxt)
-			//PBRT_IRRADIANCE_CACHE_FINISHED_RAY(&r, r.Maxt, &L)
+			wAvg = wAvg.Add(r.Dir().Scale(L.Y()))
+			minHitDistance = math.Min(minHitDistance, r.Maxt())
 		}
 		E = LiSum.Scale(math.Pi / float64(integrator.nSamples))
-		//PBRT_IRRADIANCE_CACHE_FINISHED_COMPUTING_IRRADIANCE(const_cast<Point *>(&p), const_cast<Normal *>(&ng));
 
 		// Add computed irradiance value to cache
 
@@ -195,11 +191,9 @@ func (integrator *IrradianceCacheIntegrator) indirectLo(p *Point, ng *Normal, pi
 		contribExtent := Clamp(minHitDistance/2.0, minDist, maxDist)
 		sampleExtent := CreateBBoxFromPoint(p)
 		sampleExtent.Expand(contribExtent)
-		//PBRT_IRRADIANCE_CACHE_ADDED_NEW_SAMPLE(const_cast<Point *>(&p), const_cast<Normal *>(&ng), contribExtent, &E, &wAvg, pixelSpacing);
 
 		// Allocate _IrradianceSample_, get write lock, add to octree
 		sample := &irradianceSample{*E, *ng, *p, *wAvg, contribExtent}
-		//RWMutexLock lock(*mutex, WRITE);
 		integrator.octree.Add(sample, sampleExtent)
 		wi = wAvg
 	}
@@ -216,12 +210,9 @@ func (integrator *IrradianceCacheIntegrator) interpolateE(scene *Scene,
 	if integrator.octree == nil {
 		return false, nil, nil
 	}
-	//PBRT_IRRADIANCE_CACHE_STARTED_INTERPOLATION(const_cast<Point *>(&p), const_cast<Normal *>(&n));
 	proc := &irradProcess{*p, *n, integrator.minWeight, integrator.cosMaxSampleAngleDifference, 0, 0, *NewSpectrum1(0.0), Vector{0, 0, 0}}
-	//RWMutexLock lock(*mutex, READ);
 
 	integrator.octree.Lookup(p, proc.procFunc)
-	//PBRT_IRRADIANCE_CACHE_FINISHED_INTERPOLATION(const_cast<Point *>(&p), const_cast<Normal *>(&n), proc.Successful() ? 1 : 0, proc.nFound);
 	if !proc.Successful() {
 		return false, nil, nil
 	}
@@ -244,22 +235,22 @@ func (integrator *IrradianceCacheIntegrator) pathL(r *RayDifferential, scene *Sc
 			break
 		}
 		if pathLength == 0 {
-			r.Maxt = ray.Maxt
+			r.SetMaxt(ray.Maxt())
 		}
 		pathThroughput = pathThroughput.Mult(renderer.Transmittance(scene, ray, nil, rng, arena))
 		// Possibly add emitted light at path vertex
 		if specularBounce {
-			L = L.Add(pathThroughput.Mult(isect.Le(ray.Dir.Negate())))
+			L = L.Add(pathThroughput.Mult(isect.Le(ray.Dir().Negate())))
 		}
 		// Evaluate BSDF at hit point
 		bsdf := isect.GetBSDF(ray, arena)
 		// Sample illumination from lights to find path contribution
 		p := bsdf.dgShading.p
 		n := bsdf.dgShading.nn
-		wo := ray.Dir.Negate()
+		wo := ray.Dir().Negate()
 		L = L.Add(pathThroughput.Mult(
 			UniformSampleOneLight(scene, renderer, arena, p, n, wo, isect.rayEpsilon,
-				ray.Time, bsdf, nil, rng, 0, nil, nil)))
+				ray.Time(), bsdf, nil, rng, 0, nil, nil)))
 		if pathLength+1 == integrator.maxIndirectDepth {
 			break
 		}
@@ -339,7 +330,6 @@ func (ip *irradProcess) procFunc(data Object) bool {
 		nerr := math.Sqrt((1.0 - DotNormal(&ip.n, &sample.n)) /
 			(1.0 - ip.cosMaxSampleAngleDifference))
 		err := math.Max(perr, nerr)
-		//PBRT_IRRADIANCE_CACHE_CHECKED_SAMPLE(const_cast<IrradianceSample *>(sample), perr, nerr);
 		if err < 1.0 {
 			ip.nFound++
 			wt := 1.0 - err

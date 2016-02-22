@@ -82,7 +82,6 @@ func NewKdTreeAccel(prims []Primitive, icost, tcost int, ebonus float64, maxp, m
 	accel.maxDepth = md
 	accel.emptyBonus = ebonus
 
-	//PBRT_KDTREE_STARTED_CONSTRUCTION(this, p.size());
 	for _, p := range prims {
 		accel.primitives = p.FullyRefine(accel.primitives)
 	}
@@ -123,7 +122,6 @@ func NewKdTreeAccel(prims []Primitive, icost, tcost int, ebonus float64, maxp, m
 	//for i := 0; i < accel.nextFreeNode-1; i++ {
 	//	Info("Node[%d]: %s", i, &accel.nodes[i])
 	//}
-	//PBRT_KDTREE_FINISHED_CONSTRUCTION(this);
 
 	return accel
 }
@@ -136,18 +134,16 @@ const (
 	MAX_TODO = 64
 )
 
-func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Intersection) {
-	//PBRT_KDTREE_INTERSECTION_TEST(const_cast<KdTreeAccel *>(this), const_cast<Ray *>(&ray));
+func (accel *KdTreeAccel) Intersect(ray RayBase) (hit bool, isect *Intersection) {
 	// Compute initial parametric range of ray inside kd-tree extent
 	var tmin, tmax float64
 	var boxHit bool
-	if boxHit, tmin, tmax = accel.bounds.IntersectP(CreateRayFromRayDifferential(ray)); !boxHit {
-		//PBRT_KDTREE_RAY_MISSED_BOUNDS();
+	if boxHit, tmin, tmax = accel.bounds.IntersectP(ray); !boxHit {
 		return false, nil
 	}
 
 	// Prepare to traverse kd-tree for ray
-	invDir := CreateVector(1.0/ray.Dir.X, 1.0/ray.Dir.Y, 1.0/ray.Dir.Z)
+	invDir := CreateVector(1.0/ray.Dir().X, 1.0/ray.Dir().Y, 1.0/ray.Dir().Z)
 
 	var todo [MAX_TODO]KdToDo
 	todoPos := 0
@@ -160,20 +156,19 @@ func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Inte
 		prevNodeIdx = curNodeIdx
 
 		// Bail out if we found a hit closer than the current node
-		if ray.Maxt < tmin {
+		if ray.Maxt() < tmin {
 			break
 		}
 		if node.axis != SPLIT_LEAF {
-			//PBRT_KDTREE_INTERSECTION_TRAVERSED_INTERIOR_NODE(const_cast<KdAccelNode *>(node));
 			// Process kd-tree interior node
 
 			// Compute parametric distance along ray to split plane
 			axis := int(node.axis)
-			tplane := (node.split - ray.Origin.At(axis)) * invDir.At(axis)
+			tplane := (node.split - ray.Origin().At(axis)) * invDir.At(axis)
 
 			// Get node children pointers for ray
 			var firstChild, secondChild int
-			belowFirst := (ray.Origin.At(axis) < node.split) || (ray.Origin.At(axis) == node.split && ray.Dir.At(axis) <= 0)
+			belowFirst := (ray.Origin().At(axis) < node.split) || (ray.Origin().At(axis) == node.split && ray.Dir().At(axis) <= 0)
 			if belowFirst {
 				firstChild = curNodeIdx + 1
 				secondChild = node.aboveChild
@@ -197,15 +192,12 @@ func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Inte
 				tmax = tplane
 			}
 		} else {
-			//PBRT_KDTREE_INTERSECTION_TRAVERSED_LEAF_NODE(const_cast<KdAccelNode *>(node), node->nPrimitives());
 			// Check for intersections inside leaf node
 			nPrimitives := node.nPrims
 			if nPrimitives == 1 {
 				prim := accel.primitives[node.onePrimitive]
 				// Check one primitive inside leaf node
-				//PBRT_KDTREE_INTERSECTION_PRIMITIVE_TEST(const_cast<Primitive *>(prim.GetPtr()));
 				if rayHit, rayIsect := prim.Intersect(ray); rayHit {
-					//PBRT_KDTREE_INTERSECTION_HIT(const_cast<Primitive *>(prim.GetPtr()));
 					hit = true
 					isect = rayIsect
 				}
@@ -213,9 +205,7 @@ func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Inte
 				for _, ip := range node.primitives {
 					prim := accel.primitives[ip]
 					// Check one primitive inside leaf node
-					//PBRT_KDTREE_INTERSECTION_PRIMITIVE_TEST(const_cast<Primitive *>(prim.GetPtr()));
 					if rayHit, rayIsect := prim.Intersect(ray); rayHit {
-						//PBRT_KDTREE_INTERSECTION_HIT(const_cast<Primitive *>(prim.GetPtr()));
 						hit = true
 						isect = rayIsect
 					}
@@ -233,23 +223,20 @@ func (accel *KdTreeAccel) Intersect(ray *RayDifferential) (hit bool, isect *Inte
 			}
 		}
 	}
-	//PBRT_KDTREE_INTERSECTION_FINISHED();
 	//if hit { Assert(isect != nil) }
 	return hit, isect
 }
 
-func (accel *KdTreeAccel) IntersectP(ray *Ray) bool {
-	//PBRT_KDTREE_INTERSECTIONP_TEST(const_cast<KdTreeAccel *>(this), const_cast<Ray *>(&ray));
+func (accel *KdTreeAccel) IntersectP(ray RayBase) bool {
 	// Compute initial parametric range of ray inside kd-tree extent
 	var tmin, tmax float64
 	var hit bool
 	if hit, tmin, tmax = accel.bounds.IntersectP(ray); !hit {
-		//PBRT_KDTREE_RAY_MISSED_BOUNDS();
 		return false
 	}
 
 	// Prepare to traverse kd-tree for ray
-	invDir := CreateVector(1.0/ray.Dir.X, 1.0/ray.Dir.Y, 1.0/ray.Dir.Z)
+	invDir := CreateVector(1.0/ray.Dir().X, 1.0/ray.Dir().Y, 1.0/ray.Dir().Z)
 
 	var todo [MAX_TODO]KdToDo
 	todoPos := 0
@@ -261,21 +248,16 @@ func (accel *KdTreeAccel) IntersectP(ray *Ray) bool {
 		prevNodeIdx = curNodeIdx
 
 		if node.axis == SPLIT_LEAF {
-			//PBRT_KDTREE_INTERSECTIONP_TRAVERSED_LEAF_NODE(const_cast<KdAccelNode *>(node), node->nPrimitives());
 			// Check for shadow ray intersections inside leaf node
 			if node.nPrims == 1 {
 				prim := accel.primitives[node.onePrimitive]
-				//PBRT_KDTREE_INTERSECTIONP_PRIMITIVE_TEST(const_cast<Primitive *>(prim.GetPtr()));
 				if hit = prim.IntersectP(ray); hit {
-					//PBRT_KDTREE_INTERSECTIONP_HIT(const_cast<Primitive *>(prim.GetPtr()));
 					return true
 				}
 			} else {
 				for _, ip := range node.primitives {
 					prim := accel.primitives[ip]
-					//PBRT_KDTREE_INTERSECTIONP_PRIMITIVE_TEST(const_cast<Primitive *>(prim.GetPtr()));
 					if hit = prim.IntersectP(ray); hit {
-						//PBRT_KDTREE_INTERSECTIONP_HIT(const_cast<Primitive *>(prim.GetPtr()));
 						return true
 					}
 				}
@@ -291,16 +273,15 @@ func (accel *KdTreeAccel) IntersectP(ray *Ray) bool {
 				break
 			}
 		} else {
-			//PBRT_KDTREE_INTERSECTIONP_TRAVERSED_INTERIOR_NODE(const_cast<KdAccelNode *>(node));
 			// Process kd-tree interior node
 
 			// Compute parametric distance along ray to split plane
 			axis := int(node.axis)
-			tplane := (node.split - ray.Origin.At(axis)) * invDir.At(axis)
+			tplane := (node.split - ray.Origin().At(axis)) * invDir.At(axis)
 
 			// Get node children pointers for ray
 			var firstChild, secondChild int
-			belowFirst := (ray.Origin.At(axis) < node.split) || (ray.Origin.At(axis) == node.split && ray.Dir.At(axis) <= 0)
+			belowFirst := (ray.Origin().At(axis) < node.split) || (ray.Origin().At(axis) == node.split && ray.Dir().At(axis) <= 0)
 			if belowFirst {
 				firstChild = curNodeIdx + 1
 				secondChild = node.aboveChild
@@ -325,7 +306,6 @@ func (accel *KdTreeAccel) IntersectP(ray *Ray) bool {
 			}
 		}
 	}
-	//PBRT_KDTREE_INTERSECTIONP_MISSED();
 	return false
 }
 
@@ -385,7 +365,6 @@ func (accel *KdTreeAccel) buildTree(nodeNum int, nodeBounds BBox, allPrimBounds 
 
 	// Initialize leaf node if termination criteria met
 	if nPrimitives <= accel.maxPrims || depth == 0 {
-		//PBRT_KDTREE_CREATED_LEAF(nPrimitives, maxDepth-depth);
 		accel.nodes[nodeNum].initLeaf(primNums, nPrimitives, accel.arena)
 		return
 	}
@@ -483,7 +462,7 @@ retrySplit:
 
 	// Recursively initialize children nodes
 	tsplit := edges[bestAxis][bestOffset].t
-	//PBRT_KDTREE_CREATED_INTERIOR_NODE(bestAxis, tsplit);
+
 	bounds0 := nodeBounds
 	bounds1 := nodeBounds
 	bounds0.PMax.Set(bestAxis, tsplit)

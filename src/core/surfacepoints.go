@@ -171,7 +171,7 @@ func (spt *surfacePointTask) Run() {
 			// Follow ray path and attempt to deposit candidate sample points
 			dir := UniformSampleSphere(rng.RandomFloat(), rng.RandomFloat())
 			ray := CreateRay(&spt.origin, dir, 0.0, INFINITY, spt.time, 0)
-			for ray.Depth < 30 {
+			for ray.Depth() < 30 {
 				// Find ray intersection with scene geometry or bounding sphere
 				raysTraced++
 
@@ -179,17 +179,17 @@ func (spt *surfacePointTask) Run() {
 				var hit bool
 
 				hitOnSphere := false
-				if hit, isect = spt.scene.Intersect(CreateRayDifferentialFromRay(ray)); !hit {
-					if hit, isect = spt.sphere.Intersect(CreateRayDifferentialFromRay(ray)); !hit {
+				if hit, isect = spt.scene.Intersect(ray); !hit {
+					if hit, isect = spt.sphere.Intersect(ray); !hit {
 						break
 					}
 					hitOnSphere = true
 				}
 				hitGeometry := isect.dg
-				hitGeometry.nn = FaceforwardNormalVector(hitGeometry.nn, ray.Dir.Negate())
+				hitGeometry.nn = FaceforwardNormalVector(hitGeometry.nn, ray.Dir().Negate())
 
 				// Store candidate sample point at ray intersection if appropriate
-				if !hitOnSphere && ray.Depth >= 3 &&
+				if !hitOnSphere && ray.Depth() >= 3 &&
 					isect.GetBSSRDF(CreateRayDifferentialFromRay(ray), arena) != nil {
 					area := math.Pi * (spt.minSampleDist / 2.0) * (spt.minSampleDist / 2.0)
 					candidates = append(candidates, SurfacePoint{*hitGeometry.p, *hitGeometry.nn,

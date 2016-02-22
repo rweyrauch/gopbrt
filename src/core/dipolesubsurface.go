@@ -334,7 +334,7 @@ func (integrator *DipoleSubsurfaceIntegrator) RequestSamples(sampler Sampler, sa
 func (integrator *DipoleSubsurfaceIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
-	wo := ray.Dir.Negate()
+	wo := ray.Dir().Negate()
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
 
@@ -359,9 +359,9 @@ func (integrator *DipoleSubsurfaceIntegrator) Li(scene *Scene, renderer Renderer
 		}
 	}
 	L = L.Add(UniformSampleAllLights(scene, renderer, arena, p, n,
-		wo, isect.rayEpsilon, ray.Time, bsdf, sample, rng, integrator.lightSampleOffsets,
+		wo, isect.rayEpsilon, ray.Time(), bsdf, sample, rng, integrator.lightSampleOffsets,
 		integrator.bsdfSampleOffsets))
-	if ray.Depth < integrator.maxSpecularDepth {
+	if ray.Depth() < integrator.maxSpecularDepth {
 		// Trace rays for specular reflection and refraction
 		L = L.Add(SpecularReflect(ray, bsdf, rng, isect, renderer, scene, sample, arena))
 		L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))

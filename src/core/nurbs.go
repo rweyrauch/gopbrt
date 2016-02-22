@@ -200,10 +200,10 @@ func (nurbs *NURBS) Refine(refined []Shape) []Shape {
 
 	return refined
 }
-func (nurbs *NURBS) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
+func (nurbs *NURBS) Intersect(ray RayBase) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	return false, 0.0, 0.0, nil
 }
-func (nurbs *NURBS) IntersectP(ray *Ray) bool {
+func (nurbs *NURBS) IntersectP(ray RayBase) bool {
 	return false
 }
 func (nurbs *NURBS) GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry {

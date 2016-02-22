@@ -71,16 +71,16 @@ func (d *Disk) Refine(refined []Shape) []Shape {
 	return refined
 }
 
-func (d *Disk) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
+func (d *Disk) Intersect(r RayBase) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	// Transform _Ray_ to object space
-	ray := RayTransform(d.worldToObject, r)
+	ray := r.Transform(d.worldToObject)
 
 	// Compute plane intersection for disk
-	if math.Abs(ray.Dir.Z) < 1.0e-7 {
+	if math.Abs(ray.Dir().Z) < 1.0e-7 {
 		return false, 0.0, 0.0, nil
 	}
-	thit := (d.height - ray.Origin.Z) / ray.Dir.Z
-	if thit < ray.Mint || thit > ray.Maxt {
+	thit := (d.height - ray.Origin().Z) / ray.Dir().Z
+	if thit < ray.Mint() || thit > ray.Maxt() {
 		return false, 0.0, 0.0, nil
 	}
 
@@ -126,16 +126,16 @@ func (d *Disk) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Differ
 	return true, tHit, rayEpsilon, dg
 }
 
-func (d *Disk) IntersectP(r *Ray) bool {
+func (d *Disk) IntersectP(r RayBase) bool {
 	// Transform _Ray_ to object space
-	ray := RayTransform(d.worldToObject, r)
+	ray := r.Transform(d.worldToObject)
 
 	// Compute plane intersection for disk
-	if math.Abs(ray.Dir.Z) < 1.0e-7 {
+	if math.Abs(ray.Dir().Z) < 1.0e-7 {
 		return false
 	}
-	thit := (d.height - ray.Origin.Z) / ray.Dir.Z
-	if thit < ray.Mint || thit > ray.Maxt {
+	thit := (d.height - ray.Origin().Z) / ray.Dir().Z
+	if thit < ray.Mint() || thit > ray.Maxt() {
 		return false
 	}
 

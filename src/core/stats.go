@@ -35,7 +35,8 @@ type (
 	}
 )
 
-var ()
+var (
+)
 
 func (stats *StatsAccumulator) ReportCounter(name string, val int64) {
 	stats.counters[name] += val

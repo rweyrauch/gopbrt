@@ -116,10 +116,10 @@ func (t *TriangleMesh) Refine(refined []Shape) []Shape {
 	return refined
 }
 
-func (t *TriangleMesh) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
+func (t *TriangleMesh) Intersect(ray RayBase) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	return false, 0.0, 0.0, nil
 }
-func (t *TriangleMesh) IntersectP(ray *Ray) bool {
+func (t *TriangleMesh) IntersectP(ray RayBase) bool {
 	return false
 }
 func (t *TriangleMesh) GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry {
@@ -196,8 +196,7 @@ func (t *Triangle) Refine(refined []Shape) []Shape {
 	return refined
 }
 
-func (tri *Triangle) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
-	//PBRT_RAY_TRIANGLE_INTERSECTION_TEST(const_cast<Ray *>(&ray), const_cast<Triangle *>(this))
+func (tri *Triangle) Intersect(ray RayBase) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	// Compute $\VEC{s}_1$
 
 	// Get triangle vertices in _p1_, _p2_, and _p3_
@@ -206,7 +205,7 @@ func (tri *Triangle) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg
 	p3 := &tri.mesh.p[tri.v[2]]
 	e1 := p2.Sub(p1)
 	e2 := p3.Sub(p1)
-	s1 := CrossVector(&ray.Dir, e2)
+	s1 := CrossVector(ray.Dir(), e2)
 	divisor := DotVector(s1, e1)
 
 	if divisor == 0.0 {
@@ -216,7 +215,7 @@ func (tri *Triangle) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg
 	invDivisor := 1.0 / divisor
 
 	// Compute first barycentric coordinate
-	s := ray.Origin.Sub(p1)
+	s := ray.Origin().Sub(p1)
 	b1 := DotVector(s, s1) * invDivisor
 	if b1 < 0.0 || b1 > 1.0 {
 		return false, 0.0, 0.0, nil
@@ -224,14 +223,14 @@ func (tri *Triangle) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg
 
 	// Compute second barycentric coordinate
 	s2 := CrossVector(s, e1)
-	b2 := DotVector(&ray.Dir, s2) * invDivisor
+	b2 := DotVector(ray.Dir(), s2) * invDivisor
 	if b2 < 0.0 || b1+b2 > 1.0 {
 		return false, 0.0, 0.0, nil
 	}
 
 	// Compute _t_ to intersection point
 	t := DotVector(e2, s2) * invDivisor
-	if t < ray.Mint || t > ray.Maxt {
+	if t < ray.Mint() || t > ray.Maxt() {
 		return false, 0.0, 0.0, nil
 	}
 
@@ -262,7 +261,7 @@ func (tri *Triangle) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg
 	tv := b0*uvs[0][1] + b1*uvs[1][1] + b2*uvs[2][1]
 
 	// Test intersection against alpha texture, if present
-	if ray.Depth != -1 {
+	if ray.Depth() != -1 {
 		if tri.mesh.alphaTexture != nil {
 			dgLocal := CreateDiffGeometry(ray.PointAt(t), dpdu, dpdv,
 				CreateNormal(0, 0, 0), CreateNormal(0, 0, 0),
@@ -279,12 +278,10 @@ func (tri *Triangle) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg
 		tu, tv, tri)
 	tHit = t
 	rayEpsilon = 1.0e-3 * tHit
-	//PBRT_RAY_TRIANGLE_INTERSECTION_HIT(const_cast<Ray *>(&ray), t);
 	return true, tHit, rayEpsilon, dg
 }
 
-func (tri *Triangle) IntersectP(ray *Ray) bool {
-	//PBRT_RAY_TRIANGLE_INTERSECTIONP_TEST(const_cast<Ray *>(&ray), const_cast<Triangle *>(this));
+func (tri *Triangle) IntersectP(ray RayBase) bool {
 	// Compute $\VEC{s}_1$
 
 	// Get triangle vertices in _p1_, _p2_, and _p3_
@@ -293,7 +290,7 @@ func (tri *Triangle) IntersectP(ray *Ray) bool {
 	p3 := &tri.mesh.p[tri.v[2]]
 	e1 := p2.Sub(p1)
 	e2 := p3.Sub(p1)
-	s1 := CrossVector(&ray.Dir, e2)
+	s1 := CrossVector(ray.Dir(), e2)
 	divisor := DotVector(s1, e1)
 
 	if divisor == 0.0 {
@@ -303,7 +300,7 @@ func (tri *Triangle) IntersectP(ray *Ray) bool {
 	invDivisor := 1.0 / divisor
 
 	// Compute first barycentric coordinate
-	s := ray.Origin.Sub(p1)
+	s := ray.Origin().Sub(p1)
 	b1 := DotVector(s, s1) * invDivisor
 	if b1 < 0.0 || b1 > 1.0 {
 		return false
@@ -311,19 +308,19 @@ func (tri *Triangle) IntersectP(ray *Ray) bool {
 
 	// Compute second barycentric coordinate
 	s2 := CrossVector(s, e1)
-	b2 := DotVector(&ray.Dir, s2) * invDivisor
+	b2 := DotVector(ray.Dir(), s2) * invDivisor
 	if b2 < 0.0 || b1+b2 > 1.0 {
 		return false
 	}
 
 	// Compute _t_ to intersection point
 	t := DotVector(e2, s2) * invDivisor
-	if t < ray.Mint || t > ray.Maxt {
+	if t < ray.Mint() || t > ray.Maxt() {
 		return false
 	}
 
 	// Test shadow ray intersection against alpha texture, if present
-	if ray.Depth != -1 && tri.mesh.alphaTexture != nil {
+	if ray.Depth() != -1 && tri.mesh.alphaTexture != nil {
 		// Compute triangle partial derivatives
 		var dpdu, dpdv *Vector
 		uvs := tri.GetUVs()
@@ -356,7 +353,6 @@ func (tri *Triangle) IntersectP(ray *Ray) bool {
 			return false
 		}
 	}
-	//PBRT_RAY_TRIANGLE_INTERSECTIONP_HIT(const_cast<Ray *>(&ray), t);
 	return true
 }
 

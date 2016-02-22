@@ -44,11 +44,11 @@ func NewScene(accel Primitive, lights []Light, vr VolumeRegion) *Scene {
 	}
 	return scene
 }
-func (s *Scene) Intersect(ray *RayDifferential) (hit bool, isect *Intersection) {
+func (s *Scene) Intersect(ray RayBase) (hit bool, isect *Intersection) {
 	return s.aggregate.Intersect(ray)
 }
 
-func (s *Scene) IntersectP(ray *Ray) bool {
+func (s *Scene) IntersectP(ray RayBase) bool {
 	return s.aggregate.IntersectP(ray)
 }
 

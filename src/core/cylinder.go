@@ -72,14 +72,14 @@ func (c *Cylinder) Refine(refined []Shape) []Shape {
 	return refined
 }
 
-func (c *Cylinder) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
+func (c *Cylinder) Intersect(r RayBase) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	// Transform _Ray_ to object space
-	ray := RayTransform(c.worldToObject, r)
+	ray := r.Transform(c.worldToObject)
 
 	// Compute quadratic cylinder coefficients
-	A := ray.Dir.X*ray.Dir.X + ray.Dir.Y*ray.Dir.Y
-	B := 2.0 * (ray.Dir.X*ray.Origin.X + ray.Dir.Y*ray.Origin.Y)
-	C := ray.Origin.X*ray.Origin.X + ray.Origin.Y*ray.Origin.Y - c.radius*c.radius
+	A := ray.Dir().X*ray.Dir().X + ray.Dir().Y*ray.Dir().Y
+	B := 2.0 * (ray.Dir().X*ray.Origin().X + ray.Dir().Y*ray.Origin().Y)
+	C := ray.Origin().X*ray.Origin().X + ray.Origin().Y*ray.Origin().Y - c.radius*c.radius
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -89,14 +89,14 @@ func (c *Cylinder) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Di
 	}
 
 	// Compute intersection distance along ray
-	if t0 > ray.Maxt || t1 < ray.Mint {
+	if t0 > ray.Maxt() || t1 < ray.Mint() {
 		return false, 0.0, 0.0, nil
 	}
 
 	thit := t0
-	if t0 < ray.Mint {
+	if t0 < ray.Mint() {
 		thit = t1
-		if thit > ray.Maxt {
+		if thit > ray.Maxt() {
 			return false, 0.0, 0.0, nil
 		}
 	}
@@ -114,7 +114,7 @@ func (c *Cylinder) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Di
 			return false, 0.0, 0.0, nil
 		}
 		thit = t1
-		if t1 > ray.Maxt {
+		if t1 > ray.Maxt() {
 			return false, 0.0, 0.0, nil
 		}
 		// Compute cylinder hit point and $\phi$
@@ -168,14 +168,14 @@ func (c *Cylinder) Intersect(r *Ray) (hit bool, tHit, rayEpsilon float64, dg *Di
 	return true, tHit, rayEpsilon, dg
 }
 
-func (c *Cylinder) IntersectP(r *Ray) bool {
+func (c *Cylinder) IntersectP(r RayBase) bool {
 	// Transform _Ray_ to object space
-	ray := RayTransform(c.worldToObject, r)
+	ray := r.Transform(c.worldToObject)
 
 	// Compute quadratic cylinder coefficients
-	A := ray.Dir.X*ray.Dir.X + ray.Dir.Y*ray.Dir.Y
-	B := 2.0 * (ray.Dir.X*ray.Origin.X + ray.Dir.Y*ray.Origin.Y)
-	C := ray.Origin.X*ray.Origin.X + ray.Origin.Y*ray.Origin.Y - c.radius*c.radius
+	A := ray.Dir().X*ray.Dir().X + ray.Dir().Y*ray.Dir().Y
+	B := 2.0 * (ray.Dir().X*ray.Origin().X + ray.Dir().Y*ray.Origin().Y)
+	C := ray.Origin().X*ray.Origin().X + ray.Origin().Y*ray.Origin().Y - c.radius*c.radius
 
 	// Solve quadratic equation for _t_ values
 	var t0, t1 float64
@@ -185,14 +185,14 @@ func (c *Cylinder) IntersectP(r *Ray) bool {
 	}
 
 	// Compute intersection distance along ray
-	if t0 > ray.Maxt || t1 < ray.Mint {
+	if t0 > ray.Maxt() || t1 < ray.Mint() {
 		return false
 	}
 
 	thit := t0
-	if t0 < ray.Mint {
+	if t0 < ray.Mint() {
 		thit = t1
-		if thit > ray.Maxt {
+		if thit > ray.Maxt() {
 			return false
 		}
 	}
@@ -210,7 +210,7 @@ func (c *Cylinder) IntersectP(r *Ray) bool {
 			return false
 		}
 		thit = t1
-		if t1 > ray.Maxt {
+		if t1 > ray.Maxt() {
 			return false
 		}
 		// Compute cylinder hit point and $\phi$

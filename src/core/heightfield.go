@@ -103,10 +103,10 @@ func (field *Heightfield) Refine(refined []Shape) []Shape {
 
 	return refined
 }
-func (field *Heightfield) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
+func (field *Heightfield) Intersect(ray RayBase) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	return false, 0.0, 0.0, nil
 }
-func (field *Heightfield) IntersectP(ray *Ray) bool {
+func (field *Heightfield) IntersectP(ray RayBase) bool {
 	return false
 }
 func (field *Heightfield) GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry {

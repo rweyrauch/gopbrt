@@ -277,18 +277,18 @@ func NormalTransform(t *Transform, n *Normal) *Normal {
 		t.mInv.m[0][2]*x + t.mInv.m[1][2]*y + t.mInv.m[2][2]*z}
 }
 
-func RayTransform(t *Transform, r *Ray) *Ray {
-	return CreateRay(PointTransform(t, &r.Origin), VectorTransform(t, &r.Dir), r.Mint, r.Maxt, r.Time, r.Depth)
+func (r *Ray) Transform(t *Transform) RayBase {
+	return CreateRay(PointTransform(t, &r.origin), VectorTransform(t, &r.dir), r.mint, r.maxt, r.time, r.depth)
 }
 
-func RayDifferentialTransform(t *Transform, r *RayDifferential) *RayDifferential {
+func (r *RayDifferential) Transform(t *Transform) RayBase {
 	rd := new(RayDifferential)
-	rd.Origin = *PointTransform(t, &r.Origin)
-	rd.Dir = *VectorTransform(t, &r.Dir)
-	rd.Mint = r.Mint
-	rd.Maxt = r.Maxt
-	rd.Time = r.Time
-	rd.Depth = r.Depth
+	rd.origin = *PointTransform(t, &r.origin)
+	rd.dir = *VectorTransform(t, &r.dir)
+	rd.mint = r.mint
+	rd.maxt = r.maxt
+	rd.time = r.time
+	rd.depth = r.depth
 	rd.HasDifferentials = r.HasDifferentials
 	rd.RxOrigin = *PointTransform(t, &r.RxOrigin)
 	rd.RyOrigin = *PointTransform(t, &r.RyOrigin)
@@ -568,29 +568,31 @@ func PointAnimatedTransform(t *AnimatedTransform, time float64, p *Point) *Point
 	return PointTransform(tt, p)
 }
 
-func RayAnimatedTransform(t *AnimatedTransform, r *Ray) (tr *Ray) {
-	if !t.actuallyAnimated || r.Time <= t.startTime {
-		tr = RayTransform(t.startTransform, r)
-	} else if r.Time >= t.endTime {
-		tr = RayTransform(t.endTransform, r)
+func (r *Ray) AnimatedTransform(t *AnimatedTransform) RayBase {
+	var tr *Ray
+	if !t.actuallyAnimated || r.Time() <= t.startTime {
+		tr = r.Transform(t.startTransform).(*Ray)
+	} else if r.Time() >= t.endTime {
+		tr = r.Transform(t.endTransform).(*Ray)
 	} else {
-		tt := t.Interpolate(r.Time)
-		tr = RayTransform(tt, r)
+		tt := t.Interpolate(r.Time())
+		tr = r.Transform(tt).(*Ray)
 	}
-	tr.Time = r.Time
+	tr.time = r.Time()
 	return tr
 }
 
-func RayDifferentialAnimatedTransform(t *AnimatedTransform, r *RayDifferential) (tr *RayDifferential) {
-	if !t.actuallyAnimated || r.Time <= t.startTime {
-		tr = RayDifferentialTransform(t.startTransform, r)
-	} else if r.Time >= t.endTime {
-		tr = RayDifferentialTransform(t.endTransform, r)
+func (r *RayDifferential) AnimatedTransform(t *AnimatedTransform) RayBase {
+	var tr *RayDifferential
+	if !t.actuallyAnimated || r.Time() <= t.startTime {
+		tr = r.Transform(t.startTransform).(*RayDifferential)
+	} else if r.Time() >= t.endTime {
+		tr = r.Transform(t.endTransform).(*RayDifferential)
 	} else {
-		tt := t.Interpolate(r.Time)
-		tr = RayDifferentialTransform(tt, r)
+		tt := t.Interpolate(r.Time())
+		tr = r.Transform(tt).(*RayDifferential)
 	}
-	tr.Time = r.Time
+	tr.time = r.Time()
 	return tr
 }
 

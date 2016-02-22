@@ -360,10 +360,10 @@ func (subdiv *LoopSubdiv) Refine(refined []Shape) []Shape {
 	return refined
 }
 
-func (subdiv *LoopSubdiv) Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
+func (subdiv *LoopSubdiv) Intersect(ray RayBase) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry) {
 	return false, 0.0, 0.0, nil
 }
-func (subdiv *LoopSubdiv) IntersectP(ray *Ray) bool {
+func (subdiv *LoopSubdiv) IntersectP(ray RayBase) bool {
 	return false
 }
 func (subdiv *LoopSubdiv) GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry {

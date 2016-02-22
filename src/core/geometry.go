@@ -44,12 +44,26 @@ type (
 		X, Y, Z float64
 	}
 
+	RayBase interface {
+		Origin() *Point
+		Dir() *Vector
+		Mint() float64
+		Maxt() float64
+		SetMaxt(t float64)
+		Time() float64
+		Depth() int
+		PointAt(t float64) *Point
+		HasNaNs() bool
+		Transform(trans *Transform) RayBase
+		AnimatedTransform(trans *AnimatedTransform) RayBase
+	}
+	
 	Ray struct {
-		Origin     Point
-		Dir        Vector
-		Mint, Maxt float64
-		Time       float64
-		Depth      int
+		origin     Point
+		dir        Vector
+		mint, maxt float64
+		time       float64
+		depth      int
 	}
 
 	RayDifferential struct {
@@ -361,50 +375,70 @@ func CreateRay(origin *Point, direction *Vector, start, end, t float64, d int) *
 	return &Ray{*origin, *direction, start, end, t, d}
 }
 func CreateChildRay(origin *Point, direction *Vector, parent *Ray, start, end float64) *Ray {
-	return &Ray{*origin, *direction, start, end, parent.Time, parent.Depth + 1}
+	return &Ray{*origin, *direction, start, end, parent.time, parent.depth + 1}
 }
 
+func (r *Ray) Origin() *Point { return &r.origin }
+func (r *Ray) Dir() *Vector { return &r.dir }
+func (r *Ray) Mint() float64 { return r.mint }
+func (r *Ray) Maxt() float64 { return r.maxt }
+func (r *Ray) SetMaxt(t float64) { r.maxt = t }
+func (r *Ray) Time() float64 { return r.time }
+func (r *Ray) Depth() int { return r.depth }
+
 func (r *Ray) PointAt(t float64) *Point {
-	return r.Origin.Add(r.Dir.Scale(t))
+	return r.origin.Add(r.dir.Scale(t))
 }
 
 func (ray *Ray) HasNaNs() bool {
-	return ray.Dir.HasNaNs() || ray.Origin.HasNaNs() || math.IsNaN(ray.Mint) || math.IsNaN(ray.Maxt)
+	return ray.dir.HasNaNs() || ray.origin.HasNaNs() || math.IsNaN(ray.mint) || math.IsNaN(ray.maxt)
 }
 
 func (r *Ray) String() string {
-	return fmt.Sprintf("ray[origin:%v dir:%v start:%f end:%f time:%f depth:%d]", &r.Origin, &r.Dir, r.Mint, r.Maxt, r.Time, r.Depth)
+	return fmt.Sprintf("ray[origin:%v dir:%v start:%f end:%f time:%f depth:%d]", &r.origin, &r.dir, r.mint, r.maxt, r.time, r.depth)
 }
 func (r *RayDifferential) String() string {
-	return fmt.Sprintf("raydiff[origin:%v dir:%v start:%f end:%f time:%f depth:%d diffs:%s]", &r.Origin, &r.Dir, r.Mint, r.Maxt, r.Time, r.Depth, r.HasDifferentials)
+	return fmt.Sprintf("raydiff[origin:%v dir:%v start:%f end:%f time:%f depth:%d diffs:%s]", &r.origin, &r.dir, r.mint, r.maxt, r.time, r.depth, r.HasDifferentials)
 }
 
 func CreateRayDifferential(origin *Point, direction *Vector, start, end, t float64, d int) *RayDifferential {
 	return &RayDifferential{Ray{*origin, *direction, start, end, t, d}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
 }
-func CreateChildRayDifferential(origin *Point, direction *Vector, parent *Ray, start, end float64) *RayDifferential {
-	return &RayDifferential{Ray{*origin, *direction, start, end, parent.Time, parent.Depth + 1}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
+func CreateChildRayDifferential(origin *Point, direction *Vector, parent RayBase, start, end float64) *RayDifferential {
+	return &RayDifferential{Ray{*origin, *direction, start, end, parent.Time(), parent.Depth() + 1}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
 }
 func CreateRayDifferentialFromRay(ray *Ray) *RayDifferential {
-	return &RayDifferential{Ray{ray.Origin, ray.Dir, ray.Mint, ray.Maxt, ray.Time, ray.Depth}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
+	return &RayDifferential{Ray{ray.origin, ray.dir, ray.mint, ray.maxt, ray.time, ray.depth}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
 }
 func CreateRayFromRayDifferential(ray *RayDifferential) *Ray {
-	return &Ray{ray.Origin, ray.Dir, ray.Mint, ray.Maxt, ray.Time, ray.Depth}
+	return &Ray{ray.origin, ray.dir, ray.mint, ray.maxt, ray.time, ray.depth}
 }
 
 func CreateChildRayDifferentialFromRayDifferential(origin *Point, direction *Vector, parent *RayDifferential, start, end float64) *RayDifferential {
-	return &RayDifferential{Ray{*origin, *direction, start, end, parent.Time, parent.Depth + 1}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
+	return &RayDifferential{Ray{*origin, *direction, start, end, parent.time, parent.depth + 1}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
+}
+
+func (r *RayDifferential) Origin() *Point { return &r.origin }
+func (r *RayDifferential) Dir() *Vector { return &r.dir }
+func (r *RayDifferential) Mint() float64 { return r.mint }
+func (r *RayDifferential) Maxt() float64 { return r.maxt }
+func (r *RayDifferential) SetMaxt(t float64) { r.maxt = t }
+func (r *RayDifferential) Time() float64 { return r.time }
+func (r *RayDifferential) Depth() int { return r.depth }
+
+func (r *RayDifferential) PointAt(t float64) *Point {
+	return r.origin.Add(r.dir.Scale(t))
 }
 
 func (r *RayDifferential) ScaleDifferentials(s float64) {
-	r.RxOrigin = *r.Origin.Add(r.RxOrigin.Sub(&r.Origin).Scale(s))
-	r.RyOrigin = *r.Origin.Add(r.RyOrigin.Sub(&r.Origin).Scale(s))
-	r.RxDirection = *r.Dir.Add(r.RxDirection.Sub(&r.Dir).Scale(s))
-	r.RyDirection = *r.Dir.Add(r.RyDirection.Sub(&r.Dir).Scale(s))
+	r.RxOrigin = *r.origin.Add(r.RxOrigin.Sub(&r.origin).Scale(s))
+	r.RyOrigin = *r.origin.Add(r.RyOrigin.Sub(&r.origin).Scale(s))
+	r.RxDirection = *r.dir.Add(r.RxDirection.Sub(&r.dir).Scale(s))
+	r.RyDirection = *r.dir.Add(r.RyDirection.Sub(&r.dir).Scale(s))
 }
 
 func (ray *RayDifferential) HasNaNs() bool {
-	return ray.Dir.HasNaNs() || ray.Origin.HasNaNs() || math.IsNaN(ray.Mint) || math.IsNaN(ray.Maxt) ||
+	return ray.dir.HasNaNs() || ray.origin.HasNaNs() || math.IsNaN(ray.mint) || math.IsNaN(ray.maxt) ||
 		(ray.HasDifferentials && ray.RxOrigin.HasNaNs() || ray.RyOrigin.HasNaNs() || ray.RxDirection.HasNaNs() || ray.RyDirection.HasNaNs())
 }
 
@@ -488,13 +522,13 @@ func (b *BBox) BoundingSphere() (c *Point, rad float64) {
 	}
 	return c, rad
 }
-func (b *BBox) IntersectP(ray *Ray) (bool, float64, float64) {
-	t0, t1 := ray.Mint, ray.Maxt
+func (b *BBox) IntersectP(ray RayBase) (bool, float64, float64) {
+	t0, t1 := ray.Mint(), ray.Maxt()
 	for i := 0; i < 3; i++ {
 		// Update interval for _i_th bounding box slab
-		invRayDir := 1.0 / ray.Dir.At(i)
-		tNear := (b.PMin.At(i) - ray.Origin.At(i)) * invRayDir
-		tFar := (b.PMax.At(i) - ray.Origin.At(i)) * invRayDir
+		invRayDir := 1.0 / ray.Dir().At(i)
+		tNear := (b.PMin.At(i) - ray.Origin().At(i)) * invRayDir
+		tFar := (b.PMax.At(i) - ray.Origin().At(i)) * invRayDir
 
 		// Update parametric interval from slab intersection $t$s
 		if tNear > tFar {

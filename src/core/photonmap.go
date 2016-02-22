@@ -283,7 +283,7 @@ const (
 func (integrator *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
-	wo := ray.Dir.Negate()
+	wo := ray.Dir().Negate()
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
 
@@ -292,7 +292,7 @@ func (integrator *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *Ray
 	p := bsdf.dgShading.p
 	n := bsdf.dgShading.nn
 	L = L.Add(UniformSampleAllLights(scene, renderer, arena, p, n,
-		wo, isect.rayEpsilon, ray.Time, bsdf, sample, rng,
+		wo, isect.rayEpsilon, ray.Time(), bsdf, sample, rng,
 		integrator.lightSampleOffsets, integrator.bsdfSampleOffsets))
 	// Compute caustic lighting for photon map integrator
 	lookupBuf := make([]closePhoton, integrator.nLookup, integrator.nLookup)
@@ -337,7 +337,7 @@ func (integrator *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *Ray
 						// Compute exitant radiance _Lindir_ using radiance photons
 						Lindir := NewSpectrum1(0.0)
 						nGather := gatherIsect.dg.nn
-						nGather = FaceforwardNormalVector(nGather, bounceRay.Dir.Negate())
+						nGather = FaceforwardNormalVector(nGather, bounceRay.Dir().Negate())
 						proc := radiancePhotonProcess{nGather, nil}
 						md2 := INFINITY
 						integrator.radianceMap.Lookup(gatherIsect.dg.p, proc.radiancePhotonProc, &md2)
@@ -387,7 +387,7 @@ func (integrator *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *Ray
 						// Compute exitant radiance _Lindir_ using radiance photons
 						Lindir := NewSpectrum1(0.0)
 						nGather := gatherIsect.dg.nn
-						nGather = FaceforwardNormal(nGather, CreateNormalFromVector(bounceRay.Dir.Negate()))
+						nGather = FaceforwardNormal(nGather, CreateNormalFromVector(bounceRay.Dir().Negate()))
 						proc := radiancePhotonProcess{nGather, nil}
 						md2 := INFINITY
 						integrator.radianceMap.Lookup(gatherIsect.dg.p, proc.radiancePhotonProc, &md2)
@@ -417,7 +417,7 @@ func (integrator *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *Ray
 			}
 		} else {
 			// for debugging / examples: use the photon map directly
-			nn := FaceforwardNormal(n, CreateNormalFromVector(ray.Dir.Negate()))
+			nn := FaceforwardNormal(n, CreateNormalFromVector(ray.Dir().Negate()))
 			proc := radiancePhotonProcess{nn, nil}
 			md2 := INFINITY
 			integrator.radianceMap.Lookup(p, proc.radiancePhotonProc, &md2)
@@ -429,7 +429,7 @@ func (integrator *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *Ray
 		L = L.Add(LPhoton(integrator.indirectMap, integrator.nIndirectPaths, integrator.nLookup, lookupBuf,
 			bsdf, rng, isect, wo, integrator.maxDistSquared))
 	}
-	if ray.Depth+1 < integrator.maxSpecularDepth {
+	if ray.Depth()+1 < integrator.maxSpecularDepth {
 		// Trace rays for specular reflection and refraction
 		L = L.Add(SpecularReflect(ray, bsdf, rng, isect, renderer, scene, sample, arena))
 		L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))
@@ -465,10 +465,9 @@ func (shooter *photonShootingTask) run() {
 			if pdf == 0.0 || Le.IsBlack() {
 				continue
 			}
-			alpha := Le.Scale(AbsDotNormalVector(Nl, &photonRay.Dir)).InvScale(pdf * lightPdf)
+			alpha := Le.Scale(AbsDotNormalVector(Nl, photonRay.Dir())).InvScale(pdf * lightPdf)
 			if !alpha.IsBlack() {
 				// Follow photon path through scene and record intersections
-				//PBRT_PHOTON_MAP_STARTED_RAY_PATH(&photonRay, &alpha);
 				specularPath := true
 				nIntersections := 0
 				for {
@@ -483,14 +482,13 @@ func (shooter *photonShootingTask) run() {
 					photonBSDF := photonIsect.GetBSDF(photonRay, arena)
 					specularType := BxDFType(BSDF_REFLECTION | BSDF_TRANSMISSION | BSDF_SPECULAR)
 					hasNonSpecular := (photonBSDF.NumComponents() > photonBSDF.NumComponentsMatching(specularType))
-					wo := photonRay.Dir.Negate()
+					wo := photonRay.Dir().Negate()
 					if hasNonSpecular {
 						// Deposit photon at surface
 						photon := photon{*photonIsect.dg.p, *alpha, *wo}
 						depositedPhoton := false
 						if specularPath && nIntersections > 1 {
 							if !causticDone {
-								//PBRT_PHOTON_MAP_DEPOSITED_CAUSTIC_PHOTON(&photonIsect.dg, &alpha, &wo);
 								depositedPhoton = true
 								localCausticPhotons = append(localCausticPhotons, photon)
 							}
@@ -500,11 +498,9 @@ func (shooter *photonShootingTask) run() {
 							// want to waste memory storing too many if we're going a long time
 							// trying to get enough caustic photons desposited.
 							if nIntersections == 1 && !indirectDone && shooter.integrator.finalGather {
-								//PBRT_PHOTON_MAP_DEPOSITED_DIRECT_PHOTON(&photonIsect.dg, &alpha, &wo)
 								depositedPhoton = true
 								localDirectPhotons = append(localDirectPhotons, photon)
 							} else if nIntersections > 1 && !indirectDone {
-								//PBRT_PHOTON_MAP_DEPOSITED_INDIRECT_PHOTON(&photonIsect.dg, &alpha, &wo);
 								depositedPhoton = true
 								localIndirectPhotons = append(localIndirectPhotons, photon)
 							}
@@ -514,7 +510,7 @@ func (shooter *photonShootingTask) run() {
 						if depositedPhoton && shooter.integrator.finalGather &&
 							rng.RandomFloat() < 0.125 {
 							n := photonIsect.dg.nn
-							n = FaceforwardNormal(n, CreateNormalFromVector(photonRay.Dir.Negate()))
+							n = FaceforwardNormal(n, CreateNormalFromVector(photonRay.Dir().Negate()))
 							localRadiancePhotons = append(localRadiancePhotons, radiancePhoton{*photonIsect.dg.p, *n, *NewSpectrum1(0.0)})
 							rho_r := photonBSDF.rho(rng, BSDF_ALL_REFLECTION, DEFAULT_BSDF_SQRT_SAMPLES)
 							localRpReflectances = append(localRpReflectances, *rho_r)
@@ -547,9 +543,7 @@ func (shooter *photonShootingTask) run() {
 					photonRay = CreateChildRayDifferentialFromRayDifferential(photonIsect.dg.p, wi, photonRay,
 						photonIsect.rayEpsilon, INFINITY)
 				}
-				//PBRT_PHOTON_MAP_FINISHED_RAY_PATH(&photonRay, &alpha);
 			}
-			//arena.FreeAll();
 		}
 
 		// Merge local photon data with data in _PhotonIntegrator_
@@ -682,7 +676,6 @@ func LPhoton(pmap *KdTree, nPaths, nLookup int,
 	L := NewSpectrum1(0.0)
 	nonSpecular := BxDFType(BSDF_REFLECTION | BSDF_TRANSMISSION | BSDF_DIFFUSE | BSDF_GLOSSY)
 	if pmap != nil && bsdf.NumComponentsMatching(nonSpecular) > 0 {
-		//PBRT_PHOTON_MAP_STARTED_LOOKUP(const_cast<DifferentialGeometry *>(&isect.dg));
 		// Do photon map lookup at intersection point
 		proc := photonProcess{lookupBuf, nLookup, 0}
 		pmap.Lookup(isect.dg.p, proc.photonProc, &maxDist2)
@@ -714,7 +707,6 @@ func LPhoton(pmap *KdTree, nPaths, nLookup int,
 			L = L.Add(Lr.Mult(bsdf.rho2(wo, rng, BSDF_ALL_REFLECTION, DEFAULT_BSDF_SQRT_SAMPLES).Scale(INV_PI)).Add(
 				Lt.Mult(bsdf.rho2(wo, rng, BSDF_ALL_TRANSMISSION, DEFAULT_BSDF_SQRT_SAMPLES).Scale(INV_PI))))
 		}
-		//PBRT_PHOTON_MAP_FINISHED_LOOKUP(const_cast<DifferentialGeometry *>(&isect.dg), proc.nFound, proc.nLookup, &L)
 	}
 	return L
 }

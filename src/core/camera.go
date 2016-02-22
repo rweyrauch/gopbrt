@@ -53,15 +53,15 @@ func GenerateRayDifferential(camera Camera, sample *Sample) (rd *RayDifferential
 	sshift.imageX++
 
 	rx, wtx := camera.GenerateRay(sshift)
-	rd.RxOrigin = rx.Origin
-	rd.RxDirection = rx.Dir
+	rd.RxOrigin = *rx.Origin()
+	rd.RxDirection = *rx.Dir()
 
 	// Find ray after shifting one pixel in the $y$ direction
 	sshift.imageX--
 	sshift.imageY++
 	ry, wty := camera.GenerateRay(sshift)
-	rd.RyOrigin = ry.Origin
-	rd.RyDirection = ry.Dir
+	rd.RyOrigin = *ry.Origin()
+	rd.RyDirection = *ry.Dir()
 	if wtx == 0.0 || wty == 0.0 {
 		return rd, 0.0
 	}
@@ -133,15 +133,15 @@ func (c *PerspectiveCamera) GenerateRay(sample *Sample) (ray *Ray, weight float6
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.Dir.Z
+        ft := c.focalDistance / ray.dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
-        ray.Origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.Dir = *NormalizeVector(Pfocus.Sub(&ray.Origin))
+        ray.origin = *CreatePoint(lensU, lensV, 0.0)
+        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
     }
-    ray.Time = sample.time
-    ray = RayAnimatedTransform(c.cameraToWorld, ray)
+    ray.time = sample.time
+    ray = ray.AnimatedTransform(c.cameraToWorld).(*Ray)
     
     return ray, 1.0
 }
@@ -160,12 +160,12 @@ func (c *PerspectiveCamera) GenerateRayDifferential(sample *Sample) (ray *RayDif
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.Dir.Z
+        ft := c.focalDistance / ray.dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
-        ray.Origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.Dir = *NormalizeVector(Pfocus.Sub(&ray.Origin))
+        ray.origin = *CreatePoint(lensU, lensV, 0.0)
+        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
     }
 
     // Compute offset rays for _PerspectiveCamera_ ray differentials
@@ -189,14 +189,14 @@ func (c *PerspectiveCamera) GenerateRayDifferential(sample *Sample) (ray *RayDif
         ray.RyOrigin = *CreatePoint(lensU, lensV, 0.0)
         ray.RyDirection = *NormalizeVector(pFocus.Sub(&ray.RyOrigin))
     } else {
-        ray.RxOrigin = ray.Origin
-        ray.RyOrigin = ray.Origin
+        ray.RxOrigin = ray.origin
+        ray.RyOrigin = ray.origin
         ray.RxDirection = *NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dxCamera))
         ray.RyDirection = *NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dyCamera))
     }
 
-    ray.Time = sample.time
-    ray = RayDifferentialAnimatedTransform(c.cameraToWorld, ray)
+    ray.time = sample.time
+    ray = ray.AnimatedTransform(c.cameraToWorld).(*RayDifferential)
     ray.HasDifferentials = true
     
     return ray, 1.0
@@ -226,7 +226,7 @@ func (c *EnvironmentCamera) GenerateRay(sample *Sample) (ray *Ray, weight float6
     phi := 2 * math.Pi * sample.imageX / float64(c.film.XResolution())
     dir := CreateVector(math.Sin(theta) * math.Cos(phi), math.Cos(theta), math.Sin(theta) * math.Sin(phi))
     ray = CreateRay(CreatePoint(0,0,0), dir, 0.0, INFINITY, sample.time, 0)
-    ray = RayAnimatedTransform(c.cameraToWorld, ray)
+    ray = ray.AnimatedTransform(c.cameraToWorld).(*Ray)
     
     return ray, 1.0
 }
@@ -280,15 +280,15 @@ func (c *OrthoCamera) GenerateRay(sample *Sample) (ray *Ray, weight float64) {
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.Dir.Z
+        ft := c.focalDistance / ray.dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
-        ray.Origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.Dir = *NormalizeVector(Pfocus.Sub(&ray.Origin))
+        ray.origin = *CreatePoint(lensU, lensV, 0.0)
+        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
     }
-    ray.Time = sample.time
-    ray = RayAnimatedTransform(c.cameraToWorld, ray)
+    ray.time = sample.time
+    ray = ray.AnimatedTransform(c.cameraToWorld).(*Ray)
     
     return ray, 1.0
 }
@@ -309,14 +309,14 @@ func (c *OrthoCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferent
         lensV *= c.lensRadius
 
         // Compute point on plane of focus
-        ft := c.focalDistance / ray.Dir.Z
+        ft := c.focalDistance / ray.dir.Z
         Pfocus := ray.PointAt(ft)
 
         // Update ray for effect of lens
-        ray.Origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.Dir = *NormalizeVector(Pfocus.Sub(&ray.Origin))
+        ray.origin = *CreatePoint(lensU, lensV, 0.0)
+        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
     }
-    ray.Time = sample.time
+    ray.time = sample.time
     // Compute ray differentials for _OrthoCamera_
     if c.lensRadius > 0 {
         // Compute _OrthoCamera_ ray differentials with defocus blur
@@ -326,7 +326,7 @@ func (c *OrthoCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferent
         lensU *= c.lensRadius
         lensV *= c.lensRadius
 
-        ft := c.focalDistance / ray.Dir.Z
+        ft := c.focalDistance / ray.dir.Z
 
         pFocus := Pcamera.Add(c.dxCamera.Add(CreateVector(0, 0, 1).Scale(ft)))
         ray.RxOrigin = *CreatePoint(lensU, lensV, 0.0)
@@ -336,13 +336,13 @@ func (c *OrthoCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferent
         ray.RyOrigin = *CreatePoint(lensU, lensV, 0.0)
         ray.RyDirection = *NormalizeVector(pFocus.Sub(&ray.RyOrigin))
     } else {
-        ray.RxOrigin = *ray.Origin.Add(&c.dxCamera)
-        ray.RyOrigin = *ray.Origin.Add(&c.dyCamera)
-        ray.RxDirection = ray.Dir
-        ray.RyDirection = ray.Dir
+        ray.RxOrigin = *ray.origin.Add(&c.dxCamera)
+        ray.RyOrigin = *ray.origin.Add(&c.dyCamera)
+        ray.RxDirection = ray.dir
+        ray.RyDirection = ray.dir
     }
     ray.HasDifferentials = true
-	ray = RayDifferentialAnimatedTransform(c.cameraToWorld, ray)
+	ray = ray.AnimatedTransform(c.cameraToWorld).(*RayDifferential)
     
     return ray, 1.0
 }

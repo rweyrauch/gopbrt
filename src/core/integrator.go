@@ -112,7 +112,7 @@ func (integrator *AmbientOcclusionIntegrator) Li(scene *Scene, renderer Renderer
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	bsdf := isect.GetBSDF(ray, arena)
 	p := bsdf.dgShading.p
-	n := FaceforwardNormalVector(isect.dg.nn, ray.Dir.Negate())
+	n := FaceforwardNormalVector(isect.dg.nn, ray.Dir().Negate())
 
 	scramble := [2]uint32{rng.RandomUInt(), rng.RandomUInt()}
 	u := [2]float64{0.0, 0.0}
@@ -144,7 +144,7 @@ func (integrator *DiffusePRTIntegrator) RequestSamples(sampler Sampler, sample *
 func (integrator *DiffusePRTIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
-	wo := ray.Dir.Negate()
+	wo := ray.Dir().Negate()
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
 
@@ -201,7 +201,7 @@ func (integrator *DirectLightingIntegrator) Li(scene *Scene, renderer Renderer, 
 	// Evaluate BSDF at hit point
 	bsdf := isect.GetBSDF(ray, arena)
 	Assert(bsdf != nil)
-	wo := ray.Dir.Negate()
+	wo := ray.Dir().Negate()
 	p := bsdf.dgShading.p
 	n := bsdf.dgShading.nn
 	// Compute emitted light if ray hit an area light source
@@ -213,15 +213,15 @@ func (integrator *DirectLightingIntegrator) Li(scene *Scene, renderer Renderer, 
 		switch integrator.strategy {
 		case SAMPLE_ALL_UNIFORM:
 			L = L.Add(UniformSampleAllLights(scene, renderer, arena, p, n, wo,
-				isect.rayEpsilon, ray.Time, bsdf, sample, rng,
+				isect.rayEpsilon, ray.Time(), bsdf, sample, rng,
 				integrator.lightSampleOffsets, integrator.bsdfSampleOffsets))
 		case SAMPLE_ONE_UNIFORM:
 			L = L.Add(UniformSampleOneLight(scene, renderer, arena, p, n, wo,
-				isect.rayEpsilon, ray.Time, bsdf, sample, rng,
+				isect.rayEpsilon, ray.Time(), bsdf, sample, rng,
 				integrator.lightNumOffset, &integrator.lightSampleOffsets[0], &integrator.bsdfSampleOffsets[0]))
 		}
 	}
-	if ray.Depth+1 < integrator.maxDepth {
+	if ray.Depth()+1 < integrator.maxDepth {
 		// Trace rays for specular reflection and refraction
 		L = L.Add(SpecularReflect(ray, bsdf, rng, isect, renderer, scene, sample, arena))
 		L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))
@@ -252,7 +252,7 @@ func (*GlossyPRTIntegrator) RequestSamples(sampler Sampler, sample *Sample, scen
 func (integrator *GlossyPRTIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
-	wo := ray.Dir.Negate()
+	wo := ray.Dir().Negate()
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
 
@@ -313,27 +313,27 @@ func (integrator *PathIntegrator) Li(scene *Scene, renderer Renderer, r *RayDiff
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	// Declare common path integration variables
 	pathThroughput, L := NewSpectrum1(1.0), NewSpectrum1(0.0)
-	ray := &RayDifferential{Ray{r.Origin, r.Dir, r.Mint, r.Maxt, r.Time, r.Depth}, r.HasDifferentials, r.RxOrigin, r.RyOrigin, r.RxDirection, r.RyDirection}
+	ray := &RayDifferential{Ray{r.origin, r.dir, r.mint, r.maxt, r.time, r.depth}, r.HasDifferentials, r.RxOrigin, r.RyOrigin, r.RxDirection, r.RyDirection}
 	specularBounce := false
 	currentIsect := isect
 	for bounces := 0; ; bounces++ {
 		// Possibly add emitted light at path vertex
 		if bounces == 0 || specularBounce {
-			L = L.Add(pathThroughput.Mult(currentIsect.Le(ray.Dir.Negate())))
+			L = L.Add(pathThroughput.Mult(currentIsect.Le(ray.Dir().Negate())))
 		}
 		// Sample illumination from lights to find path contribution
 		bsdf := currentIsect.GetBSDF(ray, arena)
 		p := bsdf.dgShading.p
 		n := bsdf.dgShading.nn
-		wo := ray.Dir.Negate()
+		wo := ray.Dir().Negate()
 		if bounces < SAMPLE_DEPTH {
 			L = L.Add(pathThroughput.Mult(UniformSampleOneLight(scene, renderer, arena, p, n, wo,
-				currentIsect.rayEpsilon, ray.Time, bsdf, sample, rng,
+				currentIsect.rayEpsilon, ray.Time(), bsdf, sample, rng,
 				integrator.lightNumOffset[bounces], &integrator.lightSampleOffsets[bounces],
 				&integrator.bsdfSampleOffsets[bounces])))
 		} else {
 			L = L.Add(pathThroughput.Mult(UniformSampleOneLight(scene, renderer, arena, p, n, wo,
-				currentIsect.rayEpsilon, ray.Time, bsdf, sample, rng, 0, nil, nil)))
+				currentIsect.rayEpsilon, ray.Time(), bsdf, sample, rng, 0, nil, nil)))
 		}
 		// Sample BSDF to get new path direction
 
@@ -351,7 +351,7 @@ func (integrator *PathIntegrator) Li(scene *Scene, renderer Renderer, r *RayDiff
 		}
 		specularBounce = (flags & BSDF_SPECULAR) != 0
 		pathThroughput = pathThroughput.Mult(f.Scale(AbsDotVectorNormal(wi, n) / pdf))
-		ray = CreateChildRayDifferential(p, wi, CreateRayFromRayDifferential(ray), currentIsect.rayEpsilon, INFINITY)
+		ray = CreateChildRayDifferential(p, wi, ray, currentIsect.rayEpsilon, INFINITY)
 
 		// Possibly terminate the path
 		if bounces > 3 {
@@ -438,7 +438,7 @@ func (integrator *UseRadianceProbes) RequestSamples(sampler Sampler, sample *Sam
 func (integrator *UseRadianceProbes) Li(scene *Scene, renderer Renderer, ray *RayDifferential, isect *Intersection,
 	sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
-	wo := ray.Dir.Negate()
+	wo := ray.Dir().Negate()
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
 
@@ -449,7 +449,7 @@ func (integrator *UseRadianceProbes) Li(scene *Scene, renderer Renderer, ray *Ra
 	// Compute reflection for radiance probes integrator
 	if integrator.includeDirectInProbes != 0 {
 		L = L.Add(UniformSampleAllLights(scene, renderer, arena, p, n,
-			wo, isect.rayEpsilon, ray.Time, bsdf, sample, rng,
+			wo, isect.rayEpsilon, ray.Time(), bsdf, sample, rng,
 			integrator.lightSampleOffsets, integrator.bsdfSampleOffsets))
 	}
 	// Compute reflected lighting using radiance probes
@@ -523,7 +523,7 @@ func (integrator *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *Ra
 	// Initialize common variables for Whitted integrator
 	p := bsdf.dgShading.p
 	n := bsdf.dgShading.nn
-	wo := ray.Dir.Negate()
+	wo := ray.Dir().Negate()
 
 	// Compute emitted light if ray hit an area light source
 	L = L.Add(isect.Le(wo))
@@ -531,7 +531,7 @@ func (integrator *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *Ra
 	// Add contribution of each light source
 	for _, light := range scene.lights {
 		var visibility VisibilityTester
-		Li, wi, pdf := light.Sample_L(p, isect.rayEpsilon, CreateLightSampleRandom(rng), ray.Time, &visibility)
+		Li, wi, pdf := light.Sample_L(p, isect.rayEpsilon, CreateLightSampleRandom(rng), ray.Time(), &visibility)
 		if Li.IsBlack() || pdf == 0.0 {
 			continue
 		}
@@ -540,7 +540,7 @@ func (integrator *WhittedIntegrator) Li(scene *Scene, renderer Renderer, ray *Ra
 			L = L.Add(f.Mult(Li.Scale(AbsDotVectorNormal(wi, n)).Mult(visibility.Transmittance(scene, renderer, sample, rng, arena).Scale(1.0 / pdf))))
 		}
 	}
-	if ray.Depth+1 < integrator.maxDepth {
+	if ray.Depth()+1 < integrator.maxDepth {
 		// Trace rays for specular reflection and refraction
 		L = L.Add(SpecularReflect(ray, bsdf, rng, isect, renderer, scene, sample, arena))
 		L = L.Add(SpecularTransmit(ray, bsdf, rng, isect, renderer, scene, sample, arena))
@@ -680,7 +680,7 @@ func SpecularReflect(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 	sample *Sample, arena *MemoryArena) *Spectrum {
 	L := NewSpectrum1(0.0)
 
-	wo := ray.Dir.Negate()
+	wo := ray.Dir().Negate()
 	p := bsdf.dgShading.p
 	n := bsdf.dgShading.nn
 	f, wi, pdf, _ := bsdf.Sample_f(wo, CreateRandomBSDFSample(rng), BxDFType(BSDF_REFLECTION|BSDF_SPECULAR))
@@ -700,10 +700,8 @@ func SpecularReflect(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 			rd.RxDirection = *wi.Sub(dwodx).Add(CreateVectorFromNormal(dndx.Scale(DotVectorNormal(wo, n)).Add(n.Scale(dDNdx))).Scale(2))
 			rd.RyDirection = *wi.Sub(dwody).Add(CreateVectorFromNormal(dndy.Scale(DotVectorNormal(wo, n)).Add(n.Scale(dDNdy))).Scale(2))
 		}
-		//PBRT_STARTED_SPECULAR_REFLECTION_RAY(const_cast<RayDifferential *>(&rd))
 		Li, _, _ := renderer.Li(scene, rd, sample, rng, arena)
 		L = f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) / pdf))
-		//PBRT_FINISHED_SPECULAR_REFLECTION_RAY(const_cast<RayDifferential *>(&rd))
 	}
 
 	return L
@@ -715,7 +713,7 @@ func SpecularTransmit(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 
 	L := NewSpectrum1(0.0)
 
-	wo := ray.Dir.Negate()
+	wo := ray.Dir().Negate()
 	p := bsdf.dgShading.p
 	n := bsdf.dgShading.nn
 	f, wi, pdf, _ := bsdf.Sample_f(wo, CreateRandomBSDFSample(rng), BxDFType(BSDF_TRANSMISSION|BSDF_SPECULAR))
@@ -746,10 +744,8 @@ func SpecularTransmit(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 			rd.RxDirection = *wi.Add(dwodx.Scale(eta)).Sub(CreateVectorFromNormal(dndx.Scale(mu).Add(n.Scale(dmudx))))
 			rd.RyDirection = *wi.Add(dwody.Scale(eta)).Sub(CreateVectorFromNormal(dndy.Scale(mu).Add(n.Scale(dmudy))))
 		}
-		//PBRT_STARTED_SPECULAR_REFRACTION_RAY(const_cast<RayDifferential *>(&rd));
 		Li, _, _ := renderer.Li(scene, rd, sample, rng, arena)
 		L = f.Mult(Li.Scale(AbsDotVectorNormal(wi, n) / pdf))
-		//PBRT_FINISHED_SPECULAR_REFRACTION_RAY(const_cast<RayDifferential *>(&rd));
 	}
 
 	return L

@@ -356,7 +356,7 @@ func (l *DistantLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time flo
 
 	// Set ray origin and direction for infinite light ray
 	ray = CreateRay(Pdisk.Add(l.lightDir.Scale(worldRadius)), l.lightDir.Negate(), 0.0, INFINITY, time, 0)
-	Ns = CreateNormalFromVector(&ray.Dir)
+	Ns = CreateNormalFromVector(ray.Dir())
 	pdf = 1.0 / (math.Pi * worldRadius * worldRadius)
 	L = &l.L
 	return L, ray, Ns, pdf
@@ -418,9 +418,9 @@ func (*GonioPhotometricLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
 
 func (light *GonioPhotometricLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (Ls *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
 	ray = CreateRay(&light.lightPos, UniformSampleSphere(ls.uPos[0], ls.uPos[1]), 0.0, INFINITY, time, 0)
-	Ns = CreateNormalFromVector(&ray.Dir)
+	Ns = CreateNormalFromVector(ray.Dir())
 	pdf = UniformSpherePdf()
-	Ls = light.Intensity.Mult(light.scale(&ray.Dir))
+	Ls = light.Intensity.Mult(light.scale(ray.Dir()))
 	return Ls, ray, Ns, pdf
 }
 
@@ -530,7 +530,7 @@ func (l *InfiniteAreaLight) Power(scene *Scene) *Spectrum {
 func (l *InfiniteAreaLight) IsDeltaLight() bool { return false }
 
 func (l *InfiniteAreaLight) Le(ray *RayDifferential) *Spectrum {
-	wh := NormalizeVector(VectorTransform(l.WorldToLight, &ray.Dir))
+	wh := NormalizeVector(VectorTransform(l.WorldToLight, ray.Dir()))
 	s := SphericalPhi(wh) / (2.0 * math.Pi)
 	t := SphericalTheta(wh) / math.Pi
 	return l.radianceMap.Lookup(s, t, 0.0)
@@ -626,7 +626,7 @@ func (l *PointLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
 func (l *PointLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (L *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
 	L = &l.Intensity
 	ray = CreateRay(&l.lightPos, UniformSampleSphere(ls.uPos[0], ls.uPos[1]), 0.0, INFINITY, time, 0)
-	Ns = CreateNormalFromVector(&ray.Dir)
+	Ns = CreateNormalFromVector(ray.Dir())
 	pdf = UniformSpherePdf()
 	return L, ray, Ns, pdf
 }
@@ -713,9 +713,9 @@ func (*ProjectionLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
 func (light *ProjectionLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (Ls *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
 	v := UniformSampleCone(ls.uPos[0], ls.uPos[1], light.cosTotalWidth)
 	ray = CreateRay(&light.lightPos, VectorTransform(light.LightToWorld, v), 0.0, INFINITY, time, 0)
-	Ns = CreateNormalFromVector(&ray.Dir)
+	Ns = CreateNormalFromVector(ray.Dir())
 	pdf = UniformConePdf(light.cosTotalWidth)
-	Ls = light.Intensity.Mult(light.Projection(&ray.Dir))
+	Ls = light.Intensity.Mult(light.Projection(ray.Dir()))
 	return Ls, ray, Ns, pdf
 }
 func (l *ProjectionLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {
@@ -785,9 +785,9 @@ func (l *SpotLight) Pdf(p *Point, wi *Vector) float64  { return 0.0 }
 func (l *SpotLight) Sample_L2(scene *Scene, ls *LightSample, u1, u2, time float64) (Ls *Spectrum, ray *Ray, Ns *Normal, pdf float64) {
 	v := UniformSampleCone(ls.uPos[0], ls.uPos[1], l.cosTotalWidth)
 	ray = CreateRay(&l.lightPos, VectorTransform(l.LightToWorld, v), 0.0, INFINITY, time, 0)
-	Ns = CreateNormalFromVector(&ray.Dir)
+	Ns = CreateNormalFromVector(ray.Dir())
 	pdf = UniformConePdf(l.cosTotalWidth)
-	Ls = l.Intensity.Scale(l.falloff(&ray.Dir))
+	Ls = l.Intensity.Scale(l.falloff(ray.Dir()))
 	return Ls, ray, Ns, pdf
 }
 func (l *SpotLight) SHProject(p *Point, pEpsilon float64, lmax int, scene *Scene, computeLightVisibility bool, time float64, rng *RNG) (coeffs []Spectrum) {

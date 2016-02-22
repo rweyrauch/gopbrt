@@ -104,12 +104,12 @@ func (node *bvhBuildNode) InitInterior(axis int, c0, c1 *bvhBuildNode) {
 	node.nPrimitives = 0
 }
 
-func intersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg *[3]int) bool {
+func intersectP(bounds *BBox, ray RayBase, invDir *Vector, dirIsNeg *[3]int) bool {
 	// Check for ray intersection against $x$ and $y$ slabs
-	tmin := (bounds.PointAtIndex(dirIsNeg[0]).X - ray.Origin.X) * invDir.X
-	tmax := (bounds.PointAtIndex(1-dirIsNeg[0]).X - ray.Origin.X) * invDir.X
-	tymin := (bounds.PointAtIndex(dirIsNeg[1]).Y - ray.Origin.Y) * invDir.Y
-	tymax := (bounds.PointAtIndex(1-dirIsNeg[1]).Y - ray.Origin.Y) * invDir.Y
+	tmin := (bounds.PointAtIndex(dirIsNeg[0]).X - ray.Origin().X) * invDir.X
+	tmax := (bounds.PointAtIndex(1-dirIsNeg[0]).X - ray.Origin().X) * invDir.X
+	tymin := (bounds.PointAtIndex(dirIsNeg[1]).Y - ray.Origin().Y) * invDir.Y
+	tymax := (bounds.PointAtIndex(1-dirIsNeg[1]).Y - ray.Origin().Y) * invDir.Y
 	if (tmin > tymax) || (tymin > tmax) {
 		return false
 	}
@@ -121,8 +121,8 @@ func intersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg *[3]int) bool {
 	}
 
 	// Check for ray intersection against $z$ slab
-	tzmin := (bounds.PointAtIndex(dirIsNeg[2]).Z - ray.Origin.Z) * invDir.Z
-	tzmax := (bounds.PointAtIndex(1-dirIsNeg[2]).Z - ray.Origin.Z) * invDir.Z
+	tzmin := (bounds.PointAtIndex(dirIsNeg[2]).Z - ray.Origin().Z) * invDir.Z
+	tzmax := (bounds.PointAtIndex(1-dirIsNeg[2]).Z - ray.Origin().Z) * invDir.Z
 	if (tmin > tzmax) || (tzmin > tmax) {
 		return false
 	}
@@ -132,7 +132,7 @@ func intersectP(bounds *BBox, ray *Ray, invDir *Vector, dirIsNeg *[3]int) bool {
 	if tzmax < tmax {
 		tmax = tzmax
 	}
-	return (tmin < ray.Maxt) && (tmax > ray.Mint)
+	return (tmin < ray.Maxt()) && (tmax > ray.Mint())
 }
 
 func NewBVHAccel(prims []Primitive, maxPrims int, sm string) *BVHAccel {
@@ -441,14 +441,14 @@ func (bvh *BVHAccel) recursiveBuild(buildArena *MemoryArena, buildData []bvhPrim
 
 func (p *BVHAccel) CanIntersect() bool { return true }
 
-func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
+func (bvh *BVHAccel) Intersect(ray RayBase) (bool, *Intersection) {
 	if bvh.nodes == nil {
 		return false, nil
 	}
 	hitSomething := false
 	var isect *Intersection
 
-	invDir := CreateVector(1.0/ray.Dir.X, 1.0/ray.Dir.Y, 1.0/ray.Dir.Z)
+	invDir := CreateVector(1.0/ray.Dir().X, 1.0/ray.Dir().Y, 1.0/ray.Dir().Z)
 	dirIsNeg := [3]int{0, 0, 0}
 	if invDir.X < 0 {
 		dirIsNeg[0] = 1
@@ -465,7 +465,7 @@ func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	for {
 		node := &bvh.nodes[nodeNum]
 		// Check ray against BVH node
-		if intersectP(&node.bounds, CreateRayFromRayDifferential(ray), invDir, &dirIsNeg) {
+		if intersectP(&node.bounds, ray, invDir, &dirIsNeg) {
 			if node.nPrimitives > 0 {
 				// Intersect ray with primitives in leaf BVH node
 				for i := 0; i < node.nPrimitives; i++ {
@@ -503,11 +503,11 @@ func (bvh *BVHAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	return hitSomething, isect
 }
 
-func (bvh *BVHAccel) IntersectP(ray *Ray) bool {
+func (bvh *BVHAccel) IntersectP(ray RayBase) bool {
 	if bvh.nodes == nil {
 		return false
 	}
-	invDir := CreateVector(1.0/ray.Dir.X, 1.0/ray.Dir.Y, 1.0/ray.Dir.Z)
+	invDir := CreateVector(1.0/ray.Dir().X, 1.0/ray.Dir().Y, 1.0/ray.Dir().Z)
 	dirIsNeg := [3]int{0, 0, 0}
 	if invDir.X < 0 {
 		dirIsNeg[0] = 1

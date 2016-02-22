@@ -38,8 +38,8 @@ func GeneratePrimitiveId() uint32 {
 type Primitive interface {
 	WorldBound() *BBox
 	CanIntersect() bool
-	Intersect(r *RayDifferential) (bool, *Intersection)
-	IntersectP(r *Ray) bool
+	Intersect(r RayBase) (bool, *Intersection)
+	IntersectP(r RayBase) bool
 	Refine(refined []Primitive) []Primitive
 	FullyRefine(refined []Primitive) []Primitive
 	GetAreaLight() AreaLight
@@ -104,11 +104,11 @@ func (p *GeometricPrimitive) CanIntersect() bool {
 	return false
 }
 
-func (p *GeometricPrimitive) Intersect(r *RayDifferential) (hit bool, isect *Intersection) {
+func (p *GeometricPrimitive) Intersect(r RayBase) (hit bool, isect *Intersection) {
 	var thit, rayEpsilon float64
 	var dg *DifferentialGeometry
 
-	if hit, thit, rayEpsilon, dg = p.shape.Intersect(CreateRayFromRayDifferential(r)); !hit {
+	if hit, thit, rayEpsilon, dg = p.shape.Intersect(r); !hit {
 		return false, nil
 	}
 
@@ -120,12 +120,12 @@ func (p *GeometricPrimitive) Intersect(r *RayDifferential) (hit bool, isect *Int
 	isect.shapeId = p.shape.ShapeId()
 	isect.primitiveId = p.primitiveId
 	isect.rayEpsilon = rayEpsilon
-	r.Maxt = thit
+	r.SetMaxt(thit)
 
 	return true, isect
 }
 
-func (p *GeometricPrimitive) IntersectP(r *Ray) bool {
+func (p *GeometricPrimitive) IntersectP(r RayBase) bool {
 	return p.shape.IntersectP(r)
 }
 
@@ -186,14 +186,14 @@ func (p *TransformedPrimitive) CanIntersect() bool {
 	return true
 }
 
-func (p *TransformedPrimitive) Intersect(r *RayDifferential) (hit bool, isect *Intersection) {
-	w2p := p.worldToPrimitive.Interpolate(r.Time)
-	ray := RayDifferentialTransform(w2p, r)
+func (p *TransformedPrimitive) Intersect(r RayBase) (hit bool, isect *Intersection) {
+	w2p := p.worldToPrimitive.Interpolate(r.Time())
+	ray := r.Transform(w2p)
 	if hit, isect = p.primitive.Intersect(ray); !hit {
 		return false, nil
 	}
 
-	r.Maxt = ray.Maxt
+	r.SetMaxt(ray.Maxt())
 	isect.primitiveId = p.primitiveId
 	if !IsIdentityTransform(w2p) {
 		// Compute world-to-object transformation for instance
@@ -212,8 +212,8 @@ func (p *TransformedPrimitive) Intersect(r *RayDifferential) (hit bool, isect *I
 	return true, isect
 }
 
-func (p *TransformedPrimitive) IntersectP(r *Ray) bool {
-	return p.primitive.IntersectP(RayAnimatedTransform(p.worldToPrimitive, r))
+func (p *TransformedPrimitive) IntersectP(r RayBase) bool {
+	return p.primitive.IntersectP(r.AnimatedTransform(p.worldToPrimitive))
 }
 
 func (p *TransformedPrimitive) Refine(refined []Primitive) []Primitive {
@@ -252,11 +252,11 @@ func (p *Aggregate) CanIntersect() bool {
 	return true
 }
 
-func (p *Aggregate) Intersect(r *RayDifferential) (bool, *Intersection) {
+func (p *Aggregate) Intersect(r RayBase) (bool, *Intersection) {
 	return false, nil
 }
 
-func (p *Aggregate) IntersectP(r *Ray) bool {
+func (p *Aggregate) IntersectP(r RayBase) bool {
 	return true
 }
 
@@ -312,7 +312,7 @@ func (g *NoneAccel) WorldBound() *BBox { return &g.bounds }
 
 func (g *NoneAccel) CanIntersect() bool { return true }
 
-func (g *NoneAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
+func (g *NoneAccel) Intersect(ray RayBase) (bool, *Intersection) {
 	var hit bool
 	var isect *Intersection
 
@@ -325,7 +325,7 @@ func (g *NoneAccel) Intersect(ray *RayDifferential) (bool, *Intersection) {
 	return hit, isect
 }
 
-func (g *NoneAccel) IntersectP(ray *Ray) bool {
+func (g *NoneAccel) IntersectP(ray RayBase) bool {
 	for _, p := range g.primitives {
 		if p.IntersectP(ray) {
 			return true

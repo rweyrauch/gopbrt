@@ -44,8 +44,8 @@ type Shape interface {
 	WorldBound() *BBox
 	CanIntersect() bool
 	Refine(refined []Shape) []Shape
-	Intersect(ray *Ray) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry)
-	IntersectP(ray *Ray) bool
+	Intersect(ray RayBase) (hit bool, tHit, rayEpsilon float64, dg *DifferentialGeometry)
+	IntersectP(ray RayBase) bool
 	GetShadingGeometry(obj2world *Transform, dg *DifferentialGeometry) *DifferentialGeometry
 	Area() float64
 	Sample(u1, u2 float64) (*Point, *Normal)
@@ -68,7 +68,7 @@ type ShapeData struct {
 func ShapePdf(shape Shape, p *Point, wi *Vector) float64 {
 	// Intersect sample ray with area light geometry
 	ray := CreateRay(p, wi, 1.0e-3, INFINITY, 0.0, 0)
-	ray.Depth = -1 // temporary hack to ignore alpha mask
+	ray.depth = -1 // temporary hack to ignore alpha mask
 
 	var thit float64
 	var dgLight *DifferentialGeometry

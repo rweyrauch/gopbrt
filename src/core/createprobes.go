@@ -126,12 +126,12 @@ func (probes *CreateRadianceProbes) Render(scene *Scene) {
                 	break
                 }
             }
-            surfacePoints = append(surfacePoints, *ray.PointAt(ray.Maxt))
+            surfacePoints = append(surfacePoints, *ray.PointAt(ray.Maxt()))
         
             hitGeometry := isect.dg
             pray = isect.dg.p
             rayEpsilon = isect.rayEpsilon
-            hitGeometry.nn = FaceforwardNormalVector(hitGeometry.nn, ray.Dir.Negate())
+            hitGeometry.nn = FaceforwardNormalVector(hitGeometry.nn, ray.Dir().Negate())
         
             dir = UniformSampleSphere(rng.RandomFloat(), rng.RandomFloat())
             dir = FaceforwardVectorNormal(dir, hitGeometry.nn)
@@ -198,7 +198,7 @@ func (probes *CreateRadianceProbes) Render(scene *Scene) {
 }
 
 func (probes *CreateRadianceProbes) Li(scene *Scene, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (*Spectrum, *Intersection, *Spectrum) {
-    Assert(ray.Time == sample.time)
+    Assert(ray.Time() == sample.time)
     Assert(!ray.HasNaNs())
     Lo := NewSpectrum1(0.0)
     var hit bool

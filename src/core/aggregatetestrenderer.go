@@ -102,14 +102,14 @@ func (aggtest *AggregateTest) Render(scene *Scene) {
 
         // Report any inconsistencies between intersections
         if !inconsistentBounds &&
-            ((hitAccel != hitAll) || (rayAccel.Maxt != rayDiffAll.Maxt)) {
+            ((hitAccel != hitAll) || (rayAccel.Maxt() != rayDiffAll.Maxt())) {
             Warning("Disagreement: t accel %.16g t exhaustive %.16g\nRay: org [%g, %g, %g], dir [%g, %g, %g], mint = %g",
-                    rayAccel.Maxt, rayDiffAll.Maxt,
-                    rayDiffAll.Origin.X, rayDiffAll.Origin.Y, rayDiffAll.Origin.Z,
-                    rayDiffAll.Dir.X, rayDiffAll.Dir.Y, rayDiffAll.Dir.Z, rayDiffAll.Mint)
+                    rayAccel.Maxt(), rayDiffAll.Maxt(),
+                    rayDiffAll.Origin().X, rayDiffAll.Origin().Y, rayDiffAll.Origin().Z,
+                    rayDiffAll.Dir().X, rayDiffAll.Dir().Y, rayDiffAll.Dir().Z, rayDiffAll.Mint())
 		}            
         if hitAll {
-            lastHit = *rayAll.PointAt(rayAll.Maxt)
+            lastHit = *rayAll.PointAt(rayAll.Maxt())
             lastEps = isectAll.rayEpsilon
         }
         prog.Update(1)
