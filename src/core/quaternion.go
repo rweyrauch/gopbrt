@@ -28,11 +28,16 @@ package core
 
 import (
 	"math"
+	"fmt"
 )
 
 type Quaternion struct {
 	v Vector
 	w float64
+}
+
+func (q *Quaternion) String() string {
+	return fmt.Sprintf("quat[v:%v w:%f]", q.v, q.w)
 }
 
 func (q1 *Quaternion) Add(q2 *Quaternion) *Quaternion {
@@ -55,7 +60,7 @@ func (q1 *Quaternion) ToTransform() *Transform {
 	xy, xz, yz := q1.v.X*q1.v.Y, q1.v.X*q1.v.Z, q1.v.Y*q1.v.Z
 	wx, wy, wz := q1.v.X*q1.w, q1.v.Y*q1.w, q1.v.Z*q1.w
 
-	m := new(Matrix4x4)
+	m := NewIdentityMatrix4x4()
 	m.m[0][0] = 1.0 - 2.0*(yy+zz)
 	m.m[0][1] = 2.0 * (xy + wz)
 	m.m[0][2] = 2.0 * (xz - wy)

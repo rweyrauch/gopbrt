@@ -88,9 +88,9 @@ func writeImagePng(filename string, pixels []float32, xres, yres int) {
 	for y := 0; y < yres; y++ {
 		for x := 0; x < xres; x++ {
 			var fcolor color.NRGBA
-			fcolor.R = to_byte(pixels[3*(y*xres+x)+2])
+			fcolor.R = to_byte(pixels[3*(y*xres+x)+0])
 			fcolor.G = to_byte(pixels[3*(y*xres+x)+1])
-			fcolor.B = to_byte(pixels[3*(y*xres+x)+0])
+			fcolor.B = to_byte(pixels[3*(y*xres+x)+2])
 			fcolor.A = 0xff
 			outImage.Set(x, y, fcolor)
 		}

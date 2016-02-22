@@ -464,6 +464,12 @@ func NewAnimatedTransform(trans1 *Transform, time1 float64, trans2 *Transform, t
 	return t
 }
 
+func (t *AnimatedTransform) String() string {
+	return fmt.Sprintf("anim trans[t0:%f t1:%f m0:%v m1:%v anim:%v x0:%v x1: %v r0:%v r1:%v s0:%v s1:%v]", 
+		t.startTime, t.endTime, t.startTransform, t.endTransform, t.actuallyAnimated, t.t[0], t.t[1],
+		t.r[0], t.r[1], t.s[0], t.s[1])	
+}
+
 func DecomposeMatrix4x4(m *Matrix4x4) (*Vector, *Quaternion, *Matrix4x4) {
 
 	// Extract translation _T_ from transformation matrix
@@ -539,7 +545,7 @@ func (t *AnimatedTransform) Interpolate(time float64) *Transform {
 		Severe("Scale transform is not invertable. Scale: %v", scale)
 	}
 	rotTrans := rotate.ToTransform()
-	return TranslateTransform(trans).MultTransform(rotTrans.MultTransform(scaleTrans))
+	return TranslateTransform(trans).MultTransform(rotTrans.MultTransform(scaleTrans))	
 }
 
 func VectorAnimatedTransform(t *AnimatedTransform, time float64, v *Vector) *Vector {

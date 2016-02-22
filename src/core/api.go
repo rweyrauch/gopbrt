@@ -879,11 +879,15 @@ func PbrtShape(name string, params *ParamSet) {
 		_, world2obj[0] = transformCache.Lookup(curTransform.t[0])
 		_, world2obj[1] = transformCache.Lookup(curTransform.t[1])
 		animatedWorldToObject := NewAnimatedTransform(world2obj[0], renderOptions.transformStartTime, world2obj[1], renderOptions.transformEndTime)
+		
+		//Info("AnimW2O: %v", animatedWorldToObject)
+		
 		var baseprim Primitive
 		baseprim = NewGeometricPrimitive(shape, mtl, nil)
 		if !baseprim.CanIntersect() {
 			// Refine animated shape and create BVH if more than one shape created
-			refinedPrimitives := baseprim.FullyRefine(nil)
+			refinedPrimitives := make([]Primitive, 0)
+			refinedPrimitives = baseprim.FullyRefine(refinedPrimitives)
 			if len(refinedPrimitives) == 0 {
 				return
 			}
