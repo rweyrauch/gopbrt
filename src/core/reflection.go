@@ -344,13 +344,11 @@ func NewBSDF(dg *DifferentialGeometry, ngeom *Normal, eta float64) *BSDF {
 }
 
 func (bsdf *BSDF) Sample_f(woW *Vector, bsdfSample *BSDFSample, flags BxDFType) (f *Spectrum, wi *Vector, pdf float64, sampledType BxDFType) {
-	//PBRT_STARTED_BSDF_SAMPLE();
 	// Choose which _BxDF_ to sample
 	matchingComps := bsdf.NumComponentsMatching(flags)
 	if matchingComps == 0 {
 		pdf = 0.0
 		sampledType = BxDFType(0)
-		//PBRT_FINISHED_BSDF_SAMPLE()
 		wi = nil
 		return NewSpectrum1(0.0), wi, pdf, sampledType
 	}
@@ -374,7 +372,6 @@ func (bsdf *BSDF) Sample_f(woW *Vector, bsdfSample *BSDFSample, flags BxDFType) 
 	wi, f, pdf = bxdf.Sample_f(wo, bsdfSample.uDir[0], bsdfSample.uDir[1])
 	if pdf == 0.0 {
 		sampledType = BxDFType(0)
-		//PBRT_FINISHED_BSDF_SAMPLE()
 		return f, wi, pdf, sampledType
 	}
 	sampledType = bxdf.Type()
@@ -396,9 +393,9 @@ func (bsdf *BSDF) Sample_f(woW *Vector, bsdfSample *BSDFSample, flags BxDFType) 
 	if (bxdf.Type() & BSDF_SPECULAR) != 0 {
 		f = NewSpectrum1(0.0)
 		if DotVectorNormal(wiW, &bsdf.ng)*DotVectorNormal(woW, &bsdf.ng) > 0 { // ignore BTDFs
-			flags = BxDFType(flags ^ BSDF_TRANSMISSION)
+			flags = BxDFType(flags &^ BSDF_TRANSMISSION)
 		} else { // ignore BRDFs
-			flags = BxDFType(flags ^ BSDF_REFLECTION)
+			flags = BxDFType(flags &^ BSDF_REFLECTION)
 		}
 		for i := 0; i < bsdf.nBxDFs; i++ {
 			if matchesFlags(bsdf.bxdfs[i], flags) {
@@ -406,7 +403,6 @@ func (bsdf *BSDF) Sample_f(woW *Vector, bsdfSample *BSDFSample, flags BxDFType) 
 			}
 		}
 	}
-	//PBRT_FINISHED_BSDF_SAMPLE()
 	return f, wiW, pdf, sampledType
 }
 
@@ -414,7 +410,6 @@ func (bsdf *BSDF) Pdf(woW, wiW *Vector, flags BxDFType) float64 {
 	if bsdf.nBxDFs == 0 {
 		return 0.0
 	}
-	//PBRT_STARTED_BSDF_PDF()
 	wo, wi := bsdf.WorldToLocal(woW), bsdf.WorldToLocal(wiW)
 	var pdf float64
 	matchingComps := 0
@@ -428,7 +423,6 @@ func (bsdf *BSDF) Pdf(woW, wiW *Vector, flags BxDFType) float64 {
 	if matchingComps > 0 {
 		v = pdf / float64(matchingComps)
 	}
-	//PBRT_FINISHED_BSDF_PDF()
 	return v
 }
 
@@ -464,12 +458,11 @@ func (bsdf *BSDF) LocalToWorld(v *Vector) *Vector {
 }
 
 func (bsdf *BSDF) f(woW, wiW *Vector, flags BxDFType) *Spectrum {
-	//PBRT_STARTED_BSDF_EVAL();
 	wi, wo := bsdf.WorldToLocal(wiW), bsdf.WorldToLocal(woW)
 	if DotVectorNormal(wiW, &bsdf.ng)*DotVectorNormal(woW, &bsdf.ng) > 0 { // ignore BTDFs
-		flags = BxDFType(flags ^ BSDF_TRANSMISSION)
+		flags = BxDFType(flags &^ BSDF_TRANSMISSION)
 	} else { // ignore BRDFs
-		flags = BxDFType(flags ^ BSDF_REFLECTION)
+		flags = BxDFType(flags &^ BSDF_REFLECTION)
 	}
 	ff := NewSpectrum1(0.0)
 	for i := 0; i < bsdf.nBxDFs; i++ {
@@ -477,7 +470,6 @@ func (bsdf *BSDF) f(woW, wiW *Vector, flags BxDFType) *Spectrum {
 			ff = ff.Add(bsdf.bxdfs[i].F(wo, wi))
 		}
 	}
-	//PBRT_FINISHED_BSDF_EVAL();
 	return ff
 }
 
@@ -804,6 +796,10 @@ func (iso *IrregIsoProc) isoBRDFProc(p *Point, nodeData NodeData, dist2 float64,
     }   
 }
 
+func NewIrregIsotropicBRDF(thetaPhiData *KdTree) *IrregIsotropicBRDF {
+	return &IrregIsotropicBRDF{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)}, thetaPhiData}
+}
+
 func (b *IrregIsotropicBRDF) F(wo, wi *Vector) *Spectrum {
     m := BRDFRemap(wo, wi)
     lastMaxDist2 := 0.001
@@ -834,6 +830,10 @@ func (b *IrregIsotropicBRDF) Pdf(wi, wo *Vector) float64 {
 
 func (b *IrregIsotropicBRDF) Type() BxDFType { return b.bxdftype }
 
+
+func NewRegularHalfangleBRDF(regularHalfangleData []float64, nThetaH, nThetaD, nPhiD int) *RegularHalfangleBRDF {
+	return &RegularHalfangleBRDF{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)}, regularHalfangleData, nThetaH, nThetaD, nPhiD}
+}
 
 func (b *RegularHalfangleBRDF) F(WO, WI *Vector) *Spectrum {
     // Compute $\wh$ and transform $\wi$ to halfangle coordinate system

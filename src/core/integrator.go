@@ -575,7 +575,7 @@ func UniformSampleAllLights(scene *Scene, renderer Renderer,
 			}
 			Ld = Ld.Add(EstimateDirect(scene, renderer, arena, light, p, n, wo,
 				rayEpsilon, time, bsdf, rng, lightSample, bsdfSample,
-				BxDFType(BSDF_ALL^BSDF_SPECULAR)))
+				BxDFType(BSDF_ALL &^ BSDF_SPECULAR)))
 		}
 		L = L.Add(Ld.InvScale(float64(nSamples)))
 	}
@@ -615,7 +615,7 @@ func UniformSampleOneLight(scene *Scene, renderer Renderer,
 	}
 	return EstimateDirect(scene, renderer, arena, light, p, n, wo,
 		rayEpsilon, time, bsdf, rng, lightSample,
-		bsdfSample, BxDFType(BSDF_ALL^BSDF_SPECULAR)).Scale(float64(nLights))
+		bsdfSample, BxDFType(BSDF_ALL &^ BSDF_SPECULAR)).Scale(float64(nLights))
 }
 
 func EstimateDirect(scene *Scene, renderer Renderer,

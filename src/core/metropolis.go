@@ -355,7 +355,7 @@ func (r *MetropolisRenderer) Lpath(scene *Scene, cameraPath []PathVertex, camera
 			Ld = vc.alpha.Mult(EstimateDirect(scene, r, arena, light, pc, nc, &vc.wPrev,
 				vc.isect.rayEpsilon, time, vc.bsdf, rng,
 				&ls.lightSample, &ls.bsdfSample,
-				BxDFType(BSDF_ALL^BSDF_SPECULAR)).InvScale(lightPdf))
+				BxDFType(BSDF_ALL &^ BSDF_SPECULAR)).InvScale(lightPdf))
 		}
 		previousSpecular = vc.specularBounce
 		allSpecular = allSpecular && previousSpecular
@@ -410,7 +410,7 @@ func (r *MetropolisRenderer) Lbidir(scene *Scene, cameraPath []PathVertex, camer
 			Ld = vc.alpha.Mult(EstimateDirect(scene, r, arena, light, pc, nc, &vc.wPrev,
 				vc.isect.rayEpsilon, time, vc.bsdf, rng,
 				&ls.lightSample, &ls.bsdfSample,
-				BxDFType(BSDF_ALL^BSDF_SPECULAR)).InvScale(lightPdf))
+				BxDFType(BSDF_ALL &^ BSDF_SPECULAR)).InvScale(lightPdf))
 		}
 		previousSpecular = vc.specularBounce
 		allSpecular = allSpecular && previousSpecular

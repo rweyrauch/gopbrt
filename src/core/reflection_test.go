@@ -29,6 +29,7 @@ package core
 import (
 	"testing"
 	//"math"
+	"fmt"
 )
 
 /*
@@ -173,4 +174,20 @@ func TestSpecularReflection(t *testing.T) {
 	}
 
 	PbrtCleanup()
+}
+
+func TestBSDFFlags(t *testing.T) {
+	
+	all := BSDF_ALL
+	nospec := BSDF_ALL &^ BSDF_SPECULAR
+	notran := BSDF_ALL &^ BSDF_TRANSMISSION
+	
+	fmt.Printf("All: %v  NoSpec: %v  NoTran: %v  XorSpec: %v\n", all, nospec, notran, BSDF_ALL ^ BSDF_SPECULAR)	
+	
+	r := NewSpectrum1(0.333)
+	ei := 0.5
+	et := 0.25
+	f := &FresnelDielectric{ei, et}
+	spec := NewSpecularReflection(r, f)
+	fmt.Printf("Spec flags: %v\n", spec.BxDFData.bxdftype)
 }

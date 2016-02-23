@@ -325,7 +325,7 @@ func (integrator *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *Ray
 				for i := 0; i < integrator.gatherSamples; i++ {
 					// Sample random direction from BSDF for final gather ray
 					bsdfSample := CreateBSDFSample(sample, &integrator.bsdfGatherSampleOffsets, i)
-					fr, wi, pdf, _ := bsdf.Sample_f(wo, bsdfSample, BxDFType(BSDF_ALL^BSDF_SPECULAR))
+					fr, wi, pdf, _ := bsdf.Sample_f(wo, bsdfSample, BxDFType(BSDF_ALL &^ BSDF_SPECULAR))
 					if fr.IsBlack() || pdf == 0.0 {
 						continue
 					}

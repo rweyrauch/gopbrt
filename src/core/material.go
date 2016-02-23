@@ -417,7 +417,7 @@ func (m *SubstrateMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, are
 	v := m.nv.Evaluate(dgs)
 
 	if !d.IsBlack() || !s.IsBlack() {
-		bsdf.Add(&FresnelBlend{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)}, d, s, NewAnisotropic(1.0/u, 1.0/v)})
+		bsdf.Add(NewFresnelBlend(d, s, NewAnisotropic(1.0/u, 1.0/v)))
 	}
 	return bsdf
 }

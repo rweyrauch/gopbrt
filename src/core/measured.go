@@ -188,9 +188,9 @@ func (m *MeasuredMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, aren
     }    
 	bsdf := NewBSDF(dgs, dgGeom.nn, 1.0)
     if m.regularHalfangleData != nil {
-        bsdf.Add(&RegularHalfangleBRDF{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)}, m.regularHalfangleData, m.nThetaH, m.nThetaD, m.nPhiD})
+        bsdf.Add(NewRegularHalfangleBRDF(m.regularHalfangleData, m.nThetaH, m.nThetaD, m.nPhiD))
     } else if m.thetaPhiData != nil {
-        bsdf.Add(&IrregIsotropicBRDF{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)}, m.thetaPhiData})
+        bsdf.Add(NewIrregIsotropicBRDF(m.thetaPhiData))
     }    
     return bsdf
 }
