@@ -30,7 +30,7 @@ import ()
 
 type Heightfield struct {
 	ShapeData
-	z []float64
+	z      []float64
 	nx, ny int
 }
 
@@ -45,17 +45,21 @@ func NewHeightfield(o2w, w2o *Transform, ro bool, nx, ny int, zs []float64) *Hei
 	field.ny = ny
 	field.z = make([]float64, len(zs), len(zs))
 	copy(field.z, zs)
-	
+
 	return field
 }
 
 func (field *Heightfield) ObjectBound() *BBox {
-    minz, maxz := field.z[0], field.z[0]
-    for _, z := range field.z {
-        if z < minz { minz = z }
-        if z > maxz { maxz = z }
-    }
-    return CreateBBoxFromPoints(CreatePoint(0,0,minz), CreatePoint(1,1,maxz))
+	minz, maxz := field.z[0], field.z[0]
+	for _, z := range field.z {
+		if z < minz {
+			minz = z
+		}
+		if z > maxz {
+			maxz = z
+		}
+	}
+	return CreateBBoxFromPoints(CreatePoint(0, 0, minz), CreatePoint(1, 1, maxz))
 }
 
 func (field *Heightfield) WorldBound() *BBox {
@@ -65,39 +69,45 @@ func (field *Heightfield) CanIntersect() bool {
 	return false
 }
 func (field *Heightfield) Refine(refined []Shape) []Shape {
-    ntris := 2*(field.nx-1)*(field.ny-1)
-    nverts := field.nx*field.ny
-   
-    verts := make([]int, 3*ntris, 3*ntris)
-    P := make([]Point, nverts, nverts)
-    uvs := make([]float64, 2*nverts, 2*nverts)
-    // Compute heightfield vertex positions
-    pos := 0
-    for y := 0; y < field.ny; y++ {
-        for x := 0; x < field.nx; x++ {
-            P[pos].X = float64(x) / float64(field.nx-1)
-            P[pos].Y = float64(y) / float64(field.ny-1)
-            P[pos].Z = field.z[pos]
-            uvs[2*pos] = P[pos].X
-            uvs[2*pos+1] = P[pos].Y
-            pos++
-        }
-    }
+	ntris := 2 * (field.nx - 1) * (field.ny - 1)
+	nverts := field.nx * field.ny
 
-    // Fill in heightfield vertex offset array
-    VERT := func(x,y int) int { return x+y*field.nx }
-    vi := 0
-    for y := 0; y < field.ny-1; y++ {
-        for x := 0; x < field.nx-1; x++ {
-            verts[vi] = VERT(x, y); vi++
-            verts[vi] = VERT(x+1, y); vi++
-            verts[vi] = VERT(x+1, y+1); vi++
-    
-            verts[vi] = VERT(x, y); vi++
-            verts[vi] = VERT(x+1, y+1); vi++
-            verts[vi] = VERT(x, y+1); vi++
-        }
-    }
+	verts := make([]int, 3*ntris, 3*ntris)
+	P := make([]Point, nverts, nverts)
+	uvs := make([]float64, 2*nverts, 2*nverts)
+	// Compute heightfield vertex positions
+	pos := 0
+	for y := 0; y < field.ny; y++ {
+		for x := 0; x < field.nx; x++ {
+			P[pos].X = float64(x) / float64(field.nx-1)
+			P[pos].Y = float64(y) / float64(field.ny-1)
+			P[pos].Z = field.z[pos]
+			uvs[2*pos] = P[pos].X
+			uvs[2*pos+1] = P[pos].Y
+			pos++
+		}
+	}
+
+	// Fill in heightfield vertex offset array
+	VERT := func(x, y int) int { return x + y*field.nx }
+	vi := 0
+	for y := 0; y < field.ny-1; y++ {
+		for x := 0; x < field.nx-1; x++ {
+			verts[vi] = VERT(x, y)
+			vi++
+			verts[vi] = VERT(x+1, y)
+			vi++
+			verts[vi] = VERT(x+1, y+1)
+			vi++
+
+			verts[vi] = VERT(x, y)
+			vi++
+			verts[vi] = VERT(x+1, y+1)
+			vi++
+			verts[vi] = VERT(x, y+1)
+			vi++
+		}
+	}
 	refined = append(refined, NewTriangleMesh(field.objectToWorld,
 		field.worldToObject, field.reverseOrientation, verts, P, nil, nil, uvs, nil))
 

@@ -681,8 +681,8 @@ func NewImageTextureFloat(mapping TextureMapping2D, filename string, trilinear b
 }
 
 func (tex *ImageTextureFloat) Evaluate(dg *DifferentialGeometry) float64 {
-    s, t, dsdx, dtdx, dsdy, dtdy := tex.mapping.Map(dg)
-    ret := tex.mipmap.LookupEwa(s, t, dsdx, dtdx, dsdy, dtdy)
+	s, t, dsdx, dtdx, dsdy, dtdy := tex.mapping.Map(dg)
+	ret := tex.mipmap.LookupEwa(s, t, dsdx, dtdx, dsdy, dtdy)
 	return ret
 }
 
@@ -694,8 +694,8 @@ func NewImageTextureSpectrum(mapping TextureMapping2D, filename string, trilinea
 }
 
 func (tex *ImageTextureSpectrum) Evaluate(dg *DifferentialGeometry) *Spectrum {
-    s, t, dsdx, dtdx, dsdy, dtdy := tex.mapping.Map(dg)
-    ret := tex.mipmap.LookupEwa(s, t, dsdx, dtdx, dsdy, dtdy)
+	s, t, dsdx, dtdx, dsdy, dtdy := tex.mapping.Map(dg)
+	ret := tex.mipmap.LookupEwa(s, t, dsdx, dtdx, dsdy, dtdy)
 	return ret
 }
 
@@ -812,16 +812,16 @@ var (
 )
 
 func init() {
-	textureFloatCache    = make(map[texInfo]*MIPMapFloat)
-	textureSpectrumCache = make(map[texInfo]*MIPMapSpectrum)	
+	textureFloatCache = make(map[texInfo]*MIPMapFloat)
+	textureSpectrumCache = make(map[texInfo]*MIPMapSpectrum)
 }
 
 func ImageTextureFloatClearCache() {
-	textureFloatCache    = make(map[texInfo]*MIPMapFloat)
+	textureFloatCache = make(map[texInfo]*MIPMapFloat)
 }
 
 func ImageTextureSpectrumClearCache() {
-	textureSpectrumCache = make(map[texInfo]*MIPMapSpectrum)		
+	textureSpectrumCache = make(map[texInfo]*MIPMapSpectrum)
 }
 
 func getTextureFloat(filename string, doTrilinear bool, maxAniso float64, wrapMode WrapMode, scale, gamma float64) *MIPMapFloat {

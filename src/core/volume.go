@@ -636,112 +636,115 @@ func (integrator *EmissionIntegrator) String() string {
 func NewSingleScatteringIntegrator(stepsize float64) *SingleScatteringIntegrator {
 	integrator := new(SingleScatteringIntegrator)
 	integrator.stepSize = stepsize
-	return integrator	
+	return integrator
 }
 
-func (integrator *SingleScatteringIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer)    {}
+func (integrator *SingleScatteringIntegrator) Preprocess(scene *Scene, camera Camera, renderer Renderer) {
+}
 func (integrator *SingleScatteringIntegrator) RequestSamples(sampler Sampler, sample *Sample, scene *Scene) {
-    integrator.tauSampleOffset = sample.Add1D(1)
-    integrator.scatterSampleOffset = sample.Add1D(1)
+	integrator.tauSampleOffset = sample.Add1D(1)
+	integrator.scatterSampleOffset = sample.Add1D(1)
 }
 
 func (integrator *SingleScatteringIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) (li, transmittance *Spectrum) {
-    vr := scene.volumeRegion
-    if vr == nil {
-    	transmittance = NewSpectrum1(1.0)
-    	li = NewSpectrum1(0.0)
-	    return li, transmittance	
-    }
-    
-    var t0, t1 float64
-    var hit bool
-    hit, t0, t1 = vr.IntersectP(CreateRayFromRayDifferential(ray)) 
-    if !hit || (t1-t0) == 0.0 {
-    	transmittance = NewSpectrum1(1.0)
-    	li = NewSpectrum1(0.0)
-    	return li, transmittance    	
-    }
-    
-    // Do single scattering volume integration in _vr_
-    Lv := NewSpectrum1(0.0)
+	vr := scene.volumeRegion
+	if vr == nil {
+		transmittance = NewSpectrum1(1.0)
+		li = NewSpectrum1(0.0)
+		return li, transmittance
+	}
 
-    // Prepare for volume integration stepping
-    nSamples := Ceil2Int((t1-t0) / integrator.stepSize)
-    step := (t1 - t0) / float64(nSamples)
-    Tr := NewSpectrum1(1.0)
-    p := ray.PointAt(t0)
-    var pPrev *Point
-    w := ray.Dir().Negate()
-    t0 += sample.oneD[integrator.scatterSampleOffset][0] * step
+	var t0, t1 float64
+	var hit bool
+	hit, t0, t1 = vr.IntersectP(CreateRayFromRayDifferential(ray))
+	if !hit || (t1-t0) == 0.0 {
+		transmittance = NewSpectrum1(1.0)
+		li = NewSpectrum1(0.0)
+		return li, transmittance
+	}
 
-    // Compute sample patterns for single scattering samples
-    lightNum := make([]float64, nSamples, nSamples)
-    LDShuffleScrambled1D(1, nSamples, &lightNum, rng)
-    lightComp := make([]float64, nSamples, nSamples)
-    LDShuffleScrambled1D(1, nSamples, &lightComp, rng)
-    lightPos := make([]float64, 2*nSamples, 2*nSamples)
-    LDShuffleScrambled2D(1, nSamples, &lightPos, rng)
-    sampOffset := 0
-    for i := 0; i < nSamples; i++ {
-        // Advance to sample at _t0_ and update _T_
-        pPrev = p
-        p = ray.PointAt(t0)
-        tauRay := CreateRay(pPrev, p.Sub(pPrev), 0.0, 1.0, ray.Time(), ray.Depth())
-        stepTau := vr.Tau(tauRay, 0.5 * integrator.stepSize, rng.RandomFloat())
-        Tr = Tr.Mult(ExpSpectrum(stepTau.Negate()))
+	// Do single scattering volume integration in _vr_
+	Lv := NewSpectrum1(0.0)
 
-        // Possibly terminate ray marching if transmittance is small
-        if Tr.Y() < 1.0e-3 {
-            continueProb := 0.5
-            if rng.RandomFloat() > continueProb {
-                Tr = NewSpectrum1(0.0)
-                break
-            }
-            Tr.InvScale(continueProb)
-        }
+	// Prepare for volume integration stepping
+	nSamples := Ceil2Int((t1 - t0) / integrator.stepSize)
+	step := (t1 - t0) / float64(nSamples)
+	Tr := NewSpectrum1(1.0)
+	p := ray.PointAt(t0)
+	var pPrev *Point
+	w := ray.Dir().Negate()
+	t0 += sample.oneD[integrator.scatterSampleOffset][0] * step
 
-        // Compute single-scattering source term at _p_
-        Lv = Lv.Add(Tr.Mult(vr.Lve(p, w, ray.Time())))
-        ss := vr.Sigma_s(p, w, ray.Time())
-        if !ss.IsBlack() && len(scene.lights) > 0 {
-            nLights := len(scene.lights)
-            ln := Mini(Floor2Int(lightNum[sampOffset] * float64(nLights)), nLights-1)
-            light := scene.lights[ln]
-            // Add contribution of _light_ due to scattering at _p_
-            var vis VisibilityTester
-            ls := &LightSample{[2]float64{lightComp[sampOffset], lightPos[2*sampOffset]}, lightPos[2*sampOffset+1]}
-            L, wo, pdf := light.Sample_L(p, 0.0, ls, ray.Time(), &vis)
-            
-            if !L.IsBlack() && pdf > 0.0 && vis.Unoccluded(scene) {
-                Ld := L.Mult(vis.Transmittance(scene, renderer, nil, rng, arena))
-                Lv = Lv.Add(Tr.Mult(ss.Scale(vr.P(p, w, wo.Negate(), ray.Time()))).Mult(Ld.Scale(float64(nLights) / pdf)))
-            }
-        }
-        sampOffset++
-        t0 += step
-    }
-    transmittance = Tr
-    li = Lv.Scale(step)
-    return li, transmittance
+	// Compute sample patterns for single scattering samples
+	lightNum := make([]float64, nSamples, nSamples)
+	LDShuffleScrambled1D(1, nSamples, &lightNum, rng)
+	lightComp := make([]float64, nSamples, nSamples)
+	LDShuffleScrambled1D(1, nSamples, &lightComp, rng)
+	lightPos := make([]float64, 2*nSamples, 2*nSamples)
+	LDShuffleScrambled2D(1, nSamples, &lightPos, rng)
+	sampOffset := 0
+	for i := 0; i < nSamples; i++ {
+		// Advance to sample at _t0_ and update _T_
+		pPrev = p
+		p = ray.PointAt(t0)
+		tauRay := CreateRay(pPrev, p.Sub(pPrev), 0.0, 1.0, ray.Time(), ray.Depth())
+		stepTau := vr.Tau(tauRay, 0.5*integrator.stepSize, rng.RandomFloat())
+		Tr = Tr.Mult(ExpSpectrum(stepTau.Negate()))
+
+		// Possibly terminate ray marching if transmittance is small
+		if Tr.Y() < 1.0e-3 {
+			continueProb := 0.5
+			if rng.RandomFloat() > continueProb {
+				Tr = NewSpectrum1(0.0)
+				break
+			}
+			Tr.InvScale(continueProb)
+		}
+
+		// Compute single-scattering source term at _p_
+		Lv = Lv.Add(Tr.Mult(vr.Lve(p, w, ray.Time())))
+		ss := vr.Sigma_s(p, w, ray.Time())
+		if !ss.IsBlack() && len(scene.lights) > 0 {
+			nLights := len(scene.lights)
+			ln := Mini(Floor2Int(lightNum[sampOffset]*float64(nLights)), nLights-1)
+			light := scene.lights[ln]
+			// Add contribution of _light_ due to scattering at _p_
+			var vis VisibilityTester
+			ls := &LightSample{[2]float64{lightComp[sampOffset], lightPos[2*sampOffset]}, lightPos[2*sampOffset+1]}
+			L, wo, pdf := light.Sample_L(p, 0.0, ls, ray.Time(), &vis)
+
+			if !L.IsBlack() && pdf > 0.0 && vis.Unoccluded(scene) {
+				Ld := L.Mult(vis.Transmittance(scene, renderer, nil, rng, arena))
+				Lv = Lv.Add(Tr.Mult(ss.Scale(vr.P(p, w, wo.Negate(), ray.Time()))).Mult(Ld.Scale(float64(nLights) / pdf)))
+			}
+		}
+		sampOffset++
+		t0 += step
+	}
+	transmittance = Tr
+	li = Lv.Scale(step)
+	return li, transmittance
 }
 
 func (integrator *SingleScatteringIntegrator) Transmittance(scene *Scene, renderer Renderer, ray *RayDifferential, sample *Sample, rng *RNG, arena *MemoryArena) *Spectrum {
-    if scene.volumeRegion == nil { return NewSpectrum1(1.0) }
-    var step, offset float64
-    if sample != nil {
-        step = integrator.stepSize
-        offset = sample.oneD[integrator.tauSampleOffset][0]
-    } else {
-        step = 4.0 * integrator.stepSize
-        offset = rng.RandomFloat()
-    }
-    tau := scene.volumeRegion.Tau(CreateRayFromRayDifferential(ray), step, offset)
-    return ExpSpectrum(tau.Negate())
+	if scene.volumeRegion == nil {
+		return NewSpectrum1(1.0)
+	}
+	var step, offset float64
+	if sample != nil {
+		step = integrator.stepSize
+		offset = sample.oneD[integrator.tauSampleOffset][0]
+	} else {
+		step = 4.0 * integrator.stepSize
+		offset = rng.RandomFloat()
+	}
+	tau := scene.volumeRegion.Tau(CreateRayFromRayDifferential(ray), step, offset)
+	return ExpSpectrum(tau.Negate())
 }
 
 func CreateSingleScatteringIntegrator(params *ParamSet) *SingleScatteringIntegrator {
-    stepSize := params.FindFloatParam("stepsize", 1.0)
-    return NewSingleScatteringIntegrator(stepSize)
+	stepSize := params.FindFloatParam("stepsize", 1.0)
+	return NewSingleScatteringIntegrator(stepSize)
 }
 func CreateEmissionVolumeIntegrator(params *ParamSet) *EmissionIntegrator {
 	stepSize := params.FindFloatParam("stepsize", 1.0)

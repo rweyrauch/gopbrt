@@ -26,7 +26,7 @@
 */
 package core
 
-import(
+import (
 	"testing"
 )
 
@@ -40,12 +40,12 @@ func appendToSlice(prims *[]int) {
 func TestRefine(t *testing.T) {
 
 	prims := make([]int, 0, 8)
-	
+
 	appendToSlice(&prims)
 	if len(prims) != 1 {
 		t.Fail()
-	}	
-	
+	}
+
 	appendToSlice(&prims)
 	if len(prims) != 2 {
 		t.Fail()

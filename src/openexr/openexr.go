@@ -31,14 +31,14 @@ import "C"
 import "unsafe"
 
 func ReadImageEXR(filename string) (width, height, channels int, packedPixels []float32) {
-	
+
 	var pixels *C.Pixel
 	var cpixel C.Pixel
 	var cwidth, cheight C.int
 	cfilename := C.CString(filename)
-	
+
 	pixels = C.ReadImageEXR(cfilename, &cwidth, &cheight)
-	
+
 	width = int(cwidth)
 	height = int(cheight)
 	channels = 4
@@ -55,15 +55,15 @@ func ReadImageEXR(filename string) (width, height, channels int, packedPixels []
 	return width, height, channels, packedPixels
 }
 
-func WriteImageEXR(filename string, width, height, channels int, packedPixels []float32) {	
+func WriteImageEXR(filename string, width, height, channels int, packedPixels []float32) {
 	cfilename := C.CString(filename)
 	cwidth := C.int(width)
-	cheight := C.int(height)	
+	cheight := C.int(height)
 	var cpixel C.Pixel
-	
-	cpixelsptr := C.malloc(C.size_t(cwidth*cheight)*C.size_t(unsafe.Sizeof(cpixel)))
+
+	cpixelsptr := C.malloc(C.size_t(cwidth*cheight) * C.size_t(unsafe.Sizeof(cpixel)))
 	cpixels := (*C.Pixel)(cpixelsptr)
-	
+
 	for i := 0; i < width*height; i++ {
 		curPixel := (*C.Pixel)(cpixelsptr)
 		curPixel.r = C.float(packedPixels[i*channels])
@@ -72,9 +72,8 @@ func WriteImageEXR(filename string, width, height, channels int, packedPixels []
 		curPixel.a = 1.0
 		cpixelsptr = unsafe.Pointer(uintptr(cpixelsptr) + unsafe.Sizeof(cpixel))
 	}
-	
+
 	C.WriteImageEXR(cfilename, cwidth, cheight, cpixels)
-	
+
 	C.free(unsafe.Pointer(cpixels))
 }
-	

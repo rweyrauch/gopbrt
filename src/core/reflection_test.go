@@ -123,7 +123,7 @@ func TestSpecularReflection(t *testing.T) {
 	ei := 0.5
 	et := 0.25
 	f := &FresnelDielectric{ei, et}
-	spec := &SpecularReflection{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)}, r, f}
+	spec := NewSpecularReflection(r, f)
 
 	outF := [3]float64{0.000000, 0.000000, 0.000000}
 	outPdf := 0.000000
@@ -149,7 +149,7 @@ func TestSpecularReflection(t *testing.T) {
 	et = 1.0
 
 	tx := NewSpectrum1(0.22)
-	trans := &SpecularTransmission{BxDFData{BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR)}, tx, ei, et, &FresnelDielectric{ei, et}}
+	trans := NewSpecularTransmission(tx, ei, et, &FresnelDielectric{ei, et})
 
 	outTransF := [3]float64{0.000000, 0.000000, 0.000000}
 	outTransPdf := 0.0
@@ -177,17 +177,36 @@ func TestSpecularReflection(t *testing.T) {
 }
 
 func TestBSDFFlags(t *testing.T) {
-	
+
 	all := BSDF_ALL
 	nospec := BSDF_ALL &^ BSDF_SPECULAR
 	notran := BSDF_ALL &^ BSDF_TRANSMISSION
-	
-	fmt.Printf("All: %v  NoSpec: %v  NoTran: %v  XorSpec: %v\n", all, nospec, notran, BSDF_ALL ^ BSDF_SPECULAR)	
-	
+
+	fmt.Printf("All: %v  NoSpec: %v  NoTran: %v  XorSpec: %v\n", all, nospec, notran, BSDF_ALL^BSDF_SPECULAR)
+
 	r := NewSpectrum1(0.333)
 	ei := 0.5
 	et := 0.25
 	f := &FresnelDielectric{ei, et}
 	spec := NewSpecularReflection(r, f)
 	fmt.Printf("Spec flags: %v\n", spec.BxDFData.bxdftype)
+
+	fmt.Printf("BSDF_REFLECTION %d\n", BSDF_REFLECTION)
+	fmt.Printf("BSDF_TRANSMISSION %d\n", BSDF_TRANSMISSION)
+	fmt.Printf("BSDF_DIFFUSE %d\n", BSDF_DIFFUSE)
+	fmt.Printf("BSDF_GLOSSY %d\n", BSDF_GLOSSY)
+	fmt.Printf("BSDF_SPECULAR %d\n", BSDF_SPECULAR)
+}
+
+func TestBSDFStrings(t *testing.T) {
+	dg := CreateDiffGeometry(CreatePoint(1,2,3),CreateVector(1,0,0),CreateVector(0,1,0),CreateNormal(1,0,0),CreateNormal(0,1,0),0.5,0.5,nil)
+	ng := CreateNormal(0,0,1)
+	eta := 0.4
+	bsdf := NewBSDF(dg, ng, eta)
+
+	fresc := &FresnelConductor{NewSpectrum1(1.0), NewSpectrum1(2.0)}
+	spec := NewSpecularReflection(NewSpectrum1(3.0), fresc)
+	bsdf.Add(spec)
+
+	fmt.Printf("BSDF: %v\n\n", bsdf)
 }

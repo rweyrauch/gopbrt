@@ -5,21 +5,22 @@ import (
 )
 
 type TestRenderer struct {
-	sampler            Sampler
-	surfaceIntegrator  SurfaceIntegrator
-	volumeIntegrator   VolumeIntegrator
-	camera             Camera
+	sampler           Sampler
+	surfaceIntegrator SurfaceIntegrator
+	volumeIntegrator  VolumeIntegrator
+	camera            Camera
 }
 
 type taskInput struct {
-	scene			  *Scene
-	renderer		  Renderer
+	scene             *Scene
+	renderer          Renderer
 	sampler           Sampler
 	origSample        *Sample
 	camera            Camera
 	taskNum, numTasks int
-	reporter		  *ProgressReporter
+	reporter          *ProgressReporter
 }
+
 //type taskOutput struct {
 //	sample Sample
 //	Li Spectrum
@@ -29,7 +30,7 @@ func (renderer *TestRenderer) Render(scene *Scene) {
 	// Allow integrators to do preprocessing for the scene
 	renderer.surfaceIntegrator.Preprocess(scene, renderer.camera, renderer)
 	renderer.volumeIntegrator.Preprocess(scene, renderer.camera, renderer)
-	
+
 	// Allocate and initialize _sample_
 	sample := NewSample(renderer.sampler, renderer.surfaceIntegrator, renderer.volumeIntegrator, scene)
 
@@ -41,7 +42,7 @@ func (renderer *TestRenderer) Render(scene *Scene) {
 	nTasks := Maxi(32*NumSystemCores(), nPixels/(16*16))
 	nTasks = int(RoundUpPow2(uint32(nTasks)))
 	Info("Num tasks: %d Workers: %d Pixels: %d", nTasks, nWorkers, nPixels)
-	
+
 	jobs := make(chan taskInput, nTasks)
 	producedSamples := make(chan taskOutput, 128)
 	completed := make(chan bool, nTasks)
@@ -72,9 +73,9 @@ func (renderer *TestRenderer) Render(scene *Scene) {
 	// close and drain the queue of any unprocessed samples
 	close(producedSamples)
 	for output := range producedSamples {
-		renderer.camera.Film().AddSample(&output.sample, &output.Li)		
+		renderer.camera.Film().AddSample(&output.sample, &output.Li)
 	}
-	
+
 	reporter.Done()
 
 	// Clean up after rendering and store final image
@@ -113,7 +114,7 @@ func rendererWorker(workQueue <-chan taskInput, results chan<- taskOutput, compl
 		}
 
 		rng := NewRNG(int64(work.taskNum))
-		
+
 		maxSamples := work.sampler.MaximumSampleCount()
 		samples := work.origSample.Duplicate(maxSamples)
 		rays := make([]*RayDifferential, maxSamples, maxSamples)
@@ -130,7 +131,7 @@ func rendererWorker(workQueue <-chan taskInput, results chan<- taskOutput, compl
 				var rayWeight float64
 				rays[i], rayWeight = work.camera.GenerateRayDifferential(&samples[i])
 				rays[i].ScaleDifferentials(1.0 / math.Sqrt(float64(work.sampler.SamplesPerPixel())))
-	
+
 				// Evaluate radiance along camera ray
 				if rayWeight > 0.0 {
 					Ls[i], isects[i], Ts[i] = work.renderer.Li(work.scene, rays[i], &samples[i], rng, nil)
@@ -140,21 +141,21 @@ func rendererWorker(workQueue <-chan taskInput, results chan<- taskOutput, compl
 					isects[i] = nil
 					Ts[i] = NewSpectrum1(1.0)
 				}
-/*
-				// Issue warning if unexpected radiance value returned
-				if Ls[i].HasNaNs() {
-					Error("Not-a-number radiance value returned for image sample.  Setting to black.")
-					Ls[i] = NewSpectrum1(0.0)
-				} else if Ls[i].Y() < -1.0e-5 {
-					Error("Negative luminance value, %f, returned for image sample.  Setting to black.", Ls[i].Y())
-					Ls[i] = NewSpectrum1(0.0)
-				} else if math.IsInf(Ls[i].Y(), 0) {
-					Error("Infinite luminance value returned for image sample.  Setting to black.")
-					Ls[i] = NewSpectrum1(0.0)
-				}
-*/				
+				/*
+					// Issue warning if unexpected radiance value returned
+					if Ls[i].HasNaNs() {
+						Error("Not-a-number radiance value returned for image sample.  Setting to black.")
+						Ls[i] = NewSpectrum1(0.0)
+					} else if Ls[i].Y() < -1.0e-5 {
+						Error("Negative luminance value, %f, returned for image sample.  Setting to black.", Ls[i].Y())
+						Ls[i] = NewSpectrum1(0.0)
+					} else if math.IsInf(Ls[i].Y(), 0) {
+						Error("Infinite luminance value returned for image sample.  Setting to black.")
+						Ls[i] = NewSpectrum1(0.0)
+					}
+				*/
 			}
-			
+
 			// Report sample results to _Sampler_, add contributions to image
 			if work.sampler.ReportResults(samples, rays, Ls, isects, sampleCount) {
 				for i := 0; i < sampleCount; i++ {

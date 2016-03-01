@@ -575,7 +575,7 @@ func UniformSampleAllLights(scene *Scene, renderer Renderer,
 			}
 			Ld = Ld.Add(EstimateDirect(scene, renderer, arena, light, p, n, wo,
 				rayEpsilon, time, bsdf, rng, lightSample, bsdfSample,
-				BxDFType(BSDF_ALL &^ BSDF_SPECULAR)))
+				BxDFType(BSDF_ALL&^BSDF_SPECULAR)))
 		}
 		L = L.Add(Ld.InvScale(float64(nSamples)))
 	}
@@ -615,7 +615,7 @@ func UniformSampleOneLight(scene *Scene, renderer Renderer,
 	}
 	return EstimateDirect(scene, renderer, arena, light, p, n, wo,
 		rayEpsilon, time, bsdf, rng, lightSample,
-		bsdfSample, BxDFType(BSDF_ALL &^ BSDF_SPECULAR)).Scale(float64(nLights))
+		bsdfSample, BxDFType(BSDF_ALL&^BSDF_SPECULAR)).Scale(float64(nLights))
 }
 
 func EstimateDirect(scene *Scene, renderer Renderer,
@@ -686,7 +686,7 @@ func SpecularReflect(ray *RayDifferential, bsdf *BSDF, rng *RNG,
 	f, wi, pdf, _ := bsdf.Sample_f(wo, CreateRandomBSDFSample(rng), BxDFType(BSDF_REFLECTION|BSDF_SPECULAR))
 	if pdf > 0.0 && !f.IsBlack() && AbsDotVectorNormal(wi, n) != 0.0 {
 		// Compute ray differential _rd_ for specular reflection
-		rd := CreateChildRayDifferential(p, wi, CreateRayFromRayDifferential(ray), isect.rayEpsilon, INFINITY)
+		rd := CreateChildRayDifferentialFromRayDifferential(p, wi, ray, isect.rayEpsilon, INFINITY)
 		if ray.HasDifferentials {
 			rd.HasDifferentials = true
 			rd.RxOrigin = *p.Add(isect.dg.dpdx)

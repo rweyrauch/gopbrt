@@ -27,8 +27,8 @@
 package core
 
 import (
+	"github.com/rweyrauch/gopbrt/src/os"
 	"math"
-	"github.com/rweyrauch/gopbrt/src/os"	
 )
 
 const (
@@ -176,7 +176,9 @@ func Xor(a, b bool) bool {
 	return false
 }
 func NumSystemCores() int {
-	if options.NumCores > 0 { return options.NumCores }
+	if options.NumCores > 0 {
+		return options.NumCores
+	}
 	return os.NumSystemCores()
 }
 

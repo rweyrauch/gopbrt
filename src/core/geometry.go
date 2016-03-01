@@ -57,7 +57,7 @@ type (
 		Transform(trans *Transform) RayBase
 		AnimatedTransform(trans *AnimatedTransform) RayBase
 	}
-	
+
 	Ray struct {
 		origin     Point
 		dir        Vector
@@ -378,13 +378,13 @@ func CreateChildRay(origin *Point, direction *Vector, parent *Ray, start, end fl
 	return &Ray{*origin, *direction, start, end, parent.time, parent.depth + 1}
 }
 
-func (r *Ray) Origin() *Point { return &r.origin }
-func (r *Ray) Dir() *Vector { return &r.dir }
-func (r *Ray) Mint() float64 { return r.mint }
-func (r *Ray) Maxt() float64 { return r.maxt }
+func (r *Ray) Origin() *Point    { return &r.origin }
+func (r *Ray) Dir() *Vector      { return &r.dir }
+func (r *Ray) Mint() float64     { return r.mint }
+func (r *Ray) Maxt() float64     { return r.maxt }
 func (r *Ray) SetMaxt(t float64) { r.maxt = t }
-func (r *Ray) Time() float64 { return r.time }
-func (r *Ray) Depth() int { return r.depth }
+func (r *Ray) Time() float64     { return r.time }
+func (r *Ray) Depth() int        { return r.depth }
 
 func (r *Ray) PointAt(t float64) *Point {
 	return r.origin.Add(r.dir.Scale(t))
@@ -398,7 +398,7 @@ func (r *Ray) String() string {
 	return fmt.Sprintf("ray[origin:%v dir:%v start:%f end:%f time:%f depth:%d]", &r.origin, &r.dir, r.mint, r.maxt, r.time, r.depth)
 }
 func (r *RayDifferential) String() string {
-	return fmt.Sprintf("raydiff[origin:%v dir:%v start:%f end:%f time:%f depth:%d diffs:%s]", &r.origin, &r.dir, r.mint, r.maxt, r.time, r.depth, r.HasDifferentials)
+	return fmt.Sprintf("raydiff[origin:%v dir:%v start:%f end:%f time:%f depth:%d diffs:%v]", &r.origin, &r.dir, r.mint, r.maxt, r.time, r.depth, r.HasDifferentials)
 }
 
 func CreateRayDifferential(origin *Point, direction *Vector, start, end, t float64, d int) *RayDifferential {
@@ -418,13 +418,13 @@ func CreateChildRayDifferentialFromRayDifferential(origin *Point, direction *Vec
 	return &RayDifferential{Ray{*origin, *direction, start, end, parent.time, parent.depth + 1}, false, Point{0, 0, 0}, Point{0, 0, 0}, Vector{0, 0, 0}, Vector{0, 0, 0}}
 }
 
-func (r *RayDifferential) Origin() *Point { return &r.origin }
-func (r *RayDifferential) Dir() *Vector { return &r.dir }
-func (r *RayDifferential) Mint() float64 { return r.mint }
-func (r *RayDifferential) Maxt() float64 { return r.maxt }
+func (r *RayDifferential) Origin() *Point    { return &r.origin }
+func (r *RayDifferential) Dir() *Vector      { return &r.dir }
+func (r *RayDifferential) Mint() float64     { return r.mint }
+func (r *RayDifferential) Maxt() float64     { return r.maxt }
 func (r *RayDifferential) SetMaxt(t float64) { r.maxt = t }
-func (r *RayDifferential) Time() float64 { return r.time }
-func (r *RayDifferential) Depth() int { return r.depth }
+func (r *RayDifferential) Time() float64     { return r.time }
+func (r *RayDifferential) Depth() int        { return r.depth }
 
 func (r *RayDifferential) PointAt(t float64) *Point {
 	return r.origin.Add(r.dir.Scale(t))

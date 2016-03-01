@@ -879,9 +879,9 @@ func PbrtShape(name string, params *ParamSet) {
 		_, world2obj[0] = transformCache.Lookup(curTransform.t[0])
 		_, world2obj[1] = transformCache.Lookup(curTransform.t[1])
 		animatedWorldToObject := NewAnimatedTransform(world2obj[0], renderOptions.transformStartTime, world2obj[1], renderOptions.transformEndTime)
-		
+
 		//Info("AnimW2O: %v", animatedWorldToObject)
-		
+
 		var baseprim Primitive
 		baseprim = NewGeometricPrimitive(shape, mtl, nil)
 		if !baseprim.CanIntersect() {
@@ -1074,7 +1074,7 @@ func (ro *RenderOptions) MakeRenderer() Renderer {
 		sampler := MakeSampler(ro.SamplerName, ro.SamplerParams, camera.Film(), camera)
 		if sampler == nil {
 			Severe("Unable to create sampler.")
-		}		
+		}
 		// Create surface and volume integrators
 		surfaceIntegrator := MakeSurfaceIntegrator(ro.SurfIntegratorName, ro.SurfIntegratorParams)
 		if surfaceIntegrator == nil {
@@ -1083,7 +1083,7 @@ func (ro *RenderOptions) MakeRenderer() Renderer {
 		volumeIntegrator := MakeVolumeIntegrator(ro.VolIntegratorName, ro.VolIntegratorParams)
 		if volumeIntegrator == nil {
 			Severe("Unable to create volume integrator.")
-		}		
+		}
 		renderer = &TestRenderer{sampler, surfaceIntegrator, volumeIntegrator, camera}
 	} else if strings.Compare(ro.RendererName, "surfacepoints") == 0 {
 		pCamera := PointAnimatedTransform(camera.CameraToWorld(), camera.ShutterOpen(), CreatePoint(0, 0, 0))

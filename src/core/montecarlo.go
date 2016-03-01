@@ -53,36 +53,36 @@ type PermutedHalton struct {
 
 func NewPermutedHalton(d int, rng *RNG) *PermutedHalton {
 	ph := new(PermutedHalton)
-	
-    ph.dims = d
-    // Determine bases $b_i$ and their sum
-    ph.b = make([]uint32, ph.dims, ph.dims)
-    var sumBases uint32 = 0
-    for i := 0; i < ph.dims; i++ {
-        ph.b[i] = primes[i]
-        sumBases += ph.b[i]
-    }
 
-    // Compute permutation tables for each base
-    ph.permute = make([]uint32, sumBases, sumBases)
-    var pi uint32 = 0
-    for i := 0; i < ph.dims; i++ {
-        perm := GeneratePermutation(ph.b[i], rng)
-        copy(ph.permute[pi:pi+ph.b[i]], perm)
-        pi += ph.b[i]
-    }
-	
+	ph.dims = d
+	// Determine bases $b_i$ and their sum
+	ph.b = make([]uint32, ph.dims, ph.dims)
+	var sumBases uint32 = 0
+	for i := 0; i < ph.dims; i++ {
+		ph.b[i] = primes[i]
+		sumBases += ph.b[i]
+	}
+
+	// Compute permutation tables for each base
+	ph.permute = make([]uint32, sumBases, sumBases)
+	var pi uint32 = 0
+	for i := 0; i < ph.dims; i++ {
+		perm := GeneratePermutation(ph.b[i], rng)
+		copy(ph.permute[pi:pi+ph.b[i]], perm)
+		pi += ph.b[i]
+	}
+
 	return ph
 }
 
 func (ph *PermutedHalton) Sample(n int) []float64 {
 	out := make([]float64, ph.dims, ph.dims)
-	
+
 	pi := 0
 	for i := 0; i < ph.dims; i++ {
-	    out[i] = math.Min(float64(PermutedRadicalInverse(uint32(n), ph.b[i], ph.permute[pi:])), OneMinusEpsilon)
-	    pi += int(ph.b[i])
-	}	
+		out[i] = math.Min(float64(PermutedRadicalInverse(uint32(n), ph.b[i], ph.permute[pi:])), OneMinusEpsilon)
+		pi += int(ph.b[i])
+	}
 	return out
 }
 
@@ -345,7 +345,7 @@ func Shuffle(samp *[]float64, count, dims uint32, rng *RNG) {
 
 func GeneratePermutation(b uint32, rng *RNG) []uint32 {
 	var i uint32
-	buf := make([]uint32, int(b),int(b))
+	buf := make([]uint32, int(b), int(b))
 	for i = 0; i < b; i++ {
 		buf[i] = i
 	}
@@ -383,9 +383,12 @@ func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamp
 
 	bufOffset := 0
 	// Prepare temporary array pointers for low-discrepancy camera samples
-	imageSamples := buf[bufOffset : bufOffset+2*nPixelSamples]; bufOffset += 2*nPixelSamples
-	lensSamples := buf[bufOffset : bufOffset+2*nPixelSamples]; bufOffset += 2*nPixelSamples
-	timeSamples := buf[bufOffset : bufOffset+nPixelSamples]; bufOffset += nPixelSamples
+	imageSamples := buf[bufOffset : bufOffset+2*nPixelSamples]
+	bufOffset += 2 * nPixelSamples
+	lensSamples := buf[bufOffset : bufOffset+2*nPixelSamples]
+	bufOffset += 2 * nPixelSamples
+	timeSamples := buf[bufOffset : bufOffset+nPixelSamples]
+	bufOffset += nPixelSamples
 	//Assert(len(imageSamples) == 2*nPixelSamples)
 	//Assert(len(lensSamples) == 2*nPixelSamples)
 	//Assert(len(timeSamples) == nPixelSamples)
@@ -394,29 +397,29 @@ func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamp
 	count1D := len((*samples)[0].n1D)
 	count2D := len((*samples)[0].n2D)
 
-   	oneDSamples := make([][]float64, count1D, count1D)
-   	twoDSamples := make([][]float64, count2D, count2D)
-   	for i := 0; i < count1D; i++ {
-       	oneDSamples[i] = buf[bufOffset : bufOffset + (*samples)[0].n1D[i] * nPixelSamples]
-       	bufOffset += (*samples)[0].n1D[i] * nPixelSamples
-   	}
-   	for i := 0; i < count2D; i++ {
-       	twoDSamples[i] = buf[bufOffset : bufOffset + 2 * (*samples)[0].n2D[i] * nPixelSamples]
-       	bufOffset += 2 * (*samples)[0].n2D[i] * nPixelSamples
-   	}
+	oneDSamples := make([][]float64, count1D, count1D)
+	twoDSamples := make([][]float64, count2D, count2D)
+	for i := 0; i < count1D; i++ {
+		oneDSamples[i] = buf[bufOffset : bufOffset+(*samples)[0].n1D[i]*nPixelSamples]
+		bufOffset += (*samples)[0].n1D[i] * nPixelSamples
+	}
+	for i := 0; i < count2D; i++ {
+		twoDSamples[i] = buf[bufOffset : bufOffset+2*(*samples)[0].n2D[i]*nPixelSamples]
+		bufOffset += 2 * (*samples)[0].n2D[i] * nPixelSamples
+	}
 
 	// Generate low-discrepancy pixel samples
 	LDShuffleScrambled2D(1, nPixelSamples, &imageSamples, rng)
 	LDShuffleScrambled2D(1, nPixelSamples, &lensSamples, rng)
 	LDShuffleScrambled1D(1, nPixelSamples, &timeSamples, rng)
-		
-   	for i := 0; i < count1D; i++ {
-       	LDShuffleScrambled1D((*samples)[0].n1D[i], nPixelSamples, &oneDSamples[i], rng)
-   	}    
-   	for i := 0; i < count2D; i++ {
-       	LDShuffleScrambled2D((*samples)[0].n2D[i], nPixelSamples, &twoDSamples[i], rng)
+
+	for i := 0; i < count1D; i++ {
+		LDShuffleScrambled1D((*samples)[0].n1D[i], nPixelSamples, &oneDSamples[i], rng)
 	}
-	
+	for i := 0; i < count2D; i++ {
+		LDShuffleScrambled2D((*samples)[0].n2D[i], nPixelSamples, &twoDSamples[i], rng)
+	}
+
 	// Initialize _samples_ with computed sample values
 	for i := 0; i < nPixelSamples; i++ {
 		(*samples)[i].imageX = float64(xPos) + imageSamples[2*i]
@@ -424,21 +427,21 @@ func LDPixelSample(xPos, yPos int, shutterOpen, shutterClose float64, nPixelSamp
 		(*samples)[i].time = Lerp(timeSamples[i], shutterOpen, shutterClose)
 		(*samples)[i].lensU = lensSamples[2*i]
 		(*samples)[i].lensV = lensSamples[2*i+1]
-		
-	   // Copy integrator samples into _samples[i]_
-	   for j := 0; j < count1D; j++ {
-	       startSamp := (*samples)[0].n1D[j] * i;
-	       for k := 0; k < (*samples)[0].n1D[j]; k++ {
-	           (*samples)[i].oneD[j][k] = oneDSamples[j][startSamp+k]
-	        }
-	   }
-	   
-	   for j := 0; j < count2D; j++ {
-	       startSamp := 2 * (*samples)[0].n2D[j] * i;
-	       for k := 0; k < 2*(*samples)[0].n2D[j]; k++ {
-	           (*samples)[i].twoD[j][k] = twoDSamples[j][startSamp+k]
-	       }
-	   }	   
+
+		// Copy integrator samples into _samples[i]_
+		for j := 0; j < count1D; j++ {
+			startSamp := (*samples)[0].n1D[j] * i
+			for k := 0; k < (*samples)[0].n1D[j]; k++ {
+				(*samples)[i].oneD[j][k] = oneDSamples[j][startSamp+k]
+			}
+		}
+
+		for j := 0; j < count2D; j++ {
+			startSamp := 2 * (*samples)[0].n2D[j] * i
+			for k := 0; k < 2*(*samples)[0].n2D[j]; k++ {
+				(*samples)[i].twoD[j][k] = twoDSamples[j][startSamp+k]
+			}
+		}
 	}
 }
 
@@ -502,7 +505,9 @@ func RejectionSampleDisk(rng *RNG) (x, y float64) {
 	for {
 		sx = 1.0 - 2.0*rng.RandomFloat()
 		sy = 1.0 - 2.0*rng.RandomFloat()
-		if sx*sx+sy*sy <= 1.0 { break }
+		if sx*sx+sy*sy <= 1.0 {
+			break
+		}
 	}
 	x = sx
 	y = sy

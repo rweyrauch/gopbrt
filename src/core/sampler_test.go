@@ -61,7 +61,7 @@ func TestSampler(t *testing.T) {
 
 func TestLDSampler(t *testing.T) {
 	ldsampler := NewLDSampler(0, 16, 0, 16, 8, 0.0, 1.0)
-	
+
 	surf := &WhittedIntegrator{4}
 	vol := NewEmissionIntegrator(1.0)
 
@@ -71,9 +71,9 @@ func TestLDSampler(t *testing.T) {
 	for i := 0; i < len(samples); i++ {
 		samples[i] = *sample
 	}
-	
+
 	rng := NewRNG(13)
-	ns := ldsampler.GetMoreSamples(&samples, rng)	
+	ns := ldsampler.GetMoreSamples(&samples, rng)
 	fmt.Printf("Ns: %d\n", ns)
 	for i := 0; i < ns; i++ {
 		fmt.Printf("Sample[%d]: %v\n", i, samples[i])

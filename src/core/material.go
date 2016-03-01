@@ -132,7 +132,7 @@ type (
 	}
 
 	MeasuredMaterial struct {
-		thetaPhiData *KdTree	// IrregIsotropBRDFSample
+		thetaPhiData            *KdTree // IrregIsotropBRDFSample
 		regularHalfangleData    []float64
 		nThetaH, nThetaD, nPhiD int
 		bumpMap                 TextureFloat
@@ -543,4 +543,3 @@ func (m *UberMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *M
 func (m *UberMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil
 }
-

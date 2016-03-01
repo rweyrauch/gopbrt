@@ -314,7 +314,7 @@ func CreateDiffuseAreaLight(light2world *Transform, paramSet *ParamSet, shape Sh
 	sc := paramSet.FindSpectrumParam("scale", *NewSpectrum1(1.0))
 	nSamples := paramSet.FindIntParam("nsamples", 1)
 	if options.FastRender {
-		nSamples = Maxi(1, nSamples/2)		
+		nSamples = Maxi(1, nSamples/2)
 	} else if options.QuickRender {
 		nSamples = Maxi(1, nSamples/4)
 	}
@@ -594,7 +594,7 @@ func CreateInfiniteLight(light2world *Transform, paramSet *ParamSet) *InfiniteAr
 	texmap := paramSet.FindFilenameParam("mapname", "")
 	nSamples := paramSet.FindIntParam("nsamples", 1)
 	if options.FastRender {
-		nSamples = Maxi(1, nSamples/2)		
+		nSamples = Maxi(1, nSamples/2)
 	} else if options.QuickRender {
 		nSamples = Maxi(1, nSamples/4)
 	}

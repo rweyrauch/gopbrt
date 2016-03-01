@@ -222,7 +222,7 @@ func (integrator *IGIIntegrator) Li(scene *Scene, renderer Renderer, ray *RayDif
 			} else {
 				bsdfSample = CreateRandomBSDFSample(rng)
 			}
-			f, wi, pdf, _ := bsdf.Sample_f(wo, bsdfSample, BxDFType(BSDF_ALL &^ BSDF_SPECULAR))
+			f, wi, pdf, _ := bsdf.Sample_f(wo, bsdfSample, BxDFType(BSDF_ALL&^BSDF_SPECULAR))
 			if !f.IsBlack() && pdf > 0.0 {
 				// Trace ray for bias compensation gather sample
 				maxDist := math.Sqrt(AbsDotVectorNormal(wi, n) / integrator.gLimit)

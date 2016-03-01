@@ -376,19 +376,19 @@ func (ps *ParamSet) FindSpectrumParam(name string, defval Spectrum) Spectrum {
 						} else {
 							ok, spectra := ReadFloatFile(filename)
 							if ok {
-					            if len(spectra) % 2 != 0 {
-					                Warning("Extra value found in spectrum file \"%s\". Ignoring it.", filename)
-					            }
-					            wls := make([]float64, 0, len(spectra)/2)
-					            v := make([]float64, 0, len(spectra)/2)
-					            for j := 0; j < len(spectra) / 2; j++ {
-					                wls = append(wls, spectra[2*j])
-					                v = append(v, spectra[2*j+1])
-					            }
-					            value = *SpectrumFromSampled(wls, v)
+								if len(spectra)%2 != 0 {
+									Warning("Extra value found in spectrum file \"%s\". Ignoring it.", filename)
+								}
+								wls := make([]float64, 0, len(spectra)/2)
+								v := make([]float64, 0, len(spectra)/2)
+								for j := 0; j < len(spectra)/2; j++ {
+									wls = append(wls, spectra[2*j])
+									v = append(v, spectra[2*j+1])
+								}
+								value = *SpectrumFromSampled(wls, v)
 							} else {
-           						Warning("Unable to read SPD file \"%s\".  Using black distribution.", filename)
-            					value = *NewSpectrum1(0.0)								
+								Warning("Unable to read SPD file \"%s\".  Using black distribution.", filename)
+								value = *NewSpectrum1(0.0)
 							}
 							cachedSpectra[filename] = &value
 						}

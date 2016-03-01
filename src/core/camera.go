@@ -33,10 +33,10 @@ import (
 type Camera interface {
 	GenerateRay(sample *Sample) (ray *Ray, weight float64)
 	GenerateRayDifferential(sample *Sample) (ray *RayDifferential, weight float64)
-    CameraToWorld() *AnimatedTransform
-    ShutterOpen() float64
-    ShutterClose() float64
-    Film() Film
+	CameraToWorld() *AnimatedTransform
+	ShutterOpen() float64
+	ShutterClose() float64
+	Film() Film
 }
 
 type CameraCore struct {
@@ -94,15 +94,15 @@ type (
 )
 
 func NewPerspectiveCamera(cam2world *AnimatedTransform, screenWindow [4]float64, shutteropen,
-        shutterclose, lensradius, focaldistance, fov float64, film Film) *PerspectiveCamera {
+	shutterclose, lensradius, focaldistance, fov float64, film Film) *PerspectiveCamera {
 	camera := new(PerspectiveCamera)
-	
+
 	// camera core members
 	camera.cameraToWorld = cam2world
 	camera.shutterOpen = shutteropen
 	camera.shutterClose = shutterclose
 	camera.film = film
-	
+
 	// Compute projective camera screen transformations
 	camera.cameraToScreen = PerspectiveTransform(fov, 1.0e-2, 1000.0)
 	camera.screenToRaster = ScaleTransform(float64(film.XResolution()), float64(film.YResolution()), 1.0).MultTransform(
@@ -112,123 +112,123 @@ func NewPerspectiveCamera(cam2world *AnimatedTransform, screenWindow [4]float64,
 	camera.rasterToCamera = InverseTransform(camera.cameraToScreen).MultTransform(camera.rasterToScreen)
 	camera.lensRadius = lensradius
 	camera.focalDistance = focaldistance
-	
-    // Compute differential changes in origin for perspective camera rays
-    camera.dxCamera = *PointTransform(camera.rasterToCamera, CreatePoint(1,0,0)).Sub(PointTransform(camera.rasterToCamera, CreatePoint(0,0,0)))
-    camera.dyCamera = *PointTransform(camera.rasterToCamera, CreatePoint(0,1,0)).Sub(PointTransform(camera.rasterToCamera, CreatePoint(0,0,0)))
-    
+
+	// Compute differential changes in origin for perspective camera rays
+	camera.dxCamera = *PointTransform(camera.rasterToCamera, CreatePoint(1, 0, 0)).Sub(PointTransform(camera.rasterToCamera, CreatePoint(0, 0, 0)))
+	camera.dyCamera = *PointTransform(camera.rasterToCamera, CreatePoint(0, 1, 0)).Sub(PointTransform(camera.rasterToCamera, CreatePoint(0, 0, 0)))
+
 	return camera
 }
 
 func (c *PerspectiveCamera) GenerateRay(sample *Sample) (ray *Ray, weight float64) {
-    // Generate raster and camera samples
-    Pras := CreatePoint(sample.imageX, sample.imageY, 0)
-    Pcamera := PointTransform(c.rasterToCamera, Pras)
-    ray = CreateRay(CreatePoint(0,0,0), NormalizeVector(CreateVectorFromPoint(Pcamera)), 0.0, INFINITY, 0.0, 0)
-    // Modify ray for depth of field
-    if c.lensRadius > 0.0 {
-        // Sample point on lens
-        lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
-        lensU *= c.lensRadius
-        lensV *= c.lensRadius
+	// Generate raster and camera samples
+	Pras := CreatePoint(sample.imageX, sample.imageY, 0)
+	Pcamera := PointTransform(c.rasterToCamera, Pras)
+	ray = CreateRay(CreatePoint(0, 0, 0), NormalizeVector(CreateVectorFromPoint(Pcamera)), 0.0, INFINITY, 0.0, 0)
+	// Modify ray for depth of field
+	if c.lensRadius > 0.0 {
+		// Sample point on lens
+		lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
+		lensU *= c.lensRadius
+		lensV *= c.lensRadius
 
-        // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.Z
-        Pfocus := ray.PointAt(ft)
+		// Compute point on plane of focus
+		ft := c.focalDistance / ray.dir.Z
+		Pfocus := ray.PointAt(ft)
 
-        // Update ray for effect of lens
-        ray.origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
-    }
-    ray.time = sample.time
-    ray = ray.AnimatedTransform(c.cameraToWorld).(*Ray)
-    
-    return ray, 1.0
+		// Update ray for effect of lens
+		ray.origin = *CreatePoint(lensU, lensV, 0.0)
+		ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
+	}
+	ray.time = sample.time
+	ray = ray.AnimatedTransform(c.cameraToWorld).(*Ray)
+
+	return ray, 1.0
 }
 
 func (c *PerspectiveCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferential, weight float64) {
-   // Generate raster and camera samples
-    Pras := CreatePoint(sample.imageX, sample.imageY, 0)
-    Pcamera := PointTransform(c.rasterToCamera, Pras)
-    dir := NormalizeVector(CreateVector(Pcamera.X, Pcamera.Y, Pcamera.Z))
-    ray = CreateRayDifferential(CreatePoint(0,0,0), dir, 0.0, INFINITY, 0.0, 0)
-    // Modify ray for depth of field
-    if c.lensRadius > 0.0 {
-        // Sample point on lens
-        lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
-        lensU *= c.lensRadius
-        lensV *= c.lensRadius
+	// Generate raster and camera samples
+	Pras := CreatePoint(sample.imageX, sample.imageY, 0)
+	Pcamera := PointTransform(c.rasterToCamera, Pras)
+	dir := NormalizeVector(CreateVector(Pcamera.X, Pcamera.Y, Pcamera.Z))
+	ray = CreateRayDifferential(CreatePoint(0, 0, 0), dir, 0.0, INFINITY, 0.0, 0)
+	// Modify ray for depth of field
+	if c.lensRadius > 0.0 {
+		// Sample point on lens
+		lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
+		lensU *= c.lensRadius
+		lensV *= c.lensRadius
 
-        // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.Z
-        Pfocus := ray.PointAt(ft)
+		// Compute point on plane of focus
+		ft := c.focalDistance / ray.dir.Z
+		Pfocus := ray.PointAt(ft)
 
-        // Update ray for effect of lens
-        ray.origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
-    }
+		// Update ray for effect of lens
+		ray.origin = *CreatePoint(lensU, lensV, 0.0)
+		ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
+	}
 
-    // Compute offset rays for _PerspectiveCamera_ ray differentials
-    if c.lensRadius > 0.0 {
-        // Compute _PerspectiveCamera_ ray differentials with defocus blur
+	// Compute offset rays for _PerspectiveCamera_ ray differentials
+	if c.lensRadius > 0.0 {
+		// Compute _PerspectiveCamera_ ray differentials with defocus blur
 
-        // Sample point on lens
-        lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
-        lensU *= c.lensRadius
-        lensV *= c.lensRadius
+		// Sample point on lens
+		lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
+		lensU *= c.lensRadius
+		lensV *= c.lensRadius
 
-        dx := NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dxCamera))
-        ft := c.focalDistance / dx.Z
-        pFocus := CreatePoint(0,0,0).Add(dx.Scale(ft))
-        ray.RxOrigin = *CreatePoint(lensU, lensV, 0.0)
-        ray.RxDirection = *NormalizeVector(pFocus.Sub(&ray.RxOrigin))
+		dx := NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dxCamera))
+		ft := c.focalDistance / dx.Z
+		pFocus := CreatePoint(0, 0, 0).Add(dx.Scale(ft))
+		ray.RxOrigin = *CreatePoint(lensU, lensV, 0.0)
+		ray.RxDirection = *NormalizeVector(pFocus.Sub(&ray.RxOrigin))
 
-        dy := NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dyCamera))
-        ft = c.focalDistance / dy.Z
-        pFocus = CreatePoint(0,0,0).Add(dy.Scale(ft))
-        ray.RyOrigin = *CreatePoint(lensU, lensV, 0.0)
-        ray.RyDirection = *NormalizeVector(pFocus.Sub(&ray.RyOrigin))
-    } else {
-        ray.RxOrigin = ray.origin
-        ray.RyOrigin = ray.origin
-        ray.RxDirection = *NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dxCamera))
-        ray.RyDirection = *NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dyCamera))
-    }
+		dy := NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dyCamera))
+		ft = c.focalDistance / dy.Z
+		pFocus = CreatePoint(0, 0, 0).Add(dy.Scale(ft))
+		ray.RyOrigin = *CreatePoint(lensU, lensV, 0.0)
+		ray.RyDirection = *NormalizeVector(pFocus.Sub(&ray.RyOrigin))
+	} else {
+		ray.RxOrigin = ray.origin
+		ray.RyOrigin = ray.origin
+		ray.RxDirection = *NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dxCamera))
+		ray.RyDirection = *NormalizeVector(CreateVectorFromPoint(Pcamera).Add(&c.dyCamera))
+	}
 
-    ray.time = sample.time
-    ray = ray.AnimatedTransform(c.cameraToWorld).(*RayDifferential)
-    ray.HasDifferentials = true
-    
-    return ray, 1.0
+	ray.time = sample.time
+	ray = ray.AnimatedTransform(c.cameraToWorld).(*RayDifferential)
+	ray.HasDifferentials = true
+
+	return ray, 1.0
 }
 
 func (c *PerspectiveCamera) CameraToWorld() *AnimatedTransform { return c.cameraToWorld }
-func (c *PerspectiveCamera) ShutterOpen() float64 { return c.shutterOpen }
-func (c *PerspectiveCamera) ShutterClose() float64 { return c.shutterClose }
-func (c *PerspectiveCamera) Film() Film { return c.film }
+func (c *PerspectiveCamera) ShutterOpen() float64              { return c.shutterOpen }
+func (c *PerspectiveCamera) ShutterClose() float64             { return c.shutterClose }
+func (c *PerspectiveCamera) Film() Film                        { return c.film }
 
 func NewEnvironmentCamera(cam2world *AnimatedTransform, screenWindow [4]float64, shutteropen,
-        shutterclose float64, film Film) *EnvironmentCamera {
+	shutterclose float64, film Film) *EnvironmentCamera {
 	camera := new(EnvironmentCamera)
-	
+
 	// camera core members
 	camera.cameraToWorld = cam2world
 	camera.shutterOpen = shutteropen
 	camera.shutterClose = shutterclose
 	camera.film = film
-    
+
 	return camera
 }
 
 func (c *EnvironmentCamera) GenerateRay(sample *Sample) (ray *Ray, weight float64) {
-    // Compute environment camera ray direction
-    theta := math.Pi * sample.imageY / float64(c.film.YResolution())
-    phi := 2 * math.Pi * sample.imageX / float64(c.film.XResolution())
-    dir := CreateVector(math.Sin(theta) * math.Cos(phi), math.Cos(theta), math.Sin(theta) * math.Sin(phi))
-    ray = CreateRay(CreatePoint(0,0,0), dir, 0.0, INFINITY, sample.time, 0)
-    ray = ray.AnimatedTransform(c.cameraToWorld).(*Ray)
-    
-    return ray, 1.0
+	// Compute environment camera ray direction
+	theta := math.Pi * sample.imageY / float64(c.film.YResolution())
+	phi := 2 * math.Pi * sample.imageX / float64(c.film.XResolution())
+	dir := CreateVector(math.Sin(theta)*math.Cos(phi), math.Cos(theta), math.Sin(theta)*math.Sin(phi))
+	ray = CreateRay(CreatePoint(0, 0, 0), dir, 0.0, INFINITY, sample.time, 0)
+	ray = ray.AnimatedTransform(c.cameraToWorld).(*Ray)
+
+	return ray, 1.0
 }
 
 func (c *EnvironmentCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferential, weight float64) {
@@ -236,20 +236,20 @@ func (c *EnvironmentCamera) GenerateRayDifferential(sample *Sample) (ray *RayDif
 }
 
 func (c *EnvironmentCamera) CameraToWorld() *AnimatedTransform { return c.cameraToWorld }
-func (c *EnvironmentCamera) ShutterOpen() float64 { return c.shutterOpen }
-func (c *EnvironmentCamera) ShutterClose() float64 { return c.shutterClose }
-func (c *EnvironmentCamera) Film() Film { return c.film }
+func (c *EnvironmentCamera) ShutterOpen() float64              { return c.shutterOpen }
+func (c *EnvironmentCamera) ShutterClose() float64             { return c.shutterClose }
+func (c *EnvironmentCamera) Film() Film                        { return c.film }
 
 func NewOrthoCamera(cam2world *AnimatedTransform, screenWindow [4]float64, shutteropen,
-        shutterclose, lensradius, focaldistance float64, film Film) *OrthoCamera {
+	shutterclose, lensradius, focaldistance float64, film Film) *OrthoCamera {
 	camera := new(OrthoCamera)
-	
+
 	// camera core members
 	camera.cameraToWorld = cam2world
 	camera.shutterOpen = shutteropen
 	camera.shutterClose = shutterclose
 	camera.film = film
-	
+
 	// Compute projective camera screen transformations
 	camera.cameraToScreen = OrthographicTransform(0.0, 1.0)
 	camera.screenToRaster = ScaleTransform(float64(film.XResolution()), float64(film.YResolution()), 1.0).MultTransform(
@@ -259,199 +259,199 @@ func NewOrthoCamera(cam2world *AnimatedTransform, screenWindow [4]float64, shutt
 	camera.rasterToCamera = InverseTransform(camera.cameraToScreen).MultTransform(camera.rasterToScreen)
 	camera.lensRadius = lensradius
 	camera.focalDistance = focaldistance
-	
-    // Compute differential changes in origin for perspective camera rays
-    camera.dxCamera = *VectorTransform(camera.rasterToCamera, CreateVector(1,0,0))
-    camera.dyCamera = *VectorTransform(camera.rasterToCamera, CreateVector(0,1,0))
-    
+
+	// Compute differential changes in origin for perspective camera rays
+	camera.dxCamera = *VectorTransform(camera.rasterToCamera, CreateVector(1, 0, 0))
+	camera.dyCamera = *VectorTransform(camera.rasterToCamera, CreateVector(0, 1, 0))
+
 	return camera
 }
 
-func (c *OrthoCamera) GenerateRay(sample *Sample) (ray *Ray, weight float64) { 
-    // Generate raster and camera samples
-    Pras := CreatePoint(sample.imageX, sample.imageY, 0)
-    Pcamera := PointTransform(c.rasterToCamera, Pras)
-    ray = CreateRay(Pcamera, CreateVector(0,0,1), 0.0, INFINITY, 0.0, 0)
-    // Modify ray for depth of field
-    if c.lensRadius > 0.0 {
-        // Sample point on lens
-        lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
-        lensU *= c.lensRadius
-        lensV *= c.lensRadius
+func (c *OrthoCamera) GenerateRay(sample *Sample) (ray *Ray, weight float64) {
+	// Generate raster and camera samples
+	Pras := CreatePoint(sample.imageX, sample.imageY, 0)
+	Pcamera := PointTransform(c.rasterToCamera, Pras)
+	ray = CreateRay(Pcamera, CreateVector(0, 0, 1), 0.0, INFINITY, 0.0, 0)
+	// Modify ray for depth of field
+	if c.lensRadius > 0.0 {
+		// Sample point on lens
+		lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
+		lensU *= c.lensRadius
+		lensV *= c.lensRadius
 
-        // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.Z
-        Pfocus := ray.PointAt(ft)
+		// Compute point on plane of focus
+		ft := c.focalDistance / ray.dir.Z
+		Pfocus := ray.PointAt(ft)
 
-        // Update ray for effect of lens
-        ray.origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
-    }
-    ray.time = sample.time
-    ray = ray.AnimatedTransform(c.cameraToWorld).(*Ray)
-    
-    return ray, 1.0
+		// Update ray for effect of lens
+		ray.origin = *CreatePoint(lensU, lensV, 0.0)
+		ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
+	}
+	ray.time = sample.time
+	ray = ray.AnimatedTransform(c.cameraToWorld).(*Ray)
+
+	return ray, 1.0
 }
-	
+
 func (c *OrthoCamera) GenerateRayDifferential(sample *Sample) (ray *RayDifferential, weight float64) {
-    // Compute main orthographic viewing ray
+	// Compute main orthographic viewing ray
 
-    // Generate raster and camera samples
-    Pras := CreatePoint(sample.imageX, sample.imageY, 0)
-    Pcamera := PointTransform(c.rasterToCamera, Pras)
-    ray = CreateRayDifferential(Pcamera, CreateVector(0,0,1), 0.0, INFINITY, 0.0, 0)
+	// Generate raster and camera samples
+	Pras := CreatePoint(sample.imageX, sample.imageY, 0)
+	Pcamera := PointTransform(c.rasterToCamera, Pras)
+	ray = CreateRayDifferential(Pcamera, CreateVector(0, 0, 1), 0.0, INFINITY, 0.0, 0)
 
-    // Modify ray for depth of field
-    if c.lensRadius > 0.0 {
-        // Sample point on lens
-        lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
-        lensU *= c.lensRadius
-        lensV *= c.lensRadius
+	// Modify ray for depth of field
+	if c.lensRadius > 0.0 {
+		// Sample point on lens
+		lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
+		lensU *= c.lensRadius
+		lensV *= c.lensRadius
 
-        // Compute point on plane of focus
-        ft := c.focalDistance / ray.dir.Z
-        Pfocus := ray.PointAt(ft)
+		// Compute point on plane of focus
+		ft := c.focalDistance / ray.dir.Z
+		Pfocus := ray.PointAt(ft)
 
-        // Update ray for effect of lens
-        ray.origin = *CreatePoint(lensU, lensV, 0.0)
-        ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
-    }
-    ray.time = sample.time
-    // Compute ray differentials for _OrthoCamera_
-    if c.lensRadius > 0 {
-        // Compute _OrthoCamera_ ray differentials with defocus blur
+		// Update ray for effect of lens
+		ray.origin = *CreatePoint(lensU, lensV, 0.0)
+		ray.dir = *NormalizeVector(Pfocus.Sub(&ray.origin))
+	}
+	ray.time = sample.time
+	// Compute ray differentials for _OrthoCamera_
+	if c.lensRadius > 0 {
+		// Compute _OrthoCamera_ ray differentials with defocus blur
 
-        // Sample point on lens
-        lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
-        lensU *= c.lensRadius
-        lensV *= c.lensRadius
+		// Sample point on lens
+		lensU, lensV := ConcentricSampleDisk(sample.lensU, sample.lensV)
+		lensU *= c.lensRadius
+		lensV *= c.lensRadius
 
-        ft := c.focalDistance / ray.dir.Z
+		ft := c.focalDistance / ray.dir.Z
 
-        pFocus := Pcamera.Add(c.dxCamera.Add(CreateVector(0, 0, 1).Scale(ft)))
-        ray.RxOrigin = *CreatePoint(lensU, lensV, 0.0)
-        ray.RxDirection = *NormalizeVector(pFocus.Sub(&ray.RxOrigin))
+		pFocus := Pcamera.Add(c.dxCamera.Add(CreateVector(0, 0, 1).Scale(ft)))
+		ray.RxOrigin = *CreatePoint(lensU, lensV, 0.0)
+		ray.RxDirection = *NormalizeVector(pFocus.Sub(&ray.RxOrigin))
 
-        pFocus = Pcamera.Add(c.dyCamera.Add(CreateVector(0, 0, 1).Scale(ft)))
-        ray.RyOrigin = *CreatePoint(lensU, lensV, 0.0)
-        ray.RyDirection = *NormalizeVector(pFocus.Sub(&ray.RyOrigin))
-    } else {
-        ray.RxOrigin = *ray.origin.Add(&c.dxCamera)
-        ray.RyOrigin = *ray.origin.Add(&c.dyCamera)
-        ray.RxDirection = ray.dir
-        ray.RyDirection = ray.dir
-    }
-    ray.HasDifferentials = true
+		pFocus = Pcamera.Add(c.dyCamera.Add(CreateVector(0, 0, 1).Scale(ft)))
+		ray.RyOrigin = *CreatePoint(lensU, lensV, 0.0)
+		ray.RyDirection = *NormalizeVector(pFocus.Sub(&ray.RyOrigin))
+	} else {
+		ray.RxOrigin = *ray.origin.Add(&c.dxCamera)
+		ray.RyOrigin = *ray.origin.Add(&c.dyCamera)
+		ray.RxDirection = ray.dir
+		ray.RyDirection = ray.dir
+	}
+	ray.HasDifferentials = true
 	ray = ray.AnimatedTransform(c.cameraToWorld).(*RayDifferential)
-    
-    return ray, 1.0
+
+	return ray, 1.0
 }
 
 func (c *OrthoCamera) CameraToWorld() *AnimatedTransform { return c.cameraToWorld }
-func (c *OrthoCamera) ShutterOpen() float64 { return c.shutterOpen }
-func (c *OrthoCamera) ShutterClose() float64 { return c.shutterClose }
-func (c *OrthoCamera) Film() Film { return c.film }
+func (c *OrthoCamera) ShutterOpen() float64              { return c.shutterOpen }
+func (c *OrthoCamera) ShutterClose() float64             { return c.shutterClose }
+func (c *OrthoCamera) Film() Film                        { return c.film }
 
 func CreatePerspectiveCamera(params *ParamSet, cam2world *AnimatedTransform, film Film) *PerspectiveCamera {
-    // Extract common camera parameters from _ParamSet_
-    shutteropen := params.FindFloatParam("shutteropen", 0.0)
-    shutterclose := params.FindFloatParam("shutterclose", 1.0)
-    if shutterclose < shutteropen {
-        Warning("Shutter close time [%f] < shutter open [%f].  Swapping them.", shutterclose, shutteropen)
-        shutterclose, shutteropen = shutteropen, shutterclose
-    }
-    lensradius := params.FindFloatParam("lensradius", 0.0)
-    focaldistance := params.FindFloatParam("focaldistance", 1.0e30)
-    frame := params.FindFloatParam("frameaspectratio", float64(film.XResolution())/float64(film.YResolution()))
-    var screen [4]float64
-    if frame > 1.0 {
-        screen[0] = -frame
-        screen[1] =  frame
-        screen[2] = -1.0
-        screen[3] =  1.0
-    } else {
-        screen[0] = -1.0
-        screen[1] =  1.0
-        screen[2] = -1.0 / frame
-        screen[3] =  1.0 / frame
-    }
-    sw := params.FindFloatArrayParam("screenwindow")
-    if sw != nil && len(sw) == 4 {
+	// Extract common camera parameters from _ParamSet_
+	shutteropen := params.FindFloatParam("shutteropen", 0.0)
+	shutterclose := params.FindFloatParam("shutterclose", 1.0)
+	if shutterclose < shutteropen {
+		Warning("Shutter close time [%f] < shutter open [%f].  Swapping them.", shutterclose, shutteropen)
+		shutterclose, shutteropen = shutteropen, shutterclose
+	}
+	lensradius := params.FindFloatParam("lensradius", 0.0)
+	focaldistance := params.FindFloatParam("focaldistance", 1.0e30)
+	frame := params.FindFloatParam("frameaspectratio", float64(film.XResolution())/float64(film.YResolution()))
+	var screen [4]float64
+	if frame > 1.0 {
+		screen[0] = -frame
+		screen[1] = frame
+		screen[2] = -1.0
+		screen[3] = 1.0
+	} else {
+		screen[0] = -1.0
+		screen[1] = 1.0
+		screen[2] = -1.0 / frame
+		screen[3] = 1.0 / frame
+	}
+	sw := params.FindFloatArrayParam("screenwindow")
+	if sw != nil && len(sw) == 4 {
 		for i, v := range sw {
 			screen[i] = v
-        }
+		}
 	}
-    fov := params.FindFloatParam("fov", 90.0)
-    halffov := params.FindFloatParam("halffov", -1.0)
-    if halffov > 0.0 {
-        // hack for structure synth, which exports half of the full fov
-        fov = 2.0 * halffov
+	fov := params.FindFloatParam("fov", 90.0)
+	halffov := params.FindFloatParam("halffov", -1.0)
+	if halffov > 0.0 {
+		// hack for structure synth, which exports half of the full fov
+		fov = 2.0 * halffov
 	}
-    return NewPerspectiveCamera(cam2world, screen, shutteropen,
-        shutterclose, lensradius, focaldistance, fov, film)
+	return NewPerspectiveCamera(cam2world, screen, shutteropen,
+		shutterclose, lensradius, focaldistance, fov, film)
 }
 
 func CreateEnvironmentCamera(params *ParamSet, cam2world *AnimatedTransform, film Film) *EnvironmentCamera {
-    // Extract common camera parameters from _ParamSet_
-    shutteropen := params.FindFloatParam("shutteropen", 0.0)
-    shutterclose := params.FindFloatParam("shutterclose", 1.0)
-    if shutterclose < shutteropen {
-        Warning("Shutter close time [%f] < shutter open [%f].  Swapping them.", shutterclose, shutteropen)
-        shutterclose, shutteropen = shutteropen, shutterclose
-    }
-    frame := params.FindFloatParam("frameaspectratio", float64(film.XResolution())/float64(film.YResolution()))
-    var screen [4]float64
-    if frame > 1.0 {
-        screen[0] = -frame
-        screen[1] =  frame
-        screen[2] = -1.0
-        screen[3] =  1.0
-    } else {
-        screen[0] = -1.0
-        screen[1] =  1.0
-        screen[2] = -1.0 / frame
-        screen[3] =  1.0 / frame
-    }
-    sw := params.FindFloatArrayParam("screenwindow")
-    if sw != nil && len(sw) == 4 {
+	// Extract common camera parameters from _ParamSet_
+	shutteropen := params.FindFloatParam("shutteropen", 0.0)
+	shutterclose := params.FindFloatParam("shutterclose", 1.0)
+	if shutterclose < shutteropen {
+		Warning("Shutter close time [%f] < shutter open [%f].  Swapping them.", shutterclose, shutteropen)
+		shutterclose, shutteropen = shutteropen, shutterclose
+	}
+	frame := params.FindFloatParam("frameaspectratio", float64(film.XResolution())/float64(film.YResolution()))
+	var screen [4]float64
+	if frame > 1.0 {
+		screen[0] = -frame
+		screen[1] = frame
+		screen[2] = -1.0
+		screen[3] = 1.0
+	} else {
+		screen[0] = -1.0
+		screen[1] = 1.0
+		screen[2] = -1.0 / frame
+		screen[3] = 1.0 / frame
+	}
+	sw := params.FindFloatArrayParam("screenwindow")
+	if sw != nil && len(sw) == 4 {
 		for i, v := range sw {
 			screen[i] = v
-        }
+		}
 	}
-        
-    return NewEnvironmentCamera(cam2world, screen, shutteropen, shutterclose, film)
+
+	return NewEnvironmentCamera(cam2world, screen, shutteropen, shutterclose, film)
 }
 
 func CreateOrthographicCamera(params *ParamSet, cam2world *AnimatedTransform, film Film) *OrthoCamera {
-    // Extract common camera parameters from _ParamSet_
-   shutteropen := params.FindFloatParam("shutteropen", 0.0)
-    shutterclose := params.FindFloatParam("shutterclose", 1.0)
-    if shutterclose < shutteropen {
-        Warning("Shutter close time [%f] < shutter open [%f].  Swapping them.", shutterclose, shutteropen)
-        shutterclose, shutteropen = shutteropen, shutterclose
-    }
-    lensradius := params.FindFloatParam("lensradius", 0.0)
-    focaldistance := params.FindFloatParam("focaldistance", 1.0e30)
-    frame := params.FindFloatParam("frameaspectratio", float64(film.XResolution())/float64(film.YResolution()))
-    var screen [4]float64
-    if frame > 1.0 {
-        screen[0] = -frame
-        screen[1] =  frame
-        screen[2] = -1.0
-        screen[3] =  1.0
-    } else {
-        screen[0] = -1.0
-        screen[1] =  1.0
-        screen[2] = -1.0 / frame
-        screen[3] =  1.0 / frame
-    }
-    sw := params.FindFloatArrayParam("screenwindow")
-    if sw != nil && len(sw) == 4 {
+	// Extract common camera parameters from _ParamSet_
+	shutteropen := params.FindFloatParam("shutteropen", 0.0)
+	shutterclose := params.FindFloatParam("shutterclose", 1.0)
+	if shutterclose < shutteropen {
+		Warning("Shutter close time [%f] < shutter open [%f].  Swapping them.", shutterclose, shutteropen)
+		shutterclose, shutteropen = shutteropen, shutterclose
+	}
+	lensradius := params.FindFloatParam("lensradius", 0.0)
+	focaldistance := params.FindFloatParam("focaldistance", 1.0e30)
+	frame := params.FindFloatParam("frameaspectratio", float64(film.XResolution())/float64(film.YResolution()))
+	var screen [4]float64
+	if frame > 1.0 {
+		screen[0] = -frame
+		screen[1] = frame
+		screen[2] = -1.0
+		screen[3] = 1.0
+	} else {
+		screen[0] = -1.0
+		screen[1] = 1.0
+		screen[2] = -1.0 / frame
+		screen[3] = 1.0 / frame
+	}
+	sw := params.FindFloatArrayParam("screenwindow")
+	if sw != nil && len(sw) == 4 {
 		for i, v := range sw {
 			screen[i] = v
-        }
+		}
 	}
-        
-    return NewOrthoCamera(cam2world, screen, shutteropen, shutterclose,
-        lensradius, focaldistance, film)
+
+	return NewOrthoCamera(cam2world, screen, shutteropen, shutterclose,
+		lensradius, focaldistance, film)
 }

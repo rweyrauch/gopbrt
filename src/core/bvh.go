@@ -43,7 +43,6 @@ const (
 type SplitMethod int
 
 type (
-
 	BVHAccel struct {
 		PrimitiveData
 		maxPrimsInNode int
@@ -51,7 +50,7 @@ type (
 		primitives     []Primitive
 		nodes          []linearBVHNode
 	}
-	
+
 	sahBucketInfo struct {
 		count  int
 		bounds BBox

@@ -28,9 +28,9 @@ package core
 
 import (
 	"fmt"
+	"github.com/rweyrauch/gopbrt/src/os"
 	"math"
 	"time"
-	"github.com/rweyrauch/gopbrt/src/os"
 )
 
 func TerminalWidth() int {
@@ -42,7 +42,7 @@ type ProgressReporter struct {
 	workDone, totalPlusses int
 	title                  string
 	startTime              time.Time
-	progressQueue		   chan int
+	progressQueue          chan int
 }
 
 func NewProgressReporter(totalwork int, title string, barLength int) *ProgressReporter {
@@ -57,9 +57,9 @@ func NewProgressReporter(totalwork int, title string, barLength int) *ProgressRe
 	pr.workDone = 0
 	pr.startTime = time.Now()
 	pr.progressQueue = make(chan int, 8)
-	
+
 	go pr.updateWorker()
-	
+
 	return pr
 }
 
@@ -73,11 +73,11 @@ func (pr *ProgressReporter) Update(num int) {
 }
 
 func (pr *ProgressReporter) updateWorker() {
-	
+
 	for num := range pr.progressQueue {
-		if num < 0 { 
+		if num < 0 {
 			fmt.Println("")
-			break 
+			break
 		}
 		if num == 0 || options.Quiet {
 			continue
@@ -100,7 +100,7 @@ func (pr *ProgressReporter) updateWorker() {
 			spacesRemaining--
 		}
 		fmt.Print("]")
-	
+
 		// Update elapsed time and estimated time to completion
 		elapsedTime := time.Since(pr.startTime)
 		seconds := elapsedTime.Seconds()

@@ -36,7 +36,7 @@ type Intersection struct {
 
 func NewIntersection() *Intersection {
 	isect := new(Intersection)
-	isect.dg = CreateDiffGeometry(CreatePoint(0,0,0), CreateVector(0,0,0), CreateVector(0,0,0), CreateNormal(0,0,0), CreateNormal(0,0,0), 0.0, 0.0, nil)
+	isect.dg = CreateDiffGeometry(CreatePoint(0, 0, 0), CreateVector(0, 0, 0), CreateVector(0, 0, 0), CreateNormal(0, 0, 0), CreateNormal(0, 0, 0), 0.0, 0.0, nil)
 	isect.primitive = nil
 	isect.WorldToObject = NewTransformExplicit(NewIdentityMatrix4x4(), NewIdentityMatrix4x4())
 	isect.ObjectToWorld = InverseTransform(isect.WorldToObject)

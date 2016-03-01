@@ -27,8 +27,8 @@
 package core
 
 import (
-	"math"
 	"fmt"
+	"math"
 )
 
 type Quaternion struct {

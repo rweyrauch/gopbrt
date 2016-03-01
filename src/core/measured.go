@@ -1,10 +1,10 @@
 package core
 
 import (
-	"os"
-	"math"
-	"path/filepath"
 	"encoding/binary"
+	"math"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -47,12 +47,12 @@ import (
 
   In the file each sample should be scaled by RGB(1500,1500,1500/1.6) of
   the original measurement.  (In order words, the sample values are scaled
-  by the inverse of that as they are read in.  
+  by the inverse of that as they are read in.
 */
 
 func CreateMeasuredMaterial(xform *Transform, mp *TextureParams) *MeasuredMaterial {
-    bumpMap := mp.GetFloatTextureOrNil("bumpmap")
-    return NewMeasuredMaterial(mp.FindFilename("filename", ""), bumpMap)
+	bumpMap := mp.GetFloatTextureOrNil("bumpmap")
+	return NewMeasuredMaterial(mp.FindFilename("filename", ""), bumpMap)
 }
 
 var loadedRegularHalfangle map[string][]float64
@@ -72,127 +72,132 @@ func NewMeasuredMaterial(filename string, bump TextureFloat) *MeasuredMaterial {
 	material.bumpMap = bump
 	material.regularHalfangleData = nil
 	material.thetaPhiData = nil
-	
+
 	suffix := strings.ToLower(filepath.Ext(filename))
 	if len(suffix) == 0 {
-        Error("No suffix in measured BRDF filename \"%s\". Can't determine file type (.brdf / .merl)", filename)	
+		Error("No suffix in measured BRDF filename \"%s\". Can't determine file type (.brdf / .merl)", filename)
 	} else if strings.Compare(suffix, ".brdf") == 0 {
-        // Load $(\theta, \phi)$ measured BRDF data
+		// Load $(\theta, \phi)$ measured BRDF data
 		phiData := loadedThetaPhi[filename]
 		if phiData != nil {
 			material.thetaPhiData = phiData
 			return material
 		}
-			
+
 		ok, values := ReadFloatFile(filename)
 		if !ok {
-            Error("Unable to read BRDF data from file \"%s\"", filename)
-            return material
+			Error("Unable to read BRDF data from file \"%s\"", filename)
+			return material
 		}
 		pos := 0
-		numWls := int(values[pos]); pos++
-		if (len(values)-1-numWls) % (4 + numWls) != 0 {
-           Error("Excess or insufficient data in theta, phi BRDF file \"%s\"", filename)
-           return material
+		numWls := int(values[pos])
+		pos++
+		if (len(values)-1-numWls)%(4+numWls) != 0 {
+			Error("Excess or insufficient data in theta, phi BRDF file \"%s\"", filename)
+			return material
 		}
-		
+
 		wls := make([]float64, 0, numWls)
 		for i := 0; i < numWls; i++ {
 			wls = append(wls, values[pos])
 			pos++
 		}
-		
-        //var bbox BBox
-        samples := make([]NodeData, 0, len(values)-numWls)
-        for pos < len(values) {
-            thetai := values[pos]; pos++
-            phii := values[pos]; pos++
-            thetao := values[pos]; pos++
-            phio := values[pos]; pos++
-            wo := SphericalDirection(math.Sin(thetao), math.Cos(thetao), phio)
-            wi := SphericalDirection(math.Sin(thetai), math.Cos(thetai), phii)
-            s := SpectrumFromSampled(wls, values[pos:pos+numWls])
-            pos += numWls
-            p := BRDFRemap(wo, wi)
-            samples = append(samples, &IrregIsotropicBRDFSample{*p, *s})
-            //bbox = *UnionBBoxPoint(&bbox, p)
-        }
-        material.thetaPhiData = NewKdTree(samples)
-        loadedThetaPhi[filename] = material.thetaPhiData
+
+		//var bbox BBox
+		samples := make([]NodeData, 0, len(values)-numWls)
+		for pos < len(values) {
+			thetai := values[pos]
+			pos++
+			phii := values[pos]
+			pos++
+			thetao := values[pos]
+			pos++
+			phio := values[pos]
+			pos++
+			wo := SphericalDirection(math.Sin(thetao), math.Cos(thetao), phio)
+			wi := SphericalDirection(math.Sin(thetai), math.Cos(thetai), phii)
+			s := SpectrumFromSampled(wls, values[pos:pos+numWls])
+			pos += numWls
+			p := BRDFRemap(wo, wi)
+			samples = append(samples, &IrregIsotropicBRDFSample{*p, *s})
+			//bbox = *UnionBBoxPoint(&bbox, p)
+		}
+		material.thetaPhiData = NewKdTree(samples)
+		loadedThetaPhi[filename] = material.thetaPhiData
 	} else {
-        // Load RegularHalfangle BRDF Data
-        material.nThetaH = 90
-        material.nThetaD = 90
-        material.nPhiD = 180
-        
-        angleData := loadedRegularHalfangle[filename]
-        if angleData != nil {
-            material.regularHalfangleData = angleData
-            return material
-        }
-        
-        fi, err := os.Open(filename)
-        defer fi.Close()
-        if err != nil {
-            Error("Unable to open BRDF data file \"%s\"", filename)
-            return material
-        }
-        
-        var dims [3]int
-        err = binary.Read(fi, binary.LittleEndian, dims)        
-        if err != nil {
-            Error("Premature end-of-file in measured BRDF data file \"%s\"", filename)
-            return material
-        }
-        n := dims[0] * dims[1] * dims[2]
-        if n != material.nThetaH * material.nThetaD * material.nPhiD {
-            Error("Dimensions don't match.")
-            return material
-        }
-        
-        material.regularHalfangleData = make([]float64, 3*n, 3*n)
-        
-        chunkSize := 2*material.nPhiD
-        tmp := make([]float64, chunkSize, chunkSize)
-        nChunks := n / chunkSize
-        Assert((n % chunkSize) == 0)
-        scales := [3]float64{ 1.0/1500.0, 1.15/1500.0, 1.66/1500.0 }
-        for c := 0; c < 3; c++ {
-            offset := 0
-            for i := 0; i < nChunks; i++ {
-                err = binary.Read(fi, binary.LittleEndian, tmp)
-            	if err != nil {
-                    Error("Premature end-of-file in measured BRDF data file \"%s\"", filename)
-                    material.regularHalfangleData = nil
-                    return material
-                }
-                for j := 0; j < chunkSize; j++ {
-                    material.regularHalfangleData[3 * offset + c] = math.Max(0.0, tmp[j] * scales[c])
-                    offset++
-				}                    
-            }
-        }
-        
-        loadedRegularHalfangle[filename] = material.regularHalfangleData		
+		// Load RegularHalfangle BRDF Data
+		material.nThetaH = 90
+		material.nThetaD = 90
+		material.nPhiD = 180
+
+		angleData := loadedRegularHalfangle[filename]
+		if angleData != nil {
+			material.regularHalfangleData = angleData
+			return material
+		}
+
+		fi, err := os.Open(filename)
+		defer fi.Close()
+		if err != nil {
+			Error("Unable to open BRDF data file \"%s\"", filename)
+			return material
+		}
+
+		var dims [3]int
+		err = binary.Read(fi, binary.LittleEndian, dims)
+		if err != nil {
+			Error("Premature end-of-file in measured BRDF data file \"%s\"", filename)
+			return material
+		}
+		n := dims[0] * dims[1] * dims[2]
+		if n != material.nThetaH*material.nThetaD*material.nPhiD {
+			Error("Dimensions don't match.")
+			return material
+		}
+
+		material.regularHalfangleData = make([]float64, 3*n, 3*n)
+
+		chunkSize := 2 * material.nPhiD
+		tmp := make([]float64, chunkSize, chunkSize)
+		nChunks := n / chunkSize
+		Assert((n % chunkSize) == 0)
+		scales := [3]float64{1.0 / 1500.0, 1.15 / 1500.0, 1.66 / 1500.0}
+		for c := 0; c < 3; c++ {
+			offset := 0
+			for i := 0; i < nChunks; i++ {
+				err = binary.Read(fi, binary.LittleEndian, tmp)
+				if err != nil {
+					Error("Premature end-of-file in measured BRDF data file \"%s\"", filename)
+					material.regularHalfangleData = nil
+					return material
+				}
+				for j := 0; j < chunkSize; j++ {
+					material.regularHalfangleData[3*offset+c] = math.Max(0.0, tmp[j]*scales[c])
+					offset++
+				}
+			}
+		}
+
+		loadedRegularHalfangle[filename] = material.regularHalfangleData
 	}
-	return material	
+	return material
 }
 
 func (m *MeasuredMaterial) GetBSDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSDF {
-    // Allocate _BSDF_, possibly doing bump mapping with _bumpMap_
-    var dgs *DifferentialGeometry
-    if m.bumpMap != nil {
-        dgs = Bump(m.bumpMap, dgGeom, dgShading)
-    } else {
-        dgs = dgShading
-    }    
+	// Allocate _BSDF_, possibly doing bump mapping with _bumpMap_
+	var dgs *DifferentialGeometry
+	if m.bumpMap != nil {
+		dgs = Bump(m.bumpMap, dgGeom, dgShading)
+	} else {
+		dgs = dgShading
+	}
 	bsdf := NewBSDF(dgs, dgGeom.nn, 1.0)
-    if m.regularHalfangleData != nil {
-        bsdf.Add(NewRegularHalfangleBRDF(m.regularHalfangleData, m.nThetaH, m.nThetaD, m.nPhiD))
-    } else if m.thetaPhiData != nil {
-        bsdf.Add(NewIrregIsotropicBRDF(m.thetaPhiData))
-    }    
-    return bsdf
+	if m.regularHalfangleData != nil {
+		bsdf.Add(NewRegularHalfangleBRDF(m.regularHalfangleData, m.nThetaH, m.nThetaD, m.nPhiD))
+	} else if m.thetaPhiData != nil {
+		bsdf.Add(NewIrregIsotropicBRDF(m.thetaPhiData))
+	}
+	return bsdf
 }
 func (m *MeasuredMaterial) GetBSSRDF(dgGeom, dgShading *DifferentialGeometry, arena *MemoryArena) *BSSRDF {
 	return nil

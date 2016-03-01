@@ -832,7 +832,7 @@ func CreateStratifiedSampler(params *ParamSet, film Film, camera Camera) *Strati
 	// Initialize common sampler parameters
 	xstart, xend, ystart, yend := film.GetSampleExtent()
 	xsamp := params.FindIntParam("xsamples", 2)
-	ysamp := params.FindIntParam("ysamples", 2)	
+	ysamp := params.FindIntParam("ysamples", 2)
 	if options.QuickRender || options.FastRender {
 		xsamp, ysamp = 1, 1
 	}

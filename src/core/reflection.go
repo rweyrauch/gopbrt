@@ -2,7 +2,7 @@
 	gopbrt
 
 	Port of pbrt v2.0.0 by Matt Pharr and Greg Humphreys to the go language.
-    pbrt source code Copyright(c) 1998-2012 Matt Pharr and Greg Humphreys.
+    	pbrt source code Copyright(c) 1998-2012 Matt Pharr and Greg Humphreys.
 
 	The MIT License (MIT)
 	Copyright (c) 2016 Rick Weyrauch
@@ -28,9 +28,20 @@ package core
 
 import (
 	"math"
+	"fmt"
 )
 
 type BxDFType uint32
+
+func (t BxDFType) String() string {
+	result := ""
+	if t & BSDF_REFLECTION != 0 { result += "BSDF_REFLECTION|" }
+	if t & BSDF_TRANSMISSION != 0 { result += "BSDF_TRANSMISSION|" }
+	if t & BSDF_DIFFUSE != 0 { result += "BSDF_DIFFUSE|" }
+	if t & BSDF_GLOSSY != 0 { result += "BSDF_GLOSSY|" }
+	if t & BSDF_SPECULAR != 0 { result += "BSDF_SPECULAR" }
+	return result
+}
 
 const (
 	BSDF_REFLECTION       BxDFType = 1 << 0
@@ -44,7 +55,7 @@ const (
 	BSDF_ALL                       = BSDF_ALL_REFLECTION | BSDF_ALL_TRANSMISSION
 )
 const (
-	MAX_BxDFS = 8
+	MAX_BxDFS                 = 8
 	DEFAULT_BSDF_SQRT_SAMPLES = 6
 )
 
@@ -78,10 +89,10 @@ type (
 		v Spectrum
 	}
 
-    IrregIsoProc struct {
-    	v Spectrum
-    	sumWeights float64
-    	nFound int
+	IrregIsoProc struct {
+		v          Spectrum
+		sumWeights float64
+		nFound     int
 	}
 
 	MicrofacetDistribution interface {
@@ -162,7 +173,7 @@ type (
 		BxDFData
 		isoBRDFData *KdTree
 	}
-	
+
 	RegularHalfangleBRDF struct { // BxDF
 		BxDFData
 		brdf                    []float64
@@ -183,6 +194,44 @@ type (
 		sigma_a, sigma_prime_s *Spectrum
 	}
 )
+
+func (fresnel *FresnelConductor) String() string {
+	return fmt.Sprintf("frescond[eta:%v k:%v]", fresnel.eta, fresnel.k)
+}
+func (fresnel *FresnelDielectric) String() string {
+	return fmt.Sprintf("fresdiel[etai:%f etat:%f]", fresnel.eta_i, fresnel.eta_t)
+}
+
+func (bsdf *BSDF) String() string {
+	result := fmt.Sprintf("bsdf[eta:%f nn:%v ng:%v sn:%v tn:%v nBxDFs:%d bsdfs:[ ",
+		bsdf.eta, bsdf.nn, bsdf.ng, bsdf.sn, bsdf.tn, bsdf.nBxDFs)
+	for i := 0; i < bsdf.nBxDFs; i++ {
+		result += fmt.Sprintf("%v ", bsdf.bxdfs[i])
+	}
+	result += "]]"
+	return result
+}
+func (bxdfdata *BxDFData) String() string {
+	return fmt.Sprintf("bxdfdata[%v]", bxdfdata.bxdftype)
+}
+func (bxdf *SpecularReflection) String() string {
+	return fmt.Sprintf("specrefl[type:%v R:%v fresnel:%v]", bxdf.bxdftype, bxdf.R, bxdf.fresnel)
+}
+func (bxdf *SpecularTransmission) String() string {
+	return fmt.Sprintf("spectran[type:%v T:%v etai:%f etat:%f fres:%v]", bxdf.bxdftype, bxdf.T, bxdf.etai, bxdf.etat, bxdf.fresnel)
+}
+func (bxdf *Lambertian) String() string {
+	return fmt.Sprintf("lamb[type:%v R:%v]", bxdf.bxdftype, bxdf.R)
+}
+func (bxdf *OrenNayar) String() string {
+	return fmt.Sprintf("orennayar[type:%v R:%v A:%v B:%v]", bxdf.bxdftype, bxdf.R, bxdf.A, bxdf.B)
+}
+func (bxdf *Microfacet) String() string {
+	return fmt.Sprintf("microfacet[type:%v R:%v dist:%v fres:%v]", bxdf.bxdftype, bxdf.R, bxdf.distribution, bxdf.fresnel)
+}
+func (bxdf *FresnelBlend) String() string {
+	return fmt.Sprintf("fresblend[type:%v Rs:%v Rd:%v dist:%v]", bxdf.bxdftype, bxdf.Rs, bxdf.Rd, bxdf.distribution)
+}
 
 func CreateBSDFSampleOffsets(count int, sample *Sample) *BSDFSampleOffsets {
 	return &BSDFSampleOffsets{count, sample.Add1D(count), sample.Add2D(count)}
@@ -343,14 +392,11 @@ func NewBSDF(dg *DifferentialGeometry, ngeom *Normal, eta float64) *BSDF {
 	return bsdf
 }
 
-func (bsdf *BSDF) Sample_f(woW *Vector, bsdfSample *BSDFSample, flags BxDFType) (f *Spectrum, wi *Vector, pdf float64, sampledType BxDFType) {
+func (bsdf *BSDF) Sample_f(woW *Vector, bsdfSample *BSDFSample, flags BxDFType) (f *Spectrum, wiW *Vector, pdf float64, sampledType BxDFType) {
 	// Choose which _BxDF_ to sample
 	matchingComps := bsdf.NumComponentsMatching(flags)
 	if matchingComps == 0 {
-		pdf = 0.0
-		sampledType = BxDFType(0)
-		wi = nil
-		return NewSpectrum1(0.0), wi, pdf, sampledType
+		return NewSpectrum1(0.0), nil, 0.0, BxDFType(0)
 	}
 	which := Mini(Floor2Int(bsdfSample.uComponent*float64(matchingComps)), matchingComps-1)
 	var bxdf BxDF = nil
@@ -369,13 +415,13 @@ func (bsdf *BSDF) Sample_f(woW *Vector, bsdfSample *BSDFSample, flags BxDFType) 
 	// Sample chosen _BxDF_
 	wo := bsdf.WorldToLocal(woW)
 	pdf = 0.0
+	var wi *Vector
 	wi, f, pdf = bxdf.Sample_f(wo, bsdfSample.uDir[0], bsdfSample.uDir[1])
 	if pdf == 0.0 {
-		sampledType = BxDFType(0)
-		return f, wi, pdf, sampledType
+		return NewSpectrum1(0.0), nil, 0.0, BxDFType(0)
 	}
 	sampledType = bxdf.Type()
-	wiW := bsdf.LocalToWorld(wi)
+	wiW = bsdf.LocalToWorld(wi)
 
 	// Compute overall PDF with all matching _BxDF_s
 	if !((bxdf.Type()&BSDF_SPECULAR) == 0 && matchingComps > 1) {
@@ -402,6 +448,7 @@ func (bsdf *BSDF) Sample_f(woW *Vector, bsdfSample *BSDFSample, flags BxDFType) 
 				f = f.Add(bsdf.bxdfs[i].F(wo, wi))
 			}
 		}
+		//		Info("BSDF f: %f flags: %d", f.Y(), flags);
 	}
 	return f, wiW, pdf, sampledType
 }
@@ -787,13 +834,13 @@ func (b *Microfacet) G(wo, wi, wh *Vector) float64 {
 func (iso *IrregIsoProc) isoBRDFProc(p *Point, nodeData NodeData, dist2 float64, maxDistSquared *float64) {
 	sample, ok := nodeData.(*IrregIsotropicBRDFSample)
 	if ok {
-        weight := math.Exp(-100.0 * dist2)
-        iso.v = *iso.v.Add(sample.v.Scale(weight))
-        iso.sumWeights += weight
-        iso.nFound++
-    } else {
-    	Assert(ok == true)
-    }   
+		weight := math.Exp(-100.0 * dist2)
+		iso.v = *iso.v.Add(sample.v.Scale(weight))
+		iso.sumWeights += weight
+		iso.nFound++
+	} else {
+		Assert(ok == true)
+	}
 }
 
 func NewIrregIsotropicBRDF(thetaPhiData *KdTree) *IrregIsotropicBRDF {
@@ -801,88 +848,90 @@ func NewIrregIsotropicBRDF(thetaPhiData *KdTree) *IrregIsotropicBRDF {
 }
 
 func (b *IrregIsotropicBRDF) F(wo, wi *Vector) *Spectrum {
-    m := BRDFRemap(wo, wi)
-    lastMaxDist2 := 0.001
-    for {
-        // Try to find enough BRDF samples around _m_ within search radius
-        var proc IrregIsoProc
-        maxDist2 := lastMaxDist2
-        b.isoBRDFData.Lookup(m, proc.isoBRDFProc, &maxDist2)
-        if proc.nFound > 2 || lastMaxDist2 > 1.5 {
-            return proc.v.Clamp(0.0, INFINITY).InvScale(proc.sumWeights)
-        }    
-        lastMaxDist2 *= 2.0
-    }    	
+	m := BRDFRemap(wo, wi)
+	lastMaxDist2 := 0.001
+	for {
+		// Try to find enough BRDF samples around _m_ within search radius
+		var proc IrregIsoProc
+		maxDist2 := lastMaxDist2
+		b.isoBRDFData.Lookup(m, proc.isoBRDFProc, &maxDist2)
+		if proc.nFound > 2 || lastMaxDist2 > 1.5 {
+			return proc.v.Clamp(0.0, INFINITY).InvScale(proc.sumWeights)
+		}
+		lastMaxDist2 *= 2.0
+	}
 }
 
 func (b *IrregIsotropicBRDF) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
-	return BxDFSample_f(b, wo, u1, u2)	
+	return BxDFSample_f(b, wo, u1, u2)
 }
 func (b *IrregIsotropicBRDF) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
-	return BxDFrho(b, wo, nSamples, samples)	
+	return BxDFrho(b, wo, nSamples, samples)
 }
 func (b *IrregIsotropicBRDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
-	return BxDFrho2(b, nSamples, samples1, samples2)	
+	return BxDFrho2(b, nSamples, samples1, samples2)
 }
 func (b *IrregIsotropicBRDF) Pdf(wi, wo *Vector) float64 {
-	return BxDFPdf(wi, wo)	
+	return BxDFPdf(wi, wo)
 }
 
 func (b *IrregIsotropicBRDF) Type() BxDFType { return b.bxdftype }
-
 
 func NewRegularHalfangleBRDF(regularHalfangleData []float64, nThetaH, nThetaD, nPhiD int) *RegularHalfangleBRDF {
 	return &RegularHalfangleBRDF{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)}, regularHalfangleData, nThetaH, nThetaD, nPhiD}
 }
 
 func (b *RegularHalfangleBRDF) F(WO, WI *Vector) *Spectrum {
-    // Compute $\wh$ and transform $\wi$ to halfangle coordinate system
-    wo, wi := WO, WI
-    wh := wo.Add(wi)
-    if wh.Z < 0.0 {
-        wo = wo.Negate()
-        wi = wi.Negate()
-        wh = wh.Negate()
-    }
-    if wh.X == 0.0 && wh.Y == 0.0 && wh.Z == 0.0 { return NewSpectrum1(0.0) }
-    wh = NormalizeVector(wh)
-    whTheta := SphericalTheta(wh)
-    whCosPhi, whSinPhi := CosPhi(wh), SinPhi(wh)
-    whCosTheta, whSinTheta := CosTheta(wh), SinTheta(wh)
-    whx := CreateVector(whCosPhi * whCosTheta, whSinPhi * whCosTheta, -whSinTheta)
-    why := CreateVector(-whSinPhi, whCosPhi, 0)
-    wd := CreateVector(DotVector(wi, whx), DotVector(wi, why), DotVector(wi, wh))
+	// Compute $\wh$ and transform $\wi$ to halfangle coordinate system
+	wo, wi := WO, WI
+	wh := wo.Add(wi)
+	if wh.Z < 0.0 {
+		wo = wo.Negate()
+		wi = wi.Negate()
+		wh = wh.Negate()
+	}
+	if wh.X == 0.0 && wh.Y == 0.0 && wh.Z == 0.0 {
+		return NewSpectrum1(0.0)
+	}
+	wh = NormalizeVector(wh)
+	whTheta := SphericalTheta(wh)
+	whCosPhi, whSinPhi := CosPhi(wh), SinPhi(wh)
+	whCosTheta, whSinTheta := CosTheta(wh), SinTheta(wh)
+	whx := CreateVector(whCosPhi*whCosTheta, whSinPhi*whCosTheta, -whSinTheta)
+	why := CreateVector(-whSinPhi, whCosPhi, 0)
+	wd := CreateVector(DotVector(wi, whx), DotVector(wi, why), DotVector(wi, wh))
 
-    // Compute _index_ into measured BRDF tables
-    wdTheta, wdPhi := SphericalTheta(wd), SphericalPhi(wd)
-    if wdPhi > math.Pi { wdPhi -= math.Pi }
+	// Compute _index_ into measured BRDF tables
+	wdTheta, wdPhi := SphericalTheta(wd), SphericalPhi(wd)
+	if wdPhi > math.Pi {
+		wdPhi -= math.Pi
+	}
 
-    // Compute indices _whThetaIndex_, _wdThetaIndex_, _wdPhiIndex_
- 	REMAP := func(V, MAX float64, COUNT int) int {
-        return Clampi(int(V / MAX * float64(COUNT)), 0, COUNT-1)
-    }
-    whThetaIndex := REMAP(math.Sqrt(math.Max(0.0, whTheta / (math.Pi / 2.0))), 1.0, b.nThetaH)
-    wdThetaIndex := REMAP(wdTheta, math.Pi / 2.0, b.nThetaD)
-    wdPhiIndex := REMAP(wdPhi, math.Pi, b.nPhiD)
+	// Compute indices _whThetaIndex_, _wdThetaIndex_, _wdPhiIndex_
+	REMAP := func(V, MAX float64, COUNT int) int {
+		return Clampi(int(V/MAX*float64(COUNT)), 0, COUNT-1)
+	}
+	whThetaIndex := REMAP(math.Sqrt(math.Max(0.0, whTheta/(math.Pi/2.0))), 1.0, b.nThetaH)
+	wdThetaIndex := REMAP(wdTheta, math.Pi/2.0, b.nThetaD)
+	wdPhiIndex := REMAP(wdPhi, math.Pi, b.nPhiD)
 
-    index := wdPhiIndex + b.nPhiD * (wdThetaIndex + whThetaIndex * b.nThetaD)
-    return NewSpectrumRGB(b.brdf[3*index], b.brdf[3*index+1], b.brdf[3*index+2])	
+	index := wdPhiIndex + b.nPhiD*(wdThetaIndex+whThetaIndex*b.nThetaD)
+	return NewSpectrumRGB(b.brdf[3*index], b.brdf[3*index+1], b.brdf[3*index+2])
 }
 func (b *RegularHalfangleBRDF) Sample_f(wo *Vector, u1, u2 float64) (wi *Vector, f *Spectrum, pdf float64) {
-	return BxDFSample_f(b, wo, u1, u2)	
+	return BxDFSample_f(b, wo, u1, u2)
 }
 func (b *RegularHalfangleBRDF) Rho(wo *Vector, nSamples int, samples []float64) *Spectrum {
-	return BxDFrho(b, wo, nSamples, samples)	
+	return BxDFrho(b, wo, nSamples, samples)
 }
 func (b *RegularHalfangleBRDF) Rho2(nSamples int, samples1, samples2 []float64) *Spectrum {
-	return BxDFrho2(b, nSamples, samples1, samples2)	
+	return BxDFrho2(b, nSamples, samples1, samples2)
 }
 func (b *RegularHalfangleBRDF) Pdf(wi, wo *Vector) float64 {
-	return BxDFPdf(wi, wo)	
+	return BxDFPdf(wi, wo)
 }
 
 func (b *RegularHalfangleBRDF) Type() BxDFType { return b.bxdftype }
-
 
 func NewFresnelBlend(d, s *Spectrum, dist MicrofacetDistribution) *FresnelBlend {
 	fb := &FresnelBlend{BxDFData{BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)}, d, s, dist}

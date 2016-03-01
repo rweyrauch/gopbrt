@@ -78,7 +78,7 @@ func (r *SamplerRenderer) Render(scene *Scene) {
 
 	reporter := NewProgressReporter(nTasks, "Rendering", -1)
 	for i := 0; i < nTasks; i++ {
-		sampler := r.sampler.GetSubSampler(i, nTasks)		
+		sampler := r.sampler.GetSubSampler(i, nTasks)
 		task := newSamplerRendererTask(scene, r, r.camera, reporter, sampler, sample, r.visualizeObjectIds, nTasks-1-i, nTasks)
 		jobs <- task
 	}
@@ -99,9 +99,9 @@ func (r *SamplerRenderer) Render(scene *Scene) {
 	// close and drain the queue of any unprocessed samples
 	close(producedSamples)
 	for output := range producedSamples {
-		r.camera.Film().AddSample(&output.sample, &output.Li)		
+		r.camera.Film().AddSample(&output.sample, &output.Li)
 	}
-	
+
 	reporter.Done()
 
 	// Clean up after rendering and store final image
@@ -150,7 +150,7 @@ type samplerRendererTask struct {
 }
 type taskOutput struct {
 	sample Sample
-	Li Spectrum
+	Li     Spectrum
 }
 
 func newSamplerRendererTask(scene *Scene, renderer Renderer, camera Camera,
@@ -170,7 +170,7 @@ func samplerRendererWorker(workQueue <-chan *samplerRendererTask, results chan<-
 		// Declare local variables used for rendering loop
 		rng := NewRNG(int64(t.taskNum))
 		hash := adler32.New()
-	
+
 		// Allocate space for samples and intersections
 		maxSamples := t.sampler.MaximumSampleCount()
 		samples := t.origSample.Duplicate(maxSamples)
@@ -178,7 +178,7 @@ func samplerRendererWorker(workQueue <-chan *samplerRendererTask, results chan<-
 		Ls := make([]*Spectrum, maxSamples, maxSamples)
 		Ts := make([]*Spectrum, maxSamples, maxSamples)
 		isects := make([]*Intersection, maxSamples, maxSamples)
-	
+
 		// Get samples from _Sampler_ and update image
 		sampleCount := t.sampler.GetMoreSamples(&samples, rng)
 		for sampleCount > 0 {
@@ -188,7 +188,7 @@ func samplerRendererWorker(workQueue <-chan *samplerRendererTask, results chan<-
 				var rayWeight float64
 				rays[i], rayWeight = t.camera.GenerateRayDifferential(&samples[i])
 				rays[i].ScaleDifferentials(1.0 / math.Sqrt(float64(t.sampler.SamplesPerPixel())))
-	
+
 				// Evaluate radiance along camera ray
 				if t.visualizeObjectIds {
 					if rayWeight > 0.0 {
@@ -218,7 +218,7 @@ func samplerRendererWorker(workQueue <-chan *samplerRendererTask, results chan<-
 						isects[i] = nil
 						Ts[i] = NewSpectrum1(1.0)
 					}
-	
+
 					// Issue warning if unexpected radiance value returned
 					if Ls[i].HasNaNs() {
 						Error("Not-a-number radiance value returned for image sample.  Setting to black.")
@@ -232,14 +232,14 @@ func samplerRendererWorker(workQueue <-chan *samplerRendererTask, results chan<-
 					}
 				}
 			}
-	
+
 			// Report sample results to _Sampler_, add contributions to image
 			if t.sampler.ReportResults(samples, rays, Ls, isects, sampleCount) {
 				for i := 0; i < sampleCount; i++ {
 					results <- taskOutput{samples[i], *Ls[i]}
 				}
 			}
-	
+
 			sampleCount = t.sampler.GetMoreSamples(&samples, rng)
 		}
 		t.reporter.Update(1)

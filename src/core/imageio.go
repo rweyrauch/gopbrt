@@ -31,8 +31,8 @@ import (
 	"github.com/rweyrauch/gopbrt/src/openexr"
 	"image"
 	"image/color"
-	"image/png"
 	"image/jpeg"
+	"image/png"
 	"math"
 	"os"
 	"path/filepath"
@@ -46,7 +46,7 @@ func ReadImage(name string) (pixels []Spectrum, xSize, ySize int) {
 	} else if strings.Compare(ext, ".pfm") == 0 {
 		Warning("PFM file load not implemented.")
 	} else if strings.Compare(ext, ".tga") == 0 {
-		return readImageTga(name) 
+		return readImageTga(name)
 	} else if strings.Compare(ext, ".png") == 0 {
 		return readImagePng(name)
 	} else if strings.Compare(ext, ".jpg") == 0 {
@@ -270,7 +270,7 @@ func readImageExr(filename string) (image []Spectrum, width, height int) {
 				image[i].c[0] = float64(packedPixels[i*channels+0])
 				image[i].c[1] = float64(packedPixels[i*channels+1])
 				image[i].c[2] = float64(packedPixels[i*channels+2])
-			}	
+			}
 		} else { // channels == 1 || channels == 2 (ignore second channel)
 			for i, _ := range image {
 				image[i].c[0] = float64(packedPixels[i*channels])

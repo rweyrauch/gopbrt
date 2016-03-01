@@ -44,10 +44,10 @@ const (
 
 const (
 	TINYEXR_COMPRESSIONTYPE_NONE = 0
-	TINYEXR_COMPRESSIONTYPE_RLE = 1  // not supported yet
+	TINYEXR_COMPRESSIONTYPE_RLE  = 1 // not supported yet
 	TINYEXR_COMPRESSIONTYPE_ZIPS = 2
-	TINYEXR_COMPRESSIONTYPE_ZIP = 3
-	TINYEXR_COMPRESSIONTYPE_PIZ = 4
+	TINYEXR_COMPRESSIONTYPE_ZIP  = 3
+	TINYEXR_COMPRESSIONTYPE_PIZ  = 4
 )
 
 func initEXRImage(exrImage *C.EXRImage) {
@@ -123,7 +123,7 @@ func WriteImageEXR(filename string, width, height, channels int, planarRGBA []fl
 	if channels != 3 {
 		panic("Only 3-channel export implemented.")
 	}
-	
+
 	initEXRImage(&exrImage)
 	defer freeEXRImage(&exrImage)
 
@@ -139,7 +139,7 @@ func WriteImageEXR(filename string, width, height, channels int, planarRGBA []fl
 	}
 	exrImage.pixel_types = (*C.int)(unsafe.Pointer(&pixel_types[0]))
 	exrImage.requested_pixel_types = (*C.int)(unsafe.Pointer(&requested_pixel_types[0]))
-	
+
 	imageR := make([]float32, width*height, width*height)
 	imageG := make([]float32, width*height, width*height)
 	imageB := make([]float32, width*height, width*height)
@@ -153,7 +153,7 @@ func WriteImageEXR(filename string, width, height, channels int, planarRGBA []fl
 	imagePtrs[1] = &imageG[0]
 	imagePtrs[2] = &imageB[0]
 	exrImage.images = (**C.uchar)(unsafe.Pointer(&imagePtrs[0]))
-	
+
 	res, errmsg := saveMultiChannelEXRToFile(&exrImage, filename)
 	if res != 0 {
 		fmt.Printf("Failed to save EXR to file %s.  Error: %s\n", filename, errmsg)

@@ -299,13 +299,13 @@ func (r *RayDifferential) Transform(t *Transform) RayBase {
 
 func BBoxTransform(t *Transform, b *BBox) *BBox {
 	bbox := CreateBBoxFromPoint(PointTransform(t, &b.PMin))
-   	bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMax.X, b.PMin.Y, b.PMin.Z)))
-    bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMin.X, b.PMax.Y, b.PMin.Z)))
-    bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMin.X, b.PMin.Y, b.PMax.Z)))
-    bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMin.X, b.PMax.Y, b.PMax.Z)))
-    bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMax.X, b.PMax.Y, b.PMin.Z)))
-    bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMax.X, b.PMin.Y, b.PMax.Z)))
-    bbox = UnionBBoxPoint(bbox, PointTransform(t, &b.PMax))	
+	bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMax.X, b.PMin.Y, b.PMin.Z)))
+	bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMin.X, b.PMax.Y, b.PMin.Z)))
+	bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMin.X, b.PMin.Y, b.PMax.Z)))
+	bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMin.X, b.PMax.Y, b.PMax.Z)))
+	bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMax.X, b.PMax.Y, b.PMin.Z)))
+	bbox = UnionBBoxPoint(bbox, PointTransform(t, CreatePoint(b.PMax.X, b.PMin.Y, b.PMax.Z)))
+	bbox = UnionBBoxPoint(bbox, PointTransform(t, &b.PMax))
 	return bbox
 }
 
@@ -393,7 +393,7 @@ func LookAtTransform(pos, look *Point, up *Vector) (*Transform, error) {
 	// Initialize first three columns of viewing matrix
 	dir := NormalizeVector(look.Sub(pos))
 	if CrossVector(NormalizeVector(up), dir).Length() == 0 {
-		return nil, fmt.Errorf("\"up\" vector (%f, %f, %f) and viewing direction (%f, %f, %f) passed to LookAt are pointing in the same direction.  Using the identity transformation.", 
+		return nil, fmt.Errorf("\"up\" vector (%f, %f, %f) and viewing direction (%f, %f, %f) passed to LookAt are pointing in the same direction.  Using the identity transformation.",
 			up.X, up.Y, up.Z, dir.X, dir.Y, dir.Z)
 	}
 
@@ -465,9 +465,9 @@ func NewAnimatedTransform(trans1 *Transform, time1 float64, trans2 *Transform, t
 }
 
 func (t *AnimatedTransform) String() string {
-	return fmt.Sprintf("anim trans[t0:%f t1:%f m0:%v m1:%v anim:%v x0:%v x1: %v r0:%v r1:%v s0:%v s1:%v]", 
+	return fmt.Sprintf("anim trans[t0:%f t1:%f m0:%v m1:%v anim:%v x0:%v x1: %v r0:%v r1:%v s0:%v s1:%v]",
 		t.startTime, t.endTime, t.startTransform, t.endTransform, t.actuallyAnimated, t.t[0], t.t[1],
-		t.r[0], t.r[1], t.s[0], t.s[1])	
+		t.r[0], t.r[1], t.s[0], t.s[1])
 }
 
 func DecomposeMatrix4x4(m *Matrix4x4) (*Vector, *Quaternion, *Matrix4x4) {
@@ -545,7 +545,7 @@ func (t *AnimatedTransform) Interpolate(time float64) *Transform {
 		Severe("Scale transform is not invertable. Scale: %v", scale)
 	}
 	rotTrans := rotate.ToTransform()
-	return TranslateTransform(trans).MultTransform(rotTrans.MultTransform(scaleTrans))	
+	return TranslateTransform(trans).MultTransform(rotTrans.MultTransform(scaleTrans))
 }
 
 func VectorAnimatedTransform(t *AnimatedTransform, time float64, v *Vector) *Vector {

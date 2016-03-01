@@ -27,15 +27,15 @@
 package core
 
 import (
-	"testing"
 	"fmt"
 	"path/filepath"
+	"testing"
 )
 
 func TestFloatFileRead(t *testing.T) {
 	var options *Options
 	PbrtInit(options)
-	
+
 	ok, values := ReadFloatFile(filepath.Join("testdata", "test.spd"))
 	if ok {
 		for i, v := range values {
@@ -44,6 +44,6 @@ func TestFloatFileRead(t *testing.T) {
 	} else {
 		t.Fail()
 	}
-	
+
 	PbrtCleanup()
 }

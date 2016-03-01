@@ -759,7 +759,7 @@ func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator {
 	if options.FastRender {
 		nCaustic = nCaustic / 5
 		nIndirect = nIndirect / 5
-		nUsed = Maxi(1, nUsed / 5)		
+		nUsed = Maxi(1, nUsed/5)
 	} else if options.QuickRender {
 		nCaustic = nCaustic / 10
 		nIndirect = nIndirect / 10
@@ -770,7 +770,7 @@ func CreatePhotonMapSurfaceIntegrator(params *ParamSet) *PhotonIntegrator {
 	finalGather := params.FindBoolParam("finalgather", true)
 	gatherSamples := params.FindIntParam("finalgathersamples", 32)
 	if options.FastRender {
-		gatherSamples = Maxi(1, gatherSamples/2)		
+		gatherSamples = Maxi(1, gatherSamples/2)
 	} else if options.QuickRender {
 		gatherSamples = Maxi(1, gatherSamples/4)
 	}

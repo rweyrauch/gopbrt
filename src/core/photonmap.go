@@ -159,7 +159,7 @@ func (integrator *PhotonIntegrator) Preprocess(scene *Scene, camera Camera, rend
 	for w := 0; w < nTasks; w++ {
 		go photonShootingWorker(jobs, completed)
 	}
-	
+
 	progress := NewProgressReporter(integrator.nCausticPhotonsWanted+integrator.nIndirectPhotonsWanted, "Shooting photons", TerminalWidth())
 	for i := 0; i < nTasks; i++ {
 		shooter := newPhotonShootingTask(
@@ -217,7 +217,7 @@ func (integrator *PhotonIntegrator) Preprocess(scene *Scene, camera Camera, rend
 		for w := 0; w < numTasks; w++ {
 			go computeRadianceWorker(jobs, completed)
 		}
-		
+
 		progRadiance := NewProgressReporter(numTasks, "Computing photon radiances", TerminalWidth())
 		for i := 0; i < numTasks; i++ {
 			compRad := newComputeRadianceTask(progRadiance,
@@ -239,7 +239,7 @@ func (integrator *PhotonIntegrator) Preprocess(scene *Scene, camera Camera, rend
 				break
 			}
 		}
-		
+
 		progRadiance.Done()
 		radianceNodeData := make([]NodeData, len(radiancePhotons), len(radiancePhotons))
 		for i, p := range radiancePhotons {
@@ -325,7 +325,7 @@ func (integrator *PhotonIntegrator) Li(scene *Scene, renderer Renderer, ray *Ray
 				for i := 0; i < integrator.gatherSamples; i++ {
 					// Sample random direction from BSDF for final gather ray
 					bsdfSample := CreateBSDFSample(sample, &integrator.bsdfGatherSampleOffsets, i)
-					fr, wi, pdf, _ := bsdf.Sample_f(wo, bsdfSample, BxDFType(BSDF_ALL &^ BSDF_SPECULAR))
+					fr, wi, pdf, _ := bsdf.Sample_f(wo, bsdfSample, BxDFType(BSDF_ALL&^BSDF_SPECULAR))
 					if fr.IsBlack() || pdf == 0.0 {
 						continue
 					}

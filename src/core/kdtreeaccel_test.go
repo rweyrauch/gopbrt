@@ -67,7 +67,7 @@ func TestKdTreeAceel(t *testing.T) {
 	}
 
 	if ok, _ := accel.Intersect(raydiff); ok {
-		fmt.Printf("Ray hit sphere at: %f\n", raydiff.Maxt)
+		fmt.Printf("Ray hit sphere at: %f\n", raydiff.Maxt())
 	} else {
 		t.Fail()
 	}
@@ -81,7 +81,7 @@ func TestKdTreeAceel(t *testing.T) {
 
 	raydiff = CreateRayDifferentialFromRay(ray)
 	if ok, _ := accel.Intersect(raydiff); ok {
-		fmt.Printf("Ray hit sphere at: %f\n", raydiff.Maxt)
+		fmt.Printf("Ray hit sphere at: %f\n", raydiff.Maxt())
 	} else {
 		t.Fail()
 	}
@@ -96,7 +96,7 @@ func TestKdTreeAceel(t *testing.T) {
 	}
 
 	if ok, _ := accel.Intersect(raydiff); ok {
-		fmt.Printf("Ray hit plane at: %f\n", raydiff.Maxt)
+		fmt.Printf("Ray hit plane at: %f\n", raydiff.Maxt())
 	} else {
 		t.Fail()
 	}
